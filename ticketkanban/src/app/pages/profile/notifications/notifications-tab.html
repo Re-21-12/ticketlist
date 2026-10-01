@@ -1,0 +1,74 @@
+<section class="profile-card" aria-labelledby="notifications-title">
+  <header class="tab-header">
+    <div>
+      <h2 id="notifications-title" class="tab-title">Notificaciones</h2>
+      <p class="tab-subtitle" role="status" aria-live="polite">
+        @if (_profileStore.$unreadNotifications() > 0) {
+          Tienes {{ _profileStore.$unreadNotifications() }} sin leer.
+        } @else {
+          Estás al día.
+        }
+      </p>
+    </div>
+    <button
+      type="button"
+      pButton
+      severity="secondary"
+      [outlined]="true"
+      (click)="_profileStore.reloadNotifications()"
+    >
+      <i pButtonIcon class="pi pi-refresh" aria-hidden="true"></i>
+      <span pButtonLabel>Actualizar</span>
+    </button>
+  </header>
+
+  @let state = _profileStore.$notificationsState();
+  @switch (state.kind) {
+    @case ('loading') {
+      <p class="tab-muted" role="status" aria-live="polite">Cargando notificaciones…</p>
+    }
+    @case ('error') {
+      <div role="alert" class="tab-error">
+        <p>No se pudieron cargar tus notificaciones.</p>
+        <button type="button" pButton severity="secondary" (click)="_profileStore.reloadNotifications()">
+          Reintentar
+        </button>
+      </div>
+    }
+    @case ('success') {
+      <ul class="notification-list">
+        @for (item of state.data.data; track item.uuid) {
+          <li class="notification" [class.notification--unread]="!item.readAt">
+            <i [class]="icons[item.type] + ' notification-icon'" aria-hidden="true"></i>
+            <div class="notification-body">
+              <p class="notification-message">
+                @if (!item.readAt) {
+                  <span class="notification-dot" aria-hidden="true"></span>
+                  <span class="sr-only">Sin leer: </span>
+                }
+                {{ item.message }}
+              </p>
+              <p class="notification-date">{{ item.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+            </div>
+            @if (!item.readAt) {
+              <button
+                type="button"
+                pButton
+                size="small"
+                severity="secondary"
+                [outlined]="true"
+                [attr.aria-label]="'Marcar como leída: ' + item.message"
+                (click)="markRead(item.uuid)"
+              >
+                <i pButtonIcon class="pi pi-check" aria-hidden="true"></i>
+                <span pButtonLabel>Marcar leída</span>
+              </button>
+            }
+          </li>
+        } @empty {
+          <li class="tab-muted">No tienes notificaciones.</li>
+        }
+      </ul>
+    }
+  }
+</section>

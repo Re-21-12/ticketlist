@@ -1,0 +1,279 @@
+/* Host = item directo de la grilla de 2 columnas del formulario. `min-width: 0` le deja achicarse
+   al ancho de su columna: sin él, un placeholder largo de un <p-select> fuerza overflow horizontal
+   en el modal (bug real de wallet-api). `container-type` mide la columna real (no el viewport). */
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+/* Colores desde tokens (styles.css): funcionan en claro/oscuro y con el color del usuario. */
+
+/* El ícono de un TEXTAREA va arriba (alineado con la primera línea), no centrado en el alto. */
+p-inputgroup:has(textarea) > p-inputgroup-addon {
+  align-items: flex-start;
+  padding-top: 0.75rem;
+}
+
+/* Campo deshabilitado: los controles de PrimeNG llevan `pointer-events: none`, así que el navegador
+   "ve a través" hacia este contenedor para resolver el cursor; sin esto cae al default. Sin
+   `opacity`: cada componente ya se atenúa solo y duplicarlo dejaría la etiqueta ilegible. */
+:host(.field-disabled) {
+  cursor: not-allowed;
+}
+
+/* El input deshabilitado conserva eventos de mouse: así se puede seleccionar/copiar su texto. */
+:host(.field-disabled) input:disabled,
+:host(.field-disabled) textarea:disabled {
+  pointer-events: auto;
+  cursor: not-allowed;
+  user-select: text;
+}
+
+.df-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── CHECKBOX / TOGGLE: tarjeta clicable (el <label for> es el área de clic) ─────────────────── */
+.df-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  /* Misma altura que un input normal: la tarjeta se alinea con los campos vecinos de la fila. */
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  cursor: pointer;
+  transition: border-color var(--app-motion-fast, 150ms);
+}
+.df-card:hover {
+  border-color: var(--app-primary);
+}
+/* `:focus-within` y no `:focus`: el <label> no recibe foco; el foco real cae en el control interno. */
+.df-card:focus-within {
+  border-color: var(--app-primary);
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 1px;
+}
+:host(.field-disabled) .df-card,
+:host(.field-disabled) .df-radio-card,
+:host(.field-disabled) .df-dropzone {
+  cursor: not-allowed;
+}
+
+.df-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  /* Sin `flex: 1` un hint largo se traslapaba con el control de la derecha en columnas angostas. */
+  flex: 1 1 auto;
+}
+.df-card-description {
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+.df-card p-toggleswitch,
+.df-card p-checkbox {
+  flex-shrink: 0;
+}
+
+/* En móvil la tarjeta pasa a columna: el texto largo lee mejor a todo el ancho, el control debajo. */
+@media (max-width: 640px) {
+  .df-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.625rem;
+  }
+}
+
+/* ── RADIO / RADIO_BUTTON ─────────────────────────────────────────────────────────────────────── */
+.df-radio-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+.df-radio-label {
+  font-size: 0.875rem;
+}
+
+/* Pastillas compactas de una línea en un contenedor `flex-wrap`: cada una mide lo que su contenido
+   necesita y el navegador las reacomoda sola según el ancho (sin columnas fijas que desbordar). */
+.df-radio-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.df-radio-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color var(--app-motion-fast, 150ms),
+    background-color var(--app-motion-fast, 150ms);
+}
+.df-radio-card:hover {
+  border-color: var(--app-primary);
+}
+.df-radio-card:focus-within {
+  border-color: var(--app-primary);
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 1px;
+}
+/* La opción elegida se distingue por borde grueso y fondo, no solo por color (WCAG 1.4.1). */
+.df-radio-card--selected {
+  border-color: var(--app-primary);
+  border-width: 2px;
+  background: color-mix(in srgb, var(--app-primary) 8%, transparent);
+}
+
+/* ── SLIDER / COLOR ───────────────────────────────────────────────────────────────────────────── */
+.df-slider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.df-slider-value {
+  min-width: 2.5rem;
+  text-align: right;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.df-color {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.df-color-value {
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  color: var(--app-text-muted);
+}
+
+/* ── FILE ─────────────────────────────────────────────────────────────────────────────────────── */
+/* Zona de soltar dentro del p-fileupload: borde discontinuo + ícono + formatos aceptados. Es un
+   <button>: alternativa accesible a arrastrar (abre el selector con Enter/Espacio). */
+.df-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 1.5rem 1rem;
+  border: 2px dashed var(--app-border);
+  border-radius: var(--app-radius);
+  background: transparent;
+  color: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--app-motion-fast, 150ms),
+    background-color var(--app-motion-fast, 150ms);
+}
+.df-dropzone:hover:not(:disabled) {
+  border-color: var(--app-primary);
+  background: color-mix(in srgb, var(--app-primary) 8%, transparent);
+}
+.df-dropzone-icon {
+  font-size: 2rem;
+  color: var(--app-text-muted);
+}
+.df-dropzone-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.df-dropzone-sub {
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+
+/* ── IMAGE_UPLOAD ─────────────────────────────────────────────────────────────────────────────── */
+.df-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.df-upload-preview-wrap {
+  position: relative;
+  width: fit-content;
+}
+.df-upload-preview {
+  width: 6rem;
+  height: 6rem;
+  object-fit: cover;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+}
+/* Objetivo táctil ≥ 2.75rem alrededor del botón visible (WCAG 2.5.8). */
+.df-upload-remove {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--app-border);
+  border-radius: 50%;
+  background: var(--app-surface);
+  color: var(--app-danger);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+.df-upload-remove::after {
+  content: '';
+  position: absolute;
+  inset: -0.6rem;
+}
+.df-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.df-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition:
+    border-color var(--app-motion-fast, 150ms),
+    color var(--app-motion-fast, 150ms);
+}
+.df-upload-btn:hover,
+.df-upload-btn:focus-within {
+  border-color: var(--app-primary);
+  color: var(--app-primary);
+}
+.df-upload-btn--loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+.df-upload-hint {
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+.df-upload-error {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--app-danger);
+}

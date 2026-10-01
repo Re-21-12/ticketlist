@@ -1,0 +1,133 @@
+<a class="skip-link" href="#main-content">Saltar al contenido</a>
+
+<div class="app-shell">
+  <aside class="app-sidebar" aria-label="Barra lateral">
+    <p class="app-brand">Ticketit</p>
+    <ng-container *ngTemplateOutlet="navMenu" />
+  </aside>
+
+  <!-- Mobile: drawer por la DERECHA (mano dominante), igual que wallet-api. -->
+  <p-drawer
+    [visible]="$drawerOpen()"
+    (visibleChange)="$drawerOpen.set($event)"
+    position="right"
+    header="Menú"
+    ariaCloseLabel="Cerrar menú"
+  >
+    <ng-container *ngTemplateOutlet="navMenu" />
+  </p-drawer>
+
+  <div class="app-main-column">
+    <header class="app-topbar">
+      <app-breadcrumb class="app-breadcrumb" [$items]="$breadcrumbs()" [$collapseOnMobile]="true" />
+
+      <!-- Selector de rol: SOLO desarrollo. Inicia sesión como el usuario sembrado de ese rol. -->
+      @if (_sessionStore.canSwitchRole) {
+        <div class="app-role-switch">
+          <label for="role-switch" class="app-role-switch-label">Rol de prueba</label>
+          <p-select
+            inputId="role-switch"
+            ariaLabel="Rol de prueba"
+            [options]="roleOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Sin sesión"
+            [ngModel]="_sessionStore.$role()"
+            (ngModelChange)="onRoleChange($event)"
+            [disabled]="$switchingRole()"
+            size="small"
+          />
+        </div>
+      }
+
+      <button
+        type="button"
+        pButton
+        severity="secondary"
+        [text]="true"
+        [attr.aria-pressed]="_themeService.$isDark()"
+        (click)="_themeService.toggle()"
+      >
+        {{ _themeService.$isDark() ? 'Modo claro' : 'Modo oscuro' }}
+      </button>
+
+      @if (_sessionStore.$user(); as user) {
+        <a routerLink="/profile" class="app-user-link app-link--standalone">
+          <app-user-avatar
+            [$icon]="user.avatarIcon ? 'pi ' + user.avatarIcon : null"
+            [$color]="user.avatarColor"
+            [$name]="user.name"
+            [$size]="2"
+          />
+          <span class="app-user-name"><span class="sr-only">Mi perfil: </span>{{ user.name }}</span>
+        </a>
+        <button
+          type="button"
+          pButton
+          severity="secondary"
+          [text]="true"
+          [disabled]="$switchingRole()"
+          (click)="onSignOut()"
+        >
+          Cerrar sesión
+        </button>
+      }
+
+      <!-- El wrapper lleva la visibilidad: el display de .p-button (sin @layer) le gana a una utilidad. -->
+      <div class="app-menu-trigger">
+        <button
+          type="button"
+          pButton
+          severity="secondary"
+          [text]="true"
+          aria-label="Abrir menú"
+          (click)="$drawerOpen.set(true)"
+        >
+          Menú
+        </button>
+      </div>
+    </header>
+
+    <main id="main-content" class="app-content" tabindex="-1">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<ng-template #navMenu>
+  <nav aria-label="Principal" class="app-nav">
+    <ul>
+      @for (node of $navTree(); track node.kind === 'item' ? node.item.key : node.label) {
+        @if (node.kind === 'item') {
+          <li>
+            <ng-container *ngTemplateOutlet="navLink; context: { $implicit: node.item }" />
+          </li>
+        } @else {
+          <li>
+            <p class="app-nav-group">{{ node.label }}</p>
+            <ul>
+              @for (item of node.items; track item.key) {
+                <li>
+                  <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }" />
+                </li>
+              }
+            </ul>
+          </li>
+        }
+      }
+    </ul>
+  </nav>
+</ng-template>
+
+<ng-template #navLink let-item>
+  <a
+    [routerLink]="item.route"
+    routerLinkActive="app-nav-link--active"
+    [routerLinkActiveOptions]="{ exact: true }"
+    ariaCurrentWhenActive="page"
+    class="app-nav-link"
+    (click)="$drawerOpen.set(false)"
+  >
+    {{ item.label }}
+  </a>
+</ng-template>

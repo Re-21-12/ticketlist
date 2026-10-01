@@ -1,0 +1,63 @@
+.dynamic-table-shell {
+  /* Scroll horizontal DENTRO de la tabla si no caben las columnas (no aplastarlas). */
+  overflow-x: auto;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+}
+
+.dt-caption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dt-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.dt-index-cell {
+  width: 3rem;
+  color: var(--app-text-muted);
+}
+
+/* Acciones FIJAS a la derecha: con scroll horizontal, editar/ver nunca queda fuera de vista. */
+:host ::ng-deep .dt-actions-cell {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  text-align: right;
+  background: var(--app-surface);
+  box-shadow: -1px 0 0 var(--app-border);
+}
+
+/* Desktop vs mobile en la MISMA fila (técnica de wallet-api): cada fila tiene sus <td> de
+   columna (.dt-desktop-cell) y un <td> extra con la card (.dt-card-cell). La media query decide
+   cuál se ve — sin JS ni filas duplicadas. `:host ::ng-deep` porque p-table renderiza las
+   filas en su propio template. */
+:host ::ng-deep .dt-card-cell {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  :host ::ng-deep .dt-desktop-cell {
+    display: none;
+  }
+  :host ::ng-deep .dt-card-cell {
+    display: table-cell;
+  }
+  :host ::ng-deep thead .dt-card-cell {
+    /* El encabezado de la columna de cards solo para lectores de pantalla. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  :host ::ng-deep .p-datatable-tbody > tr > .dt-card-cell {
+    padding: 0.5rem;
+    border: none;
+  }
+}

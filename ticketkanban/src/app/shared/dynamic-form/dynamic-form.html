@@ -1,0 +1,117 @@
+@if ($tree(); as formTree) {
+  <form class="flex w-full flex-col gap-6" [formRoot]="formTree">
+    @if (!$sections()) {
+      <div [class]="$gridClass()">
+        <ng-container *ngTemplateOutlet="fieldGrid; context: { $implicit: $fields() }" />
+      </div>
+    } @else if ($layout() === 'stepper') {
+      <p-stepper [(value)]="$activeStep" [linear]="true" class="dynamic-form-stepper">
+        <p-step-list>
+          @for (section of $sections(); track section.key; let i = $index) {
+            <p-step [value]="i + 1">{{ section.label }}</p-step>
+          }
+        </p-step-list>
+        <!-- Solo visible en móvil (ver CSS): `.p-step-title` se oculta ahí para que los círculos
+             quepan sin scroll horizontal y esta etiqueta dice en qué paso está el usuario. -->
+        <p class="dynamic-form-stepper-label" aria-live="polite">{{ $activeSectionLabel() }}</p>
+        <p-step-panels>
+          @for (section of $sections(); track section.key; let i = $index, isLast = $last) {
+            <p-step-panel [value]="i + 1">
+              <ng-template #content let-activateCallback="activateCallback">
+                <div [class]="$gridClass()">
+                  <ng-container
+                    *ngTemplateOutlet="fieldGrid; context: { $implicit: fieldsFor(section) }"
+                  />
+                </div>
+                <div class="mt-6 flex items-center gap-2">
+                  @if (i > 0) {
+                    <button
+                      type="button"
+                      pButton
+                      severity="secondary"
+                      [outlined]="true"
+                      (click)="activateCallback(i)"
+                    >
+                      <i class="pi pi-arrow-left" aria-hidden="true"></i>
+                      Atrás
+                    </button>
+                  }
+                  <div class="ml-auto flex gap-2">
+                    @if ($showClear() && !$readonlyMode()) {
+                      <button
+                        type="button"
+                        pButton
+                        severity="secondary"
+                        [disabled]="!$dirty() || $busy()"
+                        (click)="onClear()"
+                      >
+                        Limpiar
+                      </button>
+                    }
+                    @if (!isLast) {
+                      <button
+                        type="button"
+                        pButton
+                        [disabled]="!sectionValid(section)"
+                        (click)="activateCallback(i + 2)"
+                      >
+                        Siguiente
+                        <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                      </button>
+                    } @else if (!$readonlyMode()) {
+                      <button type="submit" pButton [disabled]="$busy()" [loading]="$busy()">
+                        {{ $submitLabel() }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              </ng-template>
+            </p-step-panel>
+          }
+        </p-step-panels>
+      </p-stepper>
+    } @else {
+      @for (section of $sections(); track section.key) {
+        <section class="flex flex-col gap-3" [attr.aria-labelledby]="'section-' + section.key">
+          <h3 class="dynamic-form-section-title" [id]="'section-' + section.key">{{ section.label }}</h3>
+          <div [class]="$gridClass()">
+            <ng-container *ngTemplateOutlet="fieldGrid; context: { $implicit: fieldsFor(section) }" />
+          </div>
+        </section>
+      }
+    }
+
+    @if (!$readonlyMode() && (!$sections() || $layout() !== 'stepper')) {
+      <div class="flex gap-2">
+        @if ($showClear()) {
+          <button
+            type="button"
+            pButton
+            severity="secondary"
+            class="flex-1"
+            [disabled]="!$dirty() || $busy()"
+            (click)="onClear()"
+          >
+            Limpiar
+          </button>
+        }
+        <button type="submit" pButton class="flex-1" [disabled]="$busy()" [loading]="$busy()">
+          {{ $submitLabel() }}
+        </button>
+      </div>
+    }
+  </form>
+}
+
+<ng-template #fieldGrid let-fieldsToRender>
+  @for (field of fieldsToRender; track field.key) {
+    @if (!isHidden(field.key)) {
+      <app-dynamic-field
+        [$field]="field"
+        [$node]="nodeFor(field.key)"
+        [$constraints]="$constraints().get(field.key)!"
+        [class.md:col-span-2]="field.fullWidth"
+      />
+    }
+  }
+</ng-template>

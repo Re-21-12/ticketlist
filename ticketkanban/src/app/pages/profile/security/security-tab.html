@@ -1,0 +1,23 @@
+<section class="profile-card">
+  <app-form-split
+    [$heading]="'Cambiar contraseña'"
+    [$headingLevel]="'h2'"
+    [$description]="'Al cambiarla, cerramos tus otras sesiones: quien tenga la clave anterior queda fuera.'"
+  >
+    <ul formSplitExtra class="security-tips">
+      <li>Usa una contraseña que no repitas en otros sitios.</li>
+      <li>Si ves una sesión que no reconoces, ciérrala en «Sesiones».</li>
+    </ul>
+
+    @for (key of [$formKey()]; track key) {
+      <app-dynamic-form
+        [$definition]="form"
+        [$submitting]="_profileStore.$changingPassword()"
+        [$submitLabel]="'Cambiar contraseña'"
+        [$showClear]="false"
+        [$singleColumn]="true"
+        ($submitted)="onSubmit($event)"
+      />
+    }
+  </app-form-split>
+</section>

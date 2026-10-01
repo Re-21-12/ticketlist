@@ -1,0 +1,24 @@
+:host {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--avatar-size, 2.25rem);
+  height: var(--avatar-size, 2.25rem);
+  border-radius: 50%;
+  /* Sin color elegido, el del tema; el texto blanco cumple AA sobre `--app-primary` (PrimaryColorService). */
+  background: var(--avatar-bg, var(--app-primary));
+  color: var(--app-primary-contrast, #ffffff);
+  font-size: calc(var(--avatar-size, 2.25rem) * 0.38);
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
+:host([style*='--avatar-bg']) {
+  color: #ffffff;
+}
+
+.user-avatar-icon {
+  font-size: calc(var(--avatar-size, 2.25rem) * 0.45);
+}

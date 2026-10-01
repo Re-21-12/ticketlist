@@ -1,0 +1,595 @@
+@let f = $field();
+
+<!-- Envoltorio de ícono de contexto: un `p-inputgroup` con el ícono como addon si el campo lo tiene.
+     Evita repetir cada control dos veces (con y sin ícono), como hacía wallet-api. -->
+<ng-template #iconWrap let-control>
+  @if ($hasIcon()) {
+    <p-inputgroup class="w-full">
+      <p-inputgroup-addon>
+        <i [class]="$icon()" aria-hidden="true"></i>
+      </p-inputgroup-addon>
+      <ng-container *ngTemplateOutlet="control" />
+    </p-inputgroup>
+  } @else {
+    <ng-container *ngTemplateOutlet="control" />
+  }
+</ng-template>
+
+<!-- Etiqueta estándar de los controles con UN input asociable (`for`/`id`). -->
+<ng-template #label>
+  <app-field-label
+    [$label]="f.label"
+    [$forId]="$fieldId()"
+    [$labelId]="$labelId()"
+    [$required]="$required()"
+  />
+</ng-template>
+
+<!-- Etiqueta de un GRUPO (radios, slider): sin `for`; el grupo la referencia con aria-labelledby. -->
+<ng-template #groupLabel>
+  <app-field-label [$label]="f.label" [$labelId]="$labelId()" [$required]="$required()" />
+</ng-template>
+
+@switch (f.type) {
+  <!-- ── Texto ─────────────────────────────────────────────────────────────────────────────── -->
+  @case (FieldType.TEXT) {
+    <ng-container *ngTemplateOutlet="label" />
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: textControl }" />
+    <ng-template #textControl>
+      <input
+        type="text"
+        pInputText
+        [class.p-invalid]="$showError()"
+        [id]="$fieldId()"
+        [formField]="$anyNode()"
+        [placeholder]="$placeholder()"
+        [attr.autocomplete]="f.autocomplete ?? null"
+        [attr.aria-required]="$required()"
+        [attr.aria-invalid]="$showError()"
+        [attr.aria-describedby]="$describedBy()"
+        (keypress)="onKeypress($event)"
+        (paste)="onPaste($event)"
+        class="w-full"
+      />
+    </ng-template>
+  }
+  @case (FieldType.TEXT_NUMBER) {
+    <ng-container *ngTemplateOutlet="label" />
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: textNumberControl }" />
+    <ng-template #textNumberControl>
+      <input
+        type="text"
+        inputmode="numeric"
+        pInputText
+        [class.p-invalid]="$showError()"
+        [id]="$fieldId()"
+        [formField]="$anyNode()"
+        [placeholder]="$placeholder()"
+        [attr.aria-required]="$required()"
+        [attr.aria-invalid]="$showError()"
+        [attr.aria-describedby]="$describedBy()"
+        (keypress)="onKeypress($event)"
+        (paste)="onPaste($event)"
+        class="w-full"
+      />
+    </ng-template>
+  }
+  @case (FieldType.EMAIL) {
+    <ng-container *ngTemplateOutlet="label" />
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: emailControl }" />
+    <ng-template #emailControl>
+      <input
+        type="email"
+        pInputText
+        [class.p-invalid]="$showError()"
+        [id]="$fieldId()"
+        [formField]="$anyNode()"
+        [placeholder]="$placeholder()"
+        [attr.autocomplete]="f.autocomplete ?? null"
+        [attr.aria-required]="$required()"
+        [attr.aria-invalid]="$showError()"
+        [attr.aria-describedby]="$describedBy()"
+        (keypress)="onKeypress($event)"
+        (paste)="onPaste($event)"
+        class="w-full"
+      />
+    </ng-template>
+  }
+  @case (FieldType.URL) {
+    <ng-container *ngTemplateOutlet="label" />
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: urlControl }" />
+    <ng-template #urlControl>
+      <input
+        type="url"
+        pInputText
+        [class.p-invalid]="$showError()"
+        [id]="$fieldId()"
+        [formField]="$anyNode()"
+        [placeholder]="$placeholder() || 'https://ejemplo.com'"
+        [attr.aria-required]="$required()"
+        [attr.aria-invalid]="$showError()"
+        [attr.aria-describedby]="$describedBy()"
+        class="w-full"
+      />
+    </ng-template>
+  }
+  @case (FieldType.PASSWORD) {
+    <ng-container *ngTemplateOutlet="label" />
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: passwordControl }" />
+    <ng-template #passwordControl>
+      <p-password
+        [inputId]="$fieldId()"
+        [formField]="$anyNode()"
+        [placeholder]="$placeholder()"
+        [toggleMask]="true"
+        [feedback]="false"
+        [autocomplete]="f.autocomplete"
+        styleClass="w-full"
+        inputStyleClass="w-full"
+      />
+    </ng-template>
+  }
+  @case (FieldType.TEXTAREA) {
+    <ng-container *ngTemplateOutlet="label" />
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: textareaControl }" />
+    <ng-template #textareaControl>
+      <!-- pInputText y NO pTextarea: el `Textarea` de optimus-ui 2.0.2 hace
+           `ngControl.valueChanges.subscribe()` en ngOnInit, y el NgControl que provee [formField]
+           (Signal Forms) no tiene `valueChanges` → TypeError al abrir el form. -->
+      <textarea
+        pInputText
+        [class.p-invalid]="$showError()"
+        [id]="$fieldId()"
+        [formField]="$anyNode()"
+        [rows]="f.rows ?? 4"
+        [placeholder]="$placeholder()"
+        [attr.aria-required]="$required()"
+        [attr.aria-invalid]="$showError()"
+        [attr.aria-describedby]="$describedBy()"
+        class="w-full"
+      ></textarea>
+    </ng-template>
+  }
+  @case (FieldType.PHONE) {
+    <ng-container *ngTemplateOutlet="label" />
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: phoneControl }" />
+    <ng-template #phoneControl>
+      <!-- `[pt]` con `inputmode: 'tel'`: p-inputmask nunca lo agrega solo y un atributo plano
+           quedaría en el host, no en el <input> interno que decide el teclado del móvil. -->
+      <p-inputmask
+        [inputId]="$fieldId()"
+        [mask]="f.mask ?? '(999) 999-9999'"
+        [placeholder]="$placeholder() || '(000) 000-0000'"
+        [pt]="{ pcInputText: { root: { inputmode: 'tel' } } }"
+        [ngModel]="$state().value()"
+        (ngModelChange)="onPhoneChange($event)"
+        (onBlur)="markTouched()"
+        [class.p-invalid]="$showError()"
+        styleClass="w-full"
+      />
+    </ng-template>
+  }
+
+  <!-- ── Números ───────────────────────────────────────────────────────────────────────────── -->
+  @case (FieldType.NUMBER) {
+    <ng-container *ngTemplateOutlet="label" />
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: numberControl }" />
+    <ng-template #numberControl>
+      <p-inputnumber
+        [inputId]="$fieldId()"
+        [formField]="$anyNode()"
+        [placeholder]="$placeholder()"
+        [min]="$constraints().minimum"
+        [max]="$constraints().maximum"
+        [showButtons]="true"
+        [showClear]="true"
+        [ariaDescribedBy]="$describedBy() ?? undefined"
+        styleClass="w-full"
+        inputStyleClass="w-full"
+      />
+    </ng-template>
+  }
+  @case (FieldType.INTEGER) {
+    <ng-container *ngTemplateOutlet="label" />
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: integerControl }" />
+    <ng-template #integerControl>
+      <p-inputnumber
+        [inputId]="$fieldId()"
+        [formField]="$anyNode()"
+        [placeholder]="$placeholder()"
+        [min]="$constraints().minimum"
+        [max]="$constraints().maximum"
+        [useGrouping]="false"
+        inputmode="numeric"
+        [showButtons]="true"
+        [showClear]="true"
+        [ariaDescribedBy]="$describedBy() ?? undefined"
+        (keypress)="onKeypress($event)"
+        (paste)="onPaste($event)"
+        styleClass="w-full"
+        inputStyleClass="w-full"
+      />
+    </ng-template>
+  }
+  @case (FieldType.DECIMAL) {
+    <ng-container *ngTemplateOutlet="label" />
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: decimalControl }" />
+    <ng-template #decimalControl>
+      <p-inputnumber
+        [inputId]="$fieldId()"
+        [formField]="$anyNode()"
+        [placeholder]="$placeholder()"
+        [min]="$constraints().minimum"
+        [max]="$constraints().maximum"
+        [minFractionDigits]="2"
+        [maxFractionDigits]="2"
+        inputmode="decimal"
+        [showButtons]="true"
+        [showClear]="true"
+        [ariaDescribedBy]="$describedBy() ?? undefined"
+        (keypress)="onKeypress($event)"
+        (paste)="onPaste($event)"
+        styleClass="w-full"
+        inputStyleClass="w-full"
+      />
+    </ng-template>
+  }
+  @case (FieldType.CURRENCY) {
+    <ng-container *ngTemplateOutlet="label" />
+    <p-inputgroup class="w-full">
+      @if ($hasIcon()) {
+        <p-inputgroup-addon><i [class]="$icon()" aria-hidden="true"></i></p-inputgroup-addon>
+      }
+      <p-inputgroup-addon><span class="select-none font-medium">Q</span></p-inputgroup-addon>
+      <input
+        type="text"
+        inputmode="decimal"
+        pInputText
+        [class.p-invalid]="$showError()"
+        [id]="$fieldId()"
+        [formField]="$anyNode()"
+        [placeholder]="$placeholder() || '0.00'"
+        [attr.aria-required]="$required()"
+        [attr.aria-invalid]="$showError()"
+        [attr.aria-describedby]="$describedBy()"
+        (keypress)="onKeypress($event)"
+        (paste)="onPaste($event)"
+        class="w-full"
+      />
+    </p-inputgroup>
+  }
+  @case (FieldType.SLIDER) {
+    <ng-container *ngTemplateOutlet="groupLabel" />
+    <div class="df-slider">
+      <p-slider
+        [ariaLabelledBy]="$labelId()"
+        [formField]="$anyNode()"
+        [min]="$constraints().minimum ?? 0"
+        [max]="$constraints().maximum ?? 100"
+        [step]="f.step ?? 1"
+        class="flex-1"
+        styleClass="w-full"
+      />
+      <span class="df-slider-value">{{ $state().value() ?? $constraints().minimum ?? 0 }}</span>
+    </div>
+  }
+
+  <!-- ── Fechas ────────────────────────────────────────────────────────────────────────────── -->
+  @case (FieldType.DATE) {
+    <ng-container *ngTemplateOutlet="label" />
+    <p-datepicker
+      [inputId]="$fieldId()"
+      [formField]="$anyNode()"
+      [placeholder]="$placeholder() || 'Selecciona una fecha'"
+      [showIcon]="true"
+      iconDisplay="input"
+      appendTo="body"
+      [view]="f.dateView ?? 'date'"
+      [dateFormat]="$dateFormat()"
+      [minDate]="asDate(f.minDate)"
+      [maxDate]="asDate(f.maxDate)"
+      [showButtonBar]="true"
+      class="w-full"
+      styleClass="w-full"
+    />
+  }
+  @case (FieldType.TIME) {
+    <ng-container *ngTemplateOutlet="label" />
+    <p-datepicker
+      [inputId]="$fieldId()"
+      [formField]="$anyNode()"
+      [placeholder]="$placeholder() || 'Selecciona una hora'"
+      [showIcon]="true"
+      iconDisplay="input"
+      appendTo="body"
+      [timeOnly]="true"
+      hourFormat="24"
+      [showButtonBar]="true"
+      class="w-full"
+      styleClass="w-full"
+    />
+  }
+  @case (FieldType.DATETIME) {
+    <ng-container *ngTemplateOutlet="label" />
+    <p-datepicker
+      [inputId]="$fieldId()"
+      [formField]="$anyNode()"
+      [placeholder]="$placeholder() || 'Selecciona fecha y hora'"
+      [showIcon]="true"
+      iconDisplay="input"
+      appendTo="body"
+      [showTime]="true"
+      hourFormat="24"
+      [dateFormat]="$dateFormat()"
+      [minDate]="asDate(f.minDate)"
+      [maxDate]="asDate(f.maxDate)"
+      [showButtonBar]="true"
+      class="w-full"
+      styleClass="w-full"
+    />
+  }
+  @case (FieldType.DATE_RANGE) {
+    <ng-container *ngTemplateOutlet="label" />
+    <p-datepicker
+      [inputId]="$fieldId()"
+      [formField]="$anyNode()"
+      [placeholder]="$placeholder() || 'Selecciona un rango'"
+      [showIcon]="true"
+      iconDisplay="input"
+      appendTo="body"
+      selectionMode="range"
+      [view]="f.dateView ?? 'date'"
+      [dateFormat]="$dateFormat()"
+      [minDate]="asDate(f.minDate)"
+      [maxDate]="asDate(f.maxDate)"
+      [showButtonBar]="true"
+      class="w-full"
+      styleClass="w-full"
+    />
+  }
+
+  <!-- ── Opciones ──────────────────────────────────────────────────────────────────────────── -->
+  @case (FieldType.SELECT) {
+    <ng-container *ngTemplateOutlet="label" />
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: selectControl }" />
+    <ng-template #selectControl>
+      @if ($useAutocompleteForSelect()) {
+        <!-- Más de 10 opciones: se escribe para filtrar en vez de recorrer una lista larga. El modelo
+             sigue siendo el `value` de la opción; el autocomplete trabaja con el objeto. -->
+        <p-autocomplete
+          [inputId]="$fieldId()"
+          [ngModel]="$selectedOption()"
+          (ngModelChange)="onSelectAutocomplete($event)"
+          [suggestions]="$optionSuggestions()"
+          (completeMethod)="filterOptions($event)"
+          optionLabel="label"
+          [dropdown]="true"
+          dropdownMode="blank"
+          [forceSelection]="true"
+          [disabled]="$isDisabled()"
+          (onBlur)="markTouched()"
+          appendTo="body"
+          styleClass="w-full"
+          [placeholder]="$placeholder() || 'Busca una opción'"
+        />
+      } @else {
+        <p-select
+          [inputId]="$fieldId()"
+          [formField]="$anyNode()"
+          [options]="$options()"
+          optionLabel="label"
+          optionValue="value"
+          [placeholder]="$placeholder() || 'Selecciona una opción'"
+          [showClear]="!$required()"
+          appendTo="body"
+          styleClass="w-full"
+          class="w-full"
+        />
+      }
+    </ng-template>
+  }
+  @case (FieldType.MULTISELECT) {
+    <ng-container *ngTemplateOutlet="label" />
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: multiselectControl }" />
+    <ng-template #multiselectControl>
+      <p-multiselect
+        [inputId]="$fieldId()"
+        [formField]="$anyNode()"
+        [options]="$options()"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+        display="chip"
+        [placeholder]="$placeholder() || 'Selecciona opciones'"
+        class="w-full"
+        styleClass="w-full"
+      />
+    </ng-template>
+  }
+  @case (FieldType.AUTOCOMPLETE) {
+    <ng-container *ngTemplateOutlet="label" />
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: autocompleteControl }" />
+    <ng-template #autocompleteControl>
+      <p-autocomplete
+        [inputId]="$fieldId()"
+        [formField]="$anyNode()"
+        [suggestions]="$textSuggestions()"
+        (completeMethod)="filterText($event)"
+        [placeholder]="$placeholder() || 'Busca una opción'"
+        [dropdown]="$options().length > 0"
+        appendTo="body"
+        styleClass="w-full"
+      />
+    </ng-template>
+  }
+  @case (FieldType.RADIO) {
+    <ng-container *ngTemplateOutlet="groupLabel" />
+    <div class="df-radio-list" role="radiogroup" [attr.aria-labelledby]="$labelId()">
+      @for (option of $options(); track option.value) {
+        <div class="df-inline">
+          <p-radiobutton
+            [formField]="$anyNode()"
+            [inputId]="$fieldId() + '-' + option.value"
+            [value]="option.value"
+          />
+          <label class="df-radio-label" [for]="$fieldId() + '-' + option.value">{{ option.label }}</label>
+        </div>
+      }
+    </div>
+  }
+  @case (FieldType.RADIO_BUTTON) {
+    <ng-container *ngTemplateOutlet="groupLabel" />
+    <!-- Cada opción es una pastilla: el <label> completo es el área de clic. -->
+    <div class="df-radio-cards" role="radiogroup" [attr.aria-labelledby]="$labelId()">
+      @for (option of $options(); track option.value) {
+        <label
+          class="df-radio-card"
+          [class.df-radio-card--selected]="$state().value() === option.value"
+          [for]="$fieldId() + '-' + option.value"
+        >
+          <p-radiobutton
+            [formField]="$anyNode()"
+            [inputId]="$fieldId() + '-' + option.value"
+            [value]="option.value"
+          />
+          @if (option.icon) {
+            <i [class]="option.icon" aria-hidden="true"></i>
+          }
+          <span>{{ option.label }}</span>
+        </label>
+      }
+    </div>
+  }
+
+  <!-- ── Booleanos ─────────────────────────────────────────────────────────────────────────── -->
+  @case (FieldType.CHECKBOX) {
+    <app-field-label
+      [$label]="f.label"
+      [$forId]="$fieldId()"
+      [$required]="$required()"
+      [$icon]="$icon()"
+    />
+    <label class="df-card" [for]="$fieldId()">
+      <span class="df-card-text">
+        @if (f.hint) {
+          <span class="df-card-description">{{ f.hint }}</span>
+        }
+      </span>
+      <p-checkbox [formField]="$anyNode()" [binary]="true" [inputId]="$fieldId()" />
+    </label>
+  }
+  @case (FieldType.TOGGLE) {
+    <app-field-label
+      [$label]="f.label"
+      [$forId]="$fieldId()"
+      [$required]="$required()"
+      [$icon]="$icon()"
+    />
+    <label class="df-card" [for]="$fieldId()">
+      <span class="df-card-text">
+        <!-- Sin hint, el estado dice qué significa «activado» («Sí, uso insulina» / «No»). -->
+        <span class="df-card-description">{{ f.hint || $toggleLabel() }}</span>
+      </span>
+      <p-toggleswitch [formField]="$anyNode()" [inputId]="$fieldId()" />
+    </label>
+  }
+  @case (FieldType.TOGGLE_BUTTON) {
+    <ng-container *ngTemplateOutlet="label" />
+    <p-togglebutton
+      [inputId]="$fieldId()"
+      [formField]="$anyNode()"
+      [onLabel]="f.toggleLabels?.on ?? 'Sí'"
+      [offLabel]="f.toggleLabels?.off ?? 'No'"
+      onIcon="pi pi-check"
+      offIcon="pi pi-times"
+    />
+  }
+
+  <!-- ── Archivos y color ──────────────────────────────────────────────────────────────────── -->
+  @case (FieldType.COLOR) {
+    <ng-container *ngTemplateOutlet="label" />
+    <div class="df-color">
+      <p-colorpicker [inputId]="$fieldId()" [formField]="$anyNode()" format="hex" appendTo="body" />
+      @if ($colorValue()) {
+        <span class="df-color-value">{{ $colorValue() }}</span>
+      }
+    </div>
+  }
+  @case (FieldType.FILE) {
+    <ng-container *ngTemplateOutlet="label" />
+    <!-- La subida la hace el formulario (Guardar es `type="submit"`): `customUpload` evita cualquier
+         POST del picker, y el valor del nodo (File | null) es la única fuente de verdad. -->
+    <p-fileupload
+      #fileUploadRef
+      mode="advanced"
+      [customUpload]="true"
+      [multiple]="false"
+      [accept]="f.accept ?? ''"
+      [files]="$fileList()"
+      [disabled]="$isDisabled()"
+      [showUploadButton]="false"
+      [showCancelButton]="false"
+      chooseLabel="Elegir archivo"
+      chooseIcon="pi pi-cloud-upload"
+      invalidFileTypeMessageSummary="Formato no permitido"
+      invalidFileTypeMessageDetail="Solo se admiten: {0}"
+      invalidFileSizeMessageSummary="Archivo demasiado grande"
+      invalidFileSizeMessageDetail="El tamaño máximo es {0}"
+      (onSelect)="onFileSelect($event)"
+      (onRemove)="onFileRemove()"
+      (onClear)="onFileRemove()"
+      styleClass="w-full"
+    >
+      <ng-template #empty>
+        <!-- Zona de soltar: el clic abre el selector (alternativa accesible al arrastrar). -->
+        <button type="button" class="df-dropzone" [disabled]="$isDisabled()" (click)="fileUploadRef.choose()">
+          <i class="pi pi-cloud-upload df-dropzone-icon" aria-hidden="true"></i>
+          <span class="df-dropzone-title">Arrastra y suelta tu archivo aquí</span>
+          <span class="df-dropzone-sub">o haz clic para elegir · {{ $acceptedFormats() }}</span>
+        </button>
+      </ng-template>
+    </p-fileupload>
+  }
+  @case (FieldType.IMAGE_UPLOAD) {
+    <ng-container *ngTemplateOutlet="label" />
+    <div class="df-upload">
+      @if ($imagePreview()) {
+        <div class="df-upload-preview-wrap">
+          <img [src]="$imagePreview()" class="df-upload-preview" alt="Vista previa" loading="lazy" />
+          <button type="button" class="df-upload-remove" (click)="removeImage()" aria-label="Quitar imagen">
+            <i class="pi pi-times" aria-hidden="true"></i>
+          </button>
+        </div>
+      }
+      <div class="df-upload-actions">
+        <label class="df-upload-btn" [class.df-upload-btn--loading]="$uploading()">
+          <i [class]="$uploading() ? 'pi pi-spin pi-spinner' : 'pi pi-upload'" aria-hidden="true"></i>
+          {{ $uploading() ? 'Subiendo…' : $imagePreview() ? 'Cambiar' : 'Seleccionar imagen' }}
+          <input
+            type="file"
+            [id]="$fieldId()"
+            accept="image/*"
+            [disabled]="$uploading()"
+            (change)="onImageSelected($event)"
+            class="sr-only"
+          />
+        </label>
+        <span class="df-upload-hint">PNG, JPG, WEBP · máx. 2 MB</span>
+      </div>
+      @if ($uploadError()) {
+        <p class="df-upload-error" role="alert">{{ $uploadError() }}</p>
+      }
+    </div>
+  }
+}
+
+<app-field-footer
+  [$hint]="$footerHint()"
+  [$hintId]="$hintId()"
+  [$errorMessage]="$errorMessage()"
+  [$errorId]="$errorId()"
+  [$showError]="$showError()"
+  [$disabledReasons]="$disabledReasons()"
+  [$currentLength]="$currentLength()"
+  [$maxLength]="$maxLength()"
+/>

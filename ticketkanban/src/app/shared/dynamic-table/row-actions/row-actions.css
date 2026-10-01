@@ -1,0 +1,7 @@
+/* Regla de wallet-api: las acciones de una fila/card van SIEMPRE a la derecha. */
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

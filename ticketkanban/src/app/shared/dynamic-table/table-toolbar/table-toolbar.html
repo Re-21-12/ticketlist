@@ -1,0 +1,28 @@
+<div class="table-toolbar">
+  <div class="table-toolbar-search">
+    <label [for]="$searchId()" class="sr-only">Buscar</label>
+    <input
+      pInputText
+      type="search"
+      [id]="$searchId()"
+      placeholder="Buscar…"
+      autocomplete="off"
+      (input)="onSearchInput($any($event.target).value)"
+    />
+  </div>
+  <div class="table-toolbar-actions">
+    <button
+      type="button"
+      pButton
+      severity="secondary"
+      [outlined]="true"
+      [loading]="$refreshing()"
+      (click)="$refresh.emit()"
+    >
+      Refrescar
+    </button>
+    @if ($canCreate()) {
+      <button type="button" pButton (click)="$create.emit()">{{ $createLabel() }}</button>
+    }
+  </div>
+</div>

@@ -1,0 +1,22 @@
+<article class="dt-card" [attr.aria-label]="$rowLabel()">
+  <dl class="dt-card-fields">
+    @for (column of $columns(); track column.field) {
+      <div class="dt-card-field">
+        <dt>{{ column.header }}</dt>
+        <dd><app-table-cell [$row]="$row()" [$column]="column" /></dd>
+      </div>
+    }
+  </dl>
+  <footer>
+    <app-row-actions
+      [$row]="$row()"
+      [$subject]="$subject()"
+      [$actions]="$actions()"
+      [$rowLabel]="$rowLabel()"
+      [$busy]="$busy()"
+      ($view)="$view.emit($event)"
+      ($edit)="$edit.emit($event)"
+      ($delete)="$delete.emit($event)"
+    />
+  </footer>
+</article>

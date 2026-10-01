@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Ticketit</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <!-- Aplica el tema guardado ANTES de que Angular arranque (sin destello del tema equivocado).
+       Misma clave y clase que core/theme/theme.constants.ts (THEME_STORAGE_KEY / DARK_MODE_CLASS). -->
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem('ticketit_theme');
+        var dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (dark) document.documentElement.classList.add('app-dark');
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>

@@ -1,0 +1,34 @@
+.breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+.breadcrumb-list--collapse {
+  display: none;
+}
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+/* Enlace embebido: color principal del usuario + subrayado que lo sigue (`.app-link` en styles.css). */
+.breadcrumb-link:hover {
+  text-decoration-thickness: 2px;
+}
+.breadcrumb-current {
+  font-weight: 600;
+}
+.breadcrumb-separator {
+  color: var(--app-text-muted);
+}
+
+@media (min-width: 640px) {
+  .breadcrumb-list--collapse {
+    display: flex;
+  }
+}

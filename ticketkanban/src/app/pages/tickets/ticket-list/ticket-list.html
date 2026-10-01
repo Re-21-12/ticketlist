@@ -1,0 +1,25 @@
+<header class="ticket-list-header">
+  <h1>Listado</h1>
+  <p>Paginación y búsqueda en el servidor. En pantallas angostas cada fila se muestra como tarjeta.</p>
+</header>
+
+@if ($failed()) {
+  <p class="ticket-list-error" role="alert">No se pudo cargar el listado.</p>
+}
+
+<app-dynamic-table
+  [$config]="tableConfig"
+  [$rows]="$rows()"
+  [$totalRecords]="$total()"
+  [$page]="_ticketsStore.$listPagination().page"
+  [$take]="_ticketsStore.$listPagination().take"
+  [$loading]="$loading()"
+  [$busy]="_ticketsStore.$saving()"
+  ($pageChange)="onPage($event)"
+  ($searchChange)="_ticketsStore.setListSearch($event)"
+  ($refresh)="_ticketsStore.reload()"
+  ($create)="onCreate()"
+  ($view)="onView($event)"
+  ($edit)="onEdit($event)"
+  ($delete)="onDelete($event)"
+/>

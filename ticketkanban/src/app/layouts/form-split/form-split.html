@@ -1,0 +1,18 @@
+<aside class="form-split-aside">
+  <ng-content select="[formSplitArt]" />
+  <div>
+    @if ($headingLevel() === 'h2') {
+      <h2 class="form-split-title">{{ $heading() }}</h2>
+    } @else {
+      <h1 class="form-split-title">{{ $heading() }}</h1>
+    }
+    @if ($description()) {
+      <p class="form-split-description">{{ $description() }}</p>
+    }
+  </div>
+  <ng-content select="[formSplitExtra]" />
+</aside>
+
+<div class="form-split-form">
+  <ng-content />
+</div>

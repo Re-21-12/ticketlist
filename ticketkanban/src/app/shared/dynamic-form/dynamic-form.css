@@ -1,0 +1,35 @@
+:host {
+  display: block;
+}
+
+/* Campo «huérfano» de la última fila de la grilla de 2 columnas: con `revealField` la cantidad de
+   campos visibles cambia en runtime (un toggle revela otro campo), así que un form que hoy cae en par
+   puede quedar impar. Los campos ocultos se quitan del DOM con `@if` (no `display: none`), así que
+   `nth-child` ya los ignora. Si el ÚLTIMO visible cae en posición impar (nadie a su derecha) ocupa las
+   2 columnas en vez de dejar un hueco. Bajo `md:` (768 px) ya es una columna: no hay huérfano posible. */
+@media (min-width: 768px) {
+  .dynamic-form-grid > app-dynamic-field:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+.dynamic-form-section-title {
+  margin: 0.5rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Nombre del paso activo: reemplaza a `.p-step-title` en móvil (oculto en desktop, donde cada círculo
+   ya trae su título). */
+.dynamic-form-stepper-label {
+  display: none;
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .dynamic-form-stepper-label {
+    display: block;
+  }
+}

@@ -1,0 +1,32 @@
+/* Altura mínima reservada: sin ella, un error que aparece empuja los campos de abajo. */
+.ff {
+  min-height: 1.25rem;
+}
+
+.ff-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* El hint/error cede ancho y hace wrap; el contador nunca se parte ni se encoge. */
+.ff-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ff-counter {
+  margin-inline-start: auto;
+  flex: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cerca del límite: color de aviso + peso, no solo color (WCAG 1.4.1). */
+.ff-counter--near {
+  font-weight: 700;
+  color: var(--app-danger);
+}

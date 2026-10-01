@@ -1,0 +1,101 @@
+@let config = $config();
+
+<section class="dynamic-table-shell" [attr.aria-labelledby]="tableId + '-caption'">
+  <p-table
+    [value]="$rows()"
+    [lazy]="true"
+    [paginator]="true"
+    [rows]="$take()"
+    [first]="$first()"
+    [totalRecords]="$totalRecords()"
+    [loading]="$loading()"
+    [rowsPerPageOptions]="config.rowsPerPageOptions ?? [5, 10, 20]"
+    paginatorDropdownAppendTo="body"
+    [dataKey]="$rowIdField()"
+    [rowTrackBy]="rowTrackBy"
+    [showCurrentPageReport]="true"
+    currentPageReportTemplate="{first} - {last} de {totalRecords}"
+    size="small"
+    (onLazyLoad)="onLazyLoad($event)"
+  >
+    <ng-template #caption>
+      <div class="dt-caption">
+        <h2 [id]="tableId + '-caption'" class="dt-title">{{ config.caption }}</h2>
+        <app-table-toolbar
+          [$searchId]="tableId + '-search'"
+          [$canCreate]="$canCreate()"
+          [$createLabel]="config.createLabel ?? 'Nuevo'"
+          [$refreshing]="$loading()"
+          ($searchChange)="$searchChange.emit($event)"
+          ($create)="$create.emit()"
+          ($refresh)="$refresh.emit()"
+        />
+      </div>
+    </ng-template>
+
+    <ng-template #header>
+      <tr>
+        <th scope="col" class="dt-index-cell dt-desktop-cell">#</th>
+        @for (column of config.columns; track column.field) {
+          <th scope="col" class="dt-desktop-cell">{{ column.header }}</th>
+        }
+        <th scope="col" class="dt-desktop-cell dt-actions-cell">Acciones</th>
+        <!-- Encabezado de la columna de cards (solo mobile). -->
+        <th scope="col" class="dt-card-cell">{{ config.caption }}</th>
+      </tr>
+    </ng-template>
+
+    <ng-template #body let-row let-rowIndex="rowIndex">
+      <tr>
+        <td class="dt-index-cell dt-desktop-cell">{{ $first() + rowIndex + 1 }}</td>
+        @for (column of config.columns; track column.field) {
+          <td class="dt-desktop-cell"><app-table-cell [$row]="row" [$column]="column" /></td>
+        }
+        <td class="dt-desktop-cell dt-actions-cell">
+          <app-row-actions
+            [$row]="row"
+            [$subject]="config.subject"
+            [$actions]="$actions()"
+            [$rowLabel]="rowLabel(row)"
+            [$busy]="$busy()"
+            ($view)="$view.emit($event)"
+            ($edit)="$edit.emit($event)"
+            ($delete)="$delete.emit($event)"
+          />
+        </td>
+        <td class="dt-card-cell" [attr.colspan]="$colspan()">
+          <app-table-row-card
+            [$row]="row"
+            [$columns]="config.columns"
+            [$subject]="config.subject"
+            [$actions]="$actions()"
+            [$rowLabel]="rowLabel(row)"
+            [$busy]="$busy()"
+            ($view)="$view.emit($event)"
+            ($edit)="$edit.emit($event)"
+            ($delete)="$delete.emit($event)"
+          />
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template #emptymessage>
+      <tr>
+        <td [attr.colspan]="$colspan()"><app-table-empty-state /></td>
+      </tr>
+    </ng-template>
+
+    <ng-template #loadingbody>
+      @for (i of $skeletonRows(); track i) {
+        <tr>
+          <td class="dt-index-cell dt-desktop-cell"><p-skeleton width="1.25rem" /></td>
+          @for (column of config.columns; track column.field) {
+            <td class="dt-desktop-cell"><p-skeleton /></td>
+          }
+          <td class="dt-desktop-cell"><p-skeleton width="5rem" /></td>
+          <td class="dt-card-cell"><p-skeleton height="6rem" /></td>
+        </tr>
+      }
+    </ng-template>
+  </p-table>
+</section>

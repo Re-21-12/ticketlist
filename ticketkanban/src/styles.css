@@ -1,0 +1,195 @@
+@import 'tailwindcss';
+/* Iconos de contexto de los campos (mismo set que wallet-api). */
+@import 'primeicons/primeicons.css' layer(components);
+
+/* Modo oscuro de Tailwind ligado a la MISMA clase que optimus-ui (`darkModeSelector`). */
+@custom-variant dark (&:where(.app-dark, .app-dark *));
+
+/* ── Tokens semánticos de la app ─────────────────────────────────────────────────────────────
+   Mapean a los tokens de optimus-ui (Aura), que ya cambian solos con `.app-dark` y con el color
+   primario elegido por el usuario (PrimaryColorService). Los componentes usan ESTOS nombres en
+   su .css, nunca un color fijo — así claro/oscuro/color de marca funcionan en todo el shell.
+   Contraste: text/muted sobre bg/surface cumplen WCAG AA en ambos modos (Aura surface 0/950). */
+:root {
+  --app-bg: var(--p-surface-50);
+  --app-surface: var(--p-content-background);
+  --app-surface-muted: var(--p-surface-100);
+  --app-border: var(--p-content-border-color);
+  --app-text: var(--p-text-color);
+  --app-text-muted: var(--p-text-muted-color);
+  --app-primary: var(--p-primary-color);
+  --app-primary-contrast: var(--p-primary-contrast-color);
+  --app-danger: var(--p-red-700);
+  --app-focus-ring: var(--p-primary-color);
+  --app-radius: 0.75rem;
+  /* Movimiento (WCAG 2.2.2 / 2.3.3): cortos, sin rebotes, y anulados con «reducir movimiento». */
+  --app-motion-fast: 150ms;
+  --app-motion-base: 220ms;
+  --app-motion-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+.app-dark {
+  --app-bg: var(--p-surface-950);
+  --app-surface: var(--p-surface-900);
+  --app-surface-muted: var(--p-surface-800);
+  --app-danger: var(--p-red-300);
+}
+
+html,
+body {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+/* Foco visible en TODO elemento interactivo (WCAG 2.4.7). */
+:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Animaciones de entrada/salida de Angular (`animate.enter` / `animate.leave`, API nativa de
+   Angular 20.2+; `@angular/animations` está deprecado). Angular agrega la clase, espera a que la
+   animación CSS termine y la quita (o recién entonces saca el nodo del DOM, en leave). */
+.app-enter-fade {
+  animation: app-fade-in var(--app-motion-base) var(--app-motion-ease);
+}
+.app-enter-rise {
+  animation: app-rise-in var(--app-motion-base) var(--app-motion-ease);
+}
+.app-leave-fade {
+  animation: app-fade-out var(--app-motion-fast) var(--app-motion-ease) forwards;
+}
+@keyframes app-fade-in {
+  from { opacity: 0; }
+}
+@keyframes app-rise-in {
+  from { opacity: 0; transform: translateY(0.5rem); }
+}
+@keyframes app-fade-out {
+  to { opacity: 0; }
+}
+
+/* Transición entre rutas (router `withViewTransitions`). Solo el contenido principal: sidebar y
+   topbar no se mueven (evita que toda la pantalla "parpadee"). */
+.app-content {
+  view-transition-name: app-content;
+}
+::view-transition-old(app-content) {
+  animation: app-fade-out var(--app-motion-fast) var(--app-motion-ease) both;
+}
+::view-transition-new(app-content) {
+  animation: app-rise-in var(--app-motion-base) var(--app-motion-ease) both;
+}
+
+/* Respeta "reducir movimiento" del SO (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  /* Los pseudo-elementos de View Transitions no los cubre `*`. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* Signal Forms + optimus-ui: `[formField]` empuja `invalid=true` al componente desde el primer
+   render (campo obligatorio vacío) y no se puede sobreescribir (`[invalid]` junto a `[formField]`
+   es NG8022). Se neutraliza `.p-invalid` dentro de app-dynamic-field y se reactiva solo con
+   `.field-error-visible` (= showError(): touched/dirty && invalid, el mismo gate del mensaje).
+   Selector global: el `.p-invalid` interno de p-select/p-datepicker no lleva el atributo de
+   encapsulación del componente. Mismo patrón que wallet-api (apps/web/src/styles.css). */
+app-dynamic-field:not(.field-error-visible) .p-invalid {
+  border-color: var(--p-form-field-border-color) !important;
+  box-shadow: none !important;
+}
+/* Casilla y radio dibujan su borde en un hijo (`-box`), no en el `.p-invalid` raíz. */
+app-dynamic-field:not(.field-error-visible) .p-checkbox.p-invalid .p-checkbox-box {
+  border-color: var(--p-checkbox-border-color) !important;
+}
+app-dynamic-field:not(.field-error-visible) .p-radiobutton.p-invalid .p-radiobutton-box {
+  border-color: var(--p-radiobutton-border-color) !important;
+}
+app-dynamic-field:not(.field-error-visible) .p-invalid::placeholder,
+app-dynamic-field:not(.field-error-visible) .p-invalid .p-select-label.p-placeholder {
+  color: var(--p-form-field-placeholder-color) !important;
+}
+
+/* Stepper de los formularios: en móvil los círculos numerados + conectores entran sin scroll
+   horizontal ocultando el título de cada paso (`.p-step-title` es markup interno de PrimeNG: un
+   selector con la encapsulación de Angular no lo alcanza). El nombre del paso activo lo muestra
+   `.dynamic-form-stepper-label`, siempre visible. */
+@media (max-width: 640px) {
+  .dynamic-form-stepper .p-step-title {
+    display: none;
+  }
+}
+
+/* Tooltip de «campo obligatorio»: fondo y texto con contraste ≥ 4.5:1 en claro y oscuro (WCAG 1.4.3);
+   se puede pasar el mouse sobre él sin que desaparezca (WCAG 1.4.13). */
+.app-tooltip-warning .p-tooltip-text {
+  background: var(--app-danger);
+  color: var(--app-bg);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.app-tooltip-warning.p-tooltip-top .p-tooltip-arrow {
+  border-top-color: var(--app-danger);
+}
+
+/* ── Enlaces (estándar de wallet-api) ─────────────────────────────────────────────────────────────
+   El preflight de Tailwind resetea `a { color: inherit; text-decoration: inherit }`: un <a> sin clase
+   queda invisible como enlace. El color y el SUBRAYADO salen del color principal que eligió el
+   usuario (`--app-primary`; `text-decoration-color: currentColor` hace que el subrayado lo siga).
+   - `.app-link` (embebido, rodeado de texto): subrayado visible en reposo (WCAG 1.4.1).
+   - `.app-link--standalone` (CTA, menú): color primario y subrayado solo en :hover / :focus-visible.
+   `--app-primary` ya cumple contraste AA en claro y oscuro (PrimaryColorService). */
+.app-link,
+.app-link--standalone {
+  color: var(--app-primary);
+  text-decoration-color: currentColor;
+  text-underline-offset: 0.2em;
+}
+.app-link {
+  text-decoration-line: underline;
+}
+.app-link--standalone {
+  text-decoration-line: none;
+}
+.app-link:hover {
+  text-decoration-thickness: 2px;
+}
+.app-link--standalone:hover,
+.app-link--standalone:focus-visible {
+  text-decoration-line: underline;
+}
+
+/* Ícono de un enlace: a la izquierda el de su destino; `target="_blank"` lleva `pi-external-link`
+   a la derecha (avisa que abre otra pestaña). Decorativos (`aria-hidden`): el texto ya describe el destino. */
+.link-icon {
+  margin-inline-end: 0.4em;
+  font-size: 0.9em;
+  vertical-align: -0.05em;
+}
+.link-icon--external {
+  margin-inline-start: 0.35em;
+  margin-inline-end: 0;
+  font-size: 0.8em;
+  opacity: 0.8;
+}
+
+
+/* Arrastre (CDK): la vista previa se monta en el <body>, fuera del componente, así que sus estilos
+   van aquí. Sombra y elevación para distinguirla de las tarjetas fijas. */
+.cdk-drag-preview {
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  border-radius: 0.5rem;
+  opacity: 0.95;
+  z-index: 1100 !important;
+}
+.cdk-drag-animating {
+  transition: transform 200ms var(--app-motion-ease);
+}

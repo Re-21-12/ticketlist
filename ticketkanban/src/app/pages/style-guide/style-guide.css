@@ -1,0 +1,236 @@
+.sg-header {
+  max-width: 48rem;
+  margin-bottom: 1.5rem;
+}
+.sg-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.sg-lead {
+  margin-top: 0.5rem;
+  color: var(--app-text-muted);
+  line-height: 1.5;
+}
+.sg-muted {
+  color: var(--app-text-muted);
+}
+.sg-mono {
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+}
+
+.sg-layout {
+  display: grid;
+  gap: 1.5rem;
+}
+
+/* Índice: arriba en móvil, columna fija en escritorio. */
+.sg-toc {
+  padding: 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+}
+.sg-toc-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+.sg-toc-list {
+  display: grid;
+  gap: 0.25rem;
+  padding-left: 1.25rem;
+  list-style: decimal;
+}
+.sg-toc-list a {
+  display: inline-block;
+  min-height: 1.5rem;
+}
+
+.sg-sections {
+  display: grid;
+  gap: 1.5rem;
+  min-width: 0;
+}
+.sg-section {
+  padding: 1.25rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+  /* El ancla no queda debajo del topbar (WCAG 2.4.11). */
+  scroll-margin-top: 5rem;
+}
+.sg-section-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+.sg-subtitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.sg-demo {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: var(--app-radius);
+  background: var(--app-surface-muted);
+  min-width: 0;
+}
+.sg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.sg-stack {
+  display: grid;
+  gap: 0.5rem;
+}
+.sg-icon-button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+/* Contraste: la tabla hace scroll propio si no entra (1.4.10: la PÁGINA no scrollea en horizontal). */
+.sg-demo:has(.sg-contrast) {
+  overflow-x: auto;
+}
+.sg-contrast {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.sg-caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+}
+.sg-contrast th,
+.sg-contrast td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--app-border);
+  text-align: left;
+  vertical-align: middle;
+}
+.sg-contrast-label {
+  font-weight: 500;
+}
+.sg-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2rem;
+  margin-right: 0.5rem;
+  border: 2px solid;
+  border-radius: 0.375rem;
+  font-weight: 700;
+}
+
+.sg-type {
+  display: grid;
+  gap: 0.5rem;
+  line-height: 1.5;
+}
+.sg-type-h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.sg-type-h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.sg-type-h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.sg-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+}
+.sg-tile {
+  padding: 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+  font-weight: 600;
+}
+.sg-panel {
+  padding: 1rem;
+  border-left: 4px solid var(--app-primary);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+}
+
+.sg-steps {
+  display: grid;
+  gap: 0.5rem;
+  padding-left: 1.25rem;
+  list-style: decimal;
+}
+kbd {
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.25rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875em;
+}
+
+.sg-criteria {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+}
+.sg-criterion {
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--app-border);
+}
+.sg-criterion-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+.sg-level {
+  padding: 0 0.5rem;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.sg-guidelines {
+  display: grid;
+  gap: 0.5rem 1.5rem;
+}
+.sg-bullets {
+  display: grid;
+  gap: 0.25rem;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+@media (min-width: 768px) {
+  .sg-guidelines {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (min-width: 1100px) {
+  .sg-layout {
+    grid-template-columns: 14rem minmax(0, 1fr);
+    align-items: start;
+  }
+  .sg-toc {
+    position: sticky;
+    top: 5rem;
+  }
+}

@@ -1,0 +1,9 @@
+@let data = _config.data!;
+<app-dynamic-form
+  [$definition]="data.definition"
+  [$initialData]="data.initialData ?? null"
+  [$readonlyMode]="data.readonlyMode ?? false"
+  [$submitLabel]="data.submitLabel ?? 'Guardar'"
+  [$submitting]="data.submitting()"
+  ($submitted)="data.onSubmit($event)"
+/>

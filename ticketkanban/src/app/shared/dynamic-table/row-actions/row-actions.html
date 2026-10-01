@@ -1,0 +1,60 @@
+@let canUpdate = $hasUpdate() && ('update' | can: $subject() : $row())();
+@let canDelete = $hasDelete() && ('delete' | can: $subject() : $row())();
+
+<!-- Colores fijos por acción (criterio de wallet-api): ojo = celeste, lápiz = ámbar, papelera = rojo,
+     en claro y oscuro. `severity` info/warn/danger son theme-aware. Cada botón lleva ÍCONO + etiqueta
+     + borde del color (outlined): el color nunca es la única señal (WCAG 1.4.1). El nombre accesible
+     incluye el código de la fila («Editar TCK-001») y empieza con el texto visible (WCAG 2.5.3). -->
+<div class="row-actions" role="group" [attr.aria-label]="'Acciones de ' + $rowLabel()">
+  @if ($hasView() && !canUpdate) {
+    <button
+      type="button"
+      pButton
+      size="small"
+      severity="info"
+      [outlined]="true"
+      [disabled]="$busy()"
+      [pTooltip]="'Ver detalle de ' + $rowLabel()"
+      tooltipPosition="top"
+      [attr.aria-label]="'Ver ' + $rowLabel()"
+      (click)="$view.emit($row())"
+    >
+      <i pButtonIcon class="pi pi-eye" aria-hidden="true"></i>
+      <span pButtonLabel>Ver</span>
+    </button>
+  }
+  @if (canUpdate) {
+    <button
+      type="button"
+      pButton
+      size="small"
+      severity="warn"
+      [outlined]="true"
+      [disabled]="$busy()"
+      [pTooltip]="'Editar ' + $rowLabel()"
+      tooltipPosition="top"
+      [attr.aria-label]="'Editar ' + $rowLabel()"
+      (click)="$edit.emit($row())"
+    >
+      <i pButtonIcon class="pi pi-pencil" aria-hidden="true"></i>
+      <span pButtonLabel>Editar</span>
+    </button>
+  }
+  @if (canDelete) {
+    <button
+      type="button"
+      pButton
+      size="small"
+      severity="danger"
+      [outlined]="true"
+      [disabled]="$busy()"
+      [pTooltip]="'Eliminar ' + $rowLabel()"
+      tooltipPosition="top"
+      [attr.aria-label]="'Eliminar ' + $rowLabel()"
+      (click)="$delete.emit($row())"
+    >
+      <i pButtonIcon class="pi pi-trash" aria-hidden="true"></i>
+      <span pButtonLabel>Eliminar</span>
+    </button>
+  }
+</div>

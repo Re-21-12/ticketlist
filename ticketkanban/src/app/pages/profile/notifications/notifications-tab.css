@@ -1,0 +1,92 @@
+.profile-card {
+  padding: 1.5rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+}
+
+.tab-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.tab-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.tab-subtitle,
+.tab-muted {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+.tab-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: var(--app-danger);
+}
+
+.notification-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.notification {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.5rem;
+}
+/* Sin leer: punto + peso + texto «Sin leer» para lectores de pantalla (no solo color). */
+.notification--unread {
+  background: color-mix(in srgb, var(--app-primary) 8%, transparent);
+}
+.notification--unread .notification-message {
+  font-weight: 600;
+}
+.notification-icon {
+  flex-shrink: 0;
+  color: var(--app-text-muted);
+}
+.notification-body {
+  flex: 1;
+  min-width: 0;
+}
+.notification-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.875rem;
+}
+.notification-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--app-primary);
+}
+.notification-date {
+  margin: 0.125rem 0 0;
+  font-size: 0.75rem;
+  color: var(--app-text-muted);
+}
+
+@media (max-width: 640px) {
+  .notification {
+    flex-wrap: wrap;
+  }
+  .notification > button {
+    margin-left: auto;
+  }
+}

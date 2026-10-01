@@ -1,0 +1,170 @@
+/* Todo color sale de los tokens --app-* (styles.css): claro/oscuro y color de marca del usuario
+   se aplican solos. Espaciado en múltiplos de 0.25rem. */
+
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -3rem;
+  z-index: 50;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--app-primary);
+  color: var(--app-primary-contrast);
+}
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100dvh;
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.app-sidebar {
+  display: none;
+  width: 15rem;
+  flex-shrink: 0;
+  flex-direction: column;
+  border-right: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.app-brand {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.app-main-column {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.app-topbar {
+  display: flex;
+  height: 4rem;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.app-breadcrumb {
+  min-width: 0;
+  flex: 1;
+}
+.app-role-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.app-role-switch-label {
+  display: none;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+
+/* Enlace al perfil: avatar + nombre. Bajo 1024 px el nombre se oculta VISUALMENTE pero sigue en el
+   DOM (no `display: none`): sin él el enlace de solo avatar no tendría nombre accesible (WCAG 2.4.4). */
+.app-user-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 0.25rem;
+  border-radius: 0.5rem;
+}
+.app-user-name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+
+.app-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 1rem;
+}
+.app-content:focus {
+  outline: none;
+}
+
+/* ── Navegación ────────────────────────────────────────────────────────────────────────── */
+.app-nav {
+  padding: 0.5rem 0.75rem;
+}
+.app-nav ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.app-nav-group {
+  margin: 0;
+  padding: 0.75rem 0.75rem 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-text-muted);
+}
+.app-nav-link {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--app-text);
+}
+.app-nav-link:hover {
+  background: var(--app-surface-muted);
+}
+/* Activo: no solo color — también peso y barra lateral (WCAG 1.4.1, no depender del color). */
+.app-nav-link--active {
+  font-weight: 600;
+  background: var(--app-surface-muted);
+  box-shadow: inset 3px 0 0 var(--app-primary);
+}
+
+/* ── Breakpoints ───────────────────────────────────────────────────────────────────────── */
+@media (min-width: 640px) {
+  .app-role-switch-label {
+    display: inline;
+  }
+}
+@media (min-width: 768px) {
+  .app-sidebar {
+    display: flex;
+  }
+  .app-menu-trigger {
+    display: none;
+  }
+  .app-content {
+    padding: 1.5rem;
+  }
+  .app-topbar {
+    padding: 0 1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .app-user-name {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+}

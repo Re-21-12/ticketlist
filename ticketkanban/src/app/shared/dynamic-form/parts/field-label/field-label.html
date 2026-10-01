@@ -1,0 +1,22 @@
+<div class="fl-wrap">
+  <label class="fl" [attr.id]="$labelId()" [attr.for]="$forId()">
+    @if ($icon()) {
+      <i [class]="'fl-icon ' + $icon()" aria-hidden="true"></i>
+    }
+    <span>{{ $label() }}</span>
+    @if ($required()) {
+      <!-- El tooltip es solo ayuda visual; el lector de pantalla recibe el texto «(obligatorio)». -->
+      <span
+        class="fl-required"
+        aria-hidden="true"
+        pTooltip="Este campo es obligatorio"
+        tooltipPosition="top"
+        tooltipStyleClass="app-tooltip-warning"
+        >*</span
+      >
+      <span class="sr-only">(obligatorio)</span>
+    } @else if ($showOptional()) {
+      <span class="fl-optional">(Opcional)</span>
+    }
+  </label>
+</div>

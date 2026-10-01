@@ -1,0 +1,8 @@
+<router-outlet />
+<!-- Eager: un error del arranque (p. ej. la sesión) debe poder mostrarse. -->
+<p-toast position="top-right" />
+<!-- Diferido: arrastra dialog+button (~70 kB) y nadie puede pedir confirmación antes de que el
+     navegador quede ocioso. Mismo criterio de @defer que wallet-api. -->
+@defer (on idle) {
+  <p-confirmdialog />
+}

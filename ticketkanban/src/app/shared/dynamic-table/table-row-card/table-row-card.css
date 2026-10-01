@@ -1,0 +1,44 @@
+/* Card con borde y fondo propios: el límite de cada registro debe verse también en modo oscuro
+   (lección de wallet-api: un border-bottom de 1px entre filas no alcanzaba). */
+.dt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.875rem;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+}
+
+.dt-card-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.dt-card-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--app-border);
+}
+.dt-card-field:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.dt-card-field dt {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--app-text-muted);
+}
+
+.dt-card-field dd {
+  margin: 0;
+  font-size: 0.9375rem;
+}

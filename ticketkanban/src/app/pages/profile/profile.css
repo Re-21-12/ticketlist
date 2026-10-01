@@ -1,0 +1,97 @@
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Cabecera: banda de color + avatar + datos (patrón LinkedIn/GitHub, sin assets externos). El degradado
+   usa el color principal del usuario con opacidad decreciente: funciona en claro y oscuro. */
+.profile-header {
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+}
+.profile-cover {
+  height: 5rem;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--app-primary) 40%, transparent) 0%,
+    color-mix(in srgb, var(--app-primary) 12%, transparent) 100%
+  );
+}
+.profile-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1rem 1.5rem 1.25rem;
+}
+.profile-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.profile-name {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.profile-email {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+  overflow-wrap: anywhere;
+}
+.profile-role {
+  align-self: flex-start;
+  margin-top: 0.25rem;
+  padding: 0.15rem 0.625rem;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--app-surface-muted);
+}
+
+/* Pestañas */
+.profile-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.profile-tab-badge {
+  min-width: 1.25rem;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.25rem;
+  text-align: center;
+  background: var(--app-primary);
+  color: var(--app-primary-contrast);
+}
+.profile-tablist-hidden {
+  display: none;
+}
+.profile-tab-content {
+  padding: 1.5rem 0;
+}
+.profile-tab-loading {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--app-text-muted);
+}
+
+:host ::ng-deep .profile-tab-select {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .profile-header-content {
+    padding-inline: 1rem;
+  }
+}

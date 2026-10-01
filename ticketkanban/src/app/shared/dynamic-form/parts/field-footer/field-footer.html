@@ -1,0 +1,40 @@
+<div class="ff">
+  @if ($disabledReasons().length) {
+    <div class="ff-row" animate.enter="app-enter-fade">
+      @for (reason of $disabledReasons(); track $index) {
+        <p-message severity="secondary" size="small" variant="simple">{{ reason }}</p-message>
+      }
+      <ng-container *ngTemplateOutlet="counter" />
+    </div>
+  } @else if ($showError()) {
+    <div class="ff-row" animate.enter="app-enter-fade" animate.leave="app-leave-fade">
+      <div [attr.id]="$errorId() || null" class="ff-text">
+        <p-message severity="error" size="small" variant="simple">{{ $errorMessage() }}</p-message>
+      </div>
+      <ng-container *ngTemplateOutlet="counter" />
+    </div>
+  } @else if ($hint() || $hasCounter()) {
+    <div class="ff-row" animate.enter="app-enter-fade">
+      @if ($hint()) {
+        <div [attr.id]="$hintId() || null" class="ff-text">
+          <p-message severity="secondary" size="small" variant="simple">{{ $hint() }}</p-message>
+        </div>
+      }
+      <ng-container *ngTemplateOutlet="counter" />
+    </div>
+  }
+</div>
+
+<ng-template #counter>
+  @if ($hasCounter()) {
+    <!-- Sin `aria-live`: anunciar cada pulsación sería ruido; el lector lo lee al enfocar. -->
+    <p-message
+      class="ff-counter"
+      [class.ff-counter--near]="$nearLimit()"
+      severity="secondary"
+      size="small"
+      variant="simple"
+      >{{ $currentLength() }} / {{ $maxLength() }}<span class="sr-only"> caracteres</span></p-message
+    >
+  }
+</ng-template>

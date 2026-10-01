@@ -1,0 +1,74 @@
+.appearance-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.appearance-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+}
+
+.appearance-block-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.appearance-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.appearance-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 2.75rem = objetivo táctil mínimo (WCAG 2.5.5 / 44px). */
+.appearance-swatch {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 2px solid var(--app-border);
+  border-radius: 50%;
+  background: var(--swatch-color);
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 0 2px #000;
+  cursor: pointer;
+}
+.appearance-swatch--active {
+  border: 3px solid var(--app-text);
+}
+
+.appearance-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.appearance-picker-label {
+  font-size: 0.875rem;
+}
+.appearance-picker-hex {
+  font-family: ui-monospace, monospace;
+  color: var(--app-text-muted);
+}
+
+.appearance-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

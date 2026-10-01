@@ -1,0 +1,16 @@
+.table-cell-value {
+  overflow-wrap: normal;
+}
+.table-cell-value--nowrap {
+  white-space: nowrap;
+}
+
+.table-cell-empty {
+  color: var(--app-text-muted);
+}
+
+/* Texto largo (títulos): ancho mínimo legible en vez de una palabra por línea. */
+.table-cell-value:not(.table-cell-value--nowrap) {
+  display: inline-block;
+  min-width: 12rem;
+}

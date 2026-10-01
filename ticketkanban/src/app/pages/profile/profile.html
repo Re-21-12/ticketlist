@@ -1,0 +1,108 @@
+<section class="profile-page" aria-label="Mi perfil">
+  @if (_sessionStore.$user(); as user) {
+    <header class="profile-header">
+      <div class="profile-cover" aria-hidden="true"></div>
+      <div class="profile-header-content">
+        <app-user-avatar
+          [$icon]="user.avatarIcon ? 'pi ' + user.avatarIcon : null"
+          [$color]="user.avatarColor"
+          [$name]="user.name"
+          [$size]="4.5"
+        />
+        <div class="profile-header-info">
+          <h1 class="profile-name">{{ user.name }}</h1>
+          <p class="profile-email">{{ user.email }}</p>
+          <span class="profile-role">{{ roleLabels[user.role] }}</span>
+        </div>
+      </div>
+    </header>
+  }
+
+  <p-tabs [value]="$activeTab()" (valueChange)="switchTab($event)">
+    @if ($isMobile()) {
+      <!-- Móvil: 6 pestañas horizontales no caben sin scroll; mismo valor y mismas opciones. -->
+      <p-select
+        [options]="tabs"
+        optionLabel="label"
+        optionValue="key"
+        [ngModel]="$activeTab()"
+        (ngModelChange)="switchTab($event)"
+        ariaLabel="Sección del perfil"
+        appendTo="body"
+        styleClass="profile-tab-select"
+      >
+        <ng-template #selectedItem let-selected>
+          @if (selected) {
+            <span class="profile-tab-label"><i [class]="selected.icon" aria-hidden="true"></i>{{ selected.label }}</span>
+          }
+        </ng-template>
+        <ng-template #item let-option>
+          <span class="profile-tab-label"><i [class]="option.icon" aria-hidden="true"></i>{{ option.label }}</span>
+        </ng-template>
+      </p-select>
+    }
+
+    <!-- `display: none` (no `@if`): desmontar los <p-tab> rompería el registro de valores de p-tabs. -->
+    <p-tablist [class.profile-tablist-hidden]="$isMobile()">
+      @for (tab of tabs; track tab.key) {
+        <p-tab [value]="tab.key">
+          <span class="profile-tab-label">
+            <i [class]="tab.icon" aria-hidden="true"></i>
+            {{ tab.label }}
+            @if (tab.key === 'notifications' && _profileStore.$unreadNotifications() > 0) {
+              <span class="profile-tab-badge">
+                {{ _profileStore.$unreadNotifications() }}<span class="sr-only"> sin leer</span>
+              </span>
+            }
+          </span>
+        </p-tab>
+      }
+    </p-tablist>
+
+    <p-tabpanels>
+      <p-tabpanel value="info">
+        <div class="profile-tab-content"><app-personal-info-tab /></div>
+      </p-tabpanel>
+
+      <p-tabpanel value="security">
+        @defer (on viewport; prefetch on idle) {
+          <div class="profile-tab-content"><app-security-tab /></div>
+        } @placeholder {
+          <p class="profile-tab-loading">Cargando…</p>
+        }
+      </p-tabpanel>
+
+      <p-tabpanel value="sessions">
+        @defer (on viewport; prefetch on idle) {
+          <div class="profile-tab-content"><app-sessions-tab /></div>
+        } @placeholder {
+          <p class="profile-tab-loading">Cargando sesiones…</p>
+        }
+      </p-tabpanel>
+
+      <p-tabpanel value="notifications">
+        @defer (on viewport; prefetch on idle) {
+          <div class="profile-tab-content"><app-notifications-tab /></div>
+        } @placeholder {
+          <p class="profile-tab-loading">Cargando notificaciones…</p>
+        }
+      </p-tabpanel>
+
+      <p-tabpanel value="avatar">
+        @defer (on viewport; prefetch on idle) {
+          <div class="profile-tab-content"><app-avatar-tab /></div>
+        } @placeholder {
+          <p class="profile-tab-loading">Cargando…</p>
+        }
+      </p-tabpanel>
+
+      <p-tabpanel value="appearance">
+        @defer (on viewport; prefetch on idle) {
+          <div class="profile-tab-content"><app-appearance-tab /></div>
+        } @placeholder {
+          <p class="profile-tab-loading">Cargando…</p>
+        }
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+</section>

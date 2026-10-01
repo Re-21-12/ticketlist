@@ -1,0 +1,7 @@
+.ticket-new-notes {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}

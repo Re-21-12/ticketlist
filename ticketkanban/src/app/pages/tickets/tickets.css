@@ -1,0 +1,182 @@
+.board-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.board-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.board-subtitle,
+.board-muted {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+.board-header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+:host ::ng-deep .board-readonly-note {
+  margin-bottom: 1rem;
+}
+
+.board-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: var(--app-danger);
+}
+
+.board-columns {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .board-columns {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.board-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--app-radius);
+  background: var(--app-surface-muted);
+}
+.board-column-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.board-column-count {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--app-text-muted);
+}
+
+.board-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.board-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.5rem;
+  background: var(--app-surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+.board-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.board-card-code {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--app-text-muted);
+}
+.board-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.board-card-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--app-text-muted);
+}
+.board-card-meta dd {
+  margin: 0;
+}
+.board-card-due {
+  text-align: right;
+}
+/* Acciones de card a la derecha (regla de wallet-api). */
+.board-card-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.board-hint {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+
+/* Una columna vacía sigue siendo un destino válido para soltar. */
+.board-cards {
+  min-height: 4rem;
+}
+
+.board-card--draggable {
+  cursor: grab;
+}
+.board-card--draggable:active {
+  cursor: grabbing;
+}
+/* Guardando el movimiento: se atenúa y no admite otra acción hasta que responda el servidor. */
+.board-card--moving {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Hueco de origen mientras se arrastra: borde discontinuo (no solo color: WCAG 1.4.1). */
+.board-card-placeholder {
+  min-height: 5rem;
+  border: 2px dashed var(--app-border);
+  border-radius: 0.5rem;
+}
+
+/* Columna que PUEDE recibir la tarjeta que se está arrastrando. */
+.board-cards.cdk-drop-list-receiving {
+  outline: 2px dashed var(--app-primary);
+  outline-offset: 4px;
+  border-radius: 0.5rem;
+}
+
+/* «Mover a…»: alternativa al arrastre. */
+.board-card-actions {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.board-move {
+  min-height: 2rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.375rem;
+  background: var(--app-surface);
+  color: var(--app-text);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+@media (pointer: coarse) {
+  .board-move {
+    min-height: 2.75rem;
+  }
+}

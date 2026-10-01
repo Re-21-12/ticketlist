@@ -1,0 +1,72 @@
+<section class="profile-card">
+  <app-form-split
+    [$heading]="'Avatar'"
+    [$headingLevel]="'h2'"
+    [$description]="'Elige un ícono y un color. Los colores tienen contraste suficiente con el texto blanco.'"
+  >
+    <div formSplitArt class="avatar-preview">
+      <app-user-avatar
+        [$icon]="$draftIcon() ? 'pi ' + $draftIcon() : null"
+        [$color]="$draftColor() || null"
+        [$name]="_sessionStore.$user()?.name ?? ''"
+        [$size]="6"
+      />
+      <p class="avatar-preview-caption">Vista previa</p>
+    </div>
+
+    <fieldset class="avatar-group">
+      <legend class="avatar-legend">Ícono</legend>
+      <div class="avatar-options">
+        @for (icon of icons; track icon.value) {
+          <label class="avatar-option" [class.avatar-option--text]="!icon.value">
+            <input
+              type="radio"
+              name="avatar-icon"
+              class="avatar-radio"
+              [value]="icon.value"
+              [checked]="$draftIcon() === icon.value"
+              (change)="$draftIcon.set(icon.value)"
+            />
+            @if (icon.value) {
+              <i [class]="'pi ' + icon.value" aria-hidden="true"></i>
+              <span class="sr-only">{{ icon.label }}</span>
+            } @else {
+              <span>{{ icon.label }}</span>
+            }
+          </label>
+        }
+      </div>
+    </fieldset>
+
+    <fieldset class="avatar-group">
+      <legend class="avatar-legend">Color</legend>
+      <div class="avatar-options">
+        @for (color of colors; track color.value) {
+          <label class="avatar-option" [class.avatar-option--text]="!color.value">
+            <input
+              type="radio"
+              name="avatar-color"
+              class="avatar-radio"
+              [value]="color.value"
+              [checked]="$draftColor() === color.value"
+              (change)="$draftColor.set(color.value)"
+            />
+            @if (color.value) {
+              <span class="avatar-swatch" [style.background]="color.value" aria-hidden="true"></span>
+              <span class="sr-only">{{ color.label }}</span>
+            } @else {
+              <span>{{ color.label }}</span>
+            }
+          </label>
+        }
+      </div>
+    </fieldset>
+
+    <div class="avatar-actions">
+      <button type="button" pButton [disabled]="!$dirty() || $saving()" [loading]="$saving()" (click)="save()">
+        <i pButtonIcon class="pi pi-check" aria-hidden="true"></i>
+        <span pButtonLabel>Guardar avatar</span>
+      </button>
+    </div>
+  </app-form-split>
+</section>

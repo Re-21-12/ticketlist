@@ -1,0 +1,18 @@
+<section class="access" aria-labelledby="access-title">
+  @if (_sessionStore.$isAuthenticated()) {
+    <h1 id="access-title" class="access-title">No tienes acceso a esta sección</h1>
+    <p class="access-text">Tu rol no incluye este permiso. Si lo necesitas, pídelo a un administrador.</p>
+    @if (('read' | can: 'Ticket')()) {
+      <a pButton routerLink="/tickets">Ir al tablero</a>
+    }
+  } @else {
+    <h1 id="access-title" class="access-title">No hay una sesión activa</h1>
+    <p class="access-text">
+      Tu sesión terminó por inactividad o se cerró.
+      @if (_sessionStore.canSwitchRole) {
+        Elige un rol en «Rol de prueba» para iniciar sesión.
+      }
+    </p>
+  }
+  <a pButton severity="secondary" [outlined]="true" routerLink="/style-guide">Ver la guía de estilos</a>
+</section>

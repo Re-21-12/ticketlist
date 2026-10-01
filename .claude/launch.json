@@ -1,0 +1,44 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ticketkanban",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "ticketkanban",
+        "start",
+        "--",
+        "--port",
+        "4300"
+      ],
+      "port": 4300
+    },
+    {
+      "name": "ticketkanban-bff",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "ticketkanban",
+        "run",
+        "start:bff",
+        "--",
+        "--port",
+        "4301"
+      ],
+      "port": 4301
+    },
+    {
+      "name": "ticketlistbe",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "ticketlistbe",
+        "run",
+        "start:dev"
+      ],
+      "port": 3000,
+      "url": "http://localhost:3000"
+    }
+  ]
+}

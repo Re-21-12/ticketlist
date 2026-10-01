@@ -1,0 +1,5 @@
+@if ($isEmpty()) {
+  <span class="table-cell-empty" aria-label="Sin dato">—</span>
+} @else {
+  <span class="table-cell-value" [class.table-cell-value--nowrap]="$nowrap()">{{ $text() }}</span>
+}

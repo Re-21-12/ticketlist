@@ -1,0 +1,16 @@
+<nav [attr.aria-label]="$ariaLabel()" class="breadcrumb">
+  <ol class="breadcrumb-list" [class.breadcrumb-list--collapse]="$collapseOnMobile()">
+    @for (crumb of $items(); track crumb.label; let last = $last) {
+      <li class="breadcrumb-item">
+        @if (crumb.link) {
+          <a [routerLink]="crumb.link" class="breadcrumb-link app-link">{{ crumb.label }}</a>
+        } @else {
+          <span class="breadcrumb-current" aria-current="page">{{ crumb.label }}</span>
+        }
+        @if (!last) {
+          <span aria-hidden="true" class="breadcrumb-separator">/</span>
+        }
+      </li>
+    }
+  </ol>
+</nav>

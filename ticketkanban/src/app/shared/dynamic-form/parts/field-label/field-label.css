@@ -1,0 +1,52 @@
+.fl-wrap {
+  margin-bottom: 0.375rem;
+}
+
+.fl {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--app-text);
+}
+
+.fl-icon {
+  margin-inline-end: 0.25rem;
+  font-size: 0.95em;
+  color: var(--app-text-muted);
+}
+
+/* «*» y «(Opcional)»: una aclaración, no el dato principal (el nombre del campo domina). */
+.fl-required {
+  margin-inline-start: 0.125rem;
+  color: var(--app-danger);
+  cursor: help;
+}
+
+.fl-optional {
+  margin-inline-start: 0.125rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--app-text-muted);
+}
+
+/* Alineación en la grilla de 2 columnas: si la etiqueta de un campo hace wrap a 2 líneas y la de su
+   vecino no, el control del primero queda MÁS ABAJO aunque arranquen en la misma fila. Se reserva la
+   altura de 2 líneas (texto pegado abajo) SOLO con 2 columnas visibles; en 1 columna no hay vecino
+   contra quien desalinearse y el hueco sería puro espacio vacío. `.dynamic-form-grid--2col` la pone
+   `app-dynamic-form`. */
+@media (min-width: 768px) {
+  :host-context(.dynamic-form-grid--2col) .fl-wrap {
+    display: flex;
+    align-items: flex-end;
+    min-height: 3em;
+  }
+}
+
+/* Columna angosta (< 11rem): la etiqueta suele hacer wrap a 3 líneas; se reservan 3 para no desalinear. */
+@container (max-width: 11rem) {
+  :host-context(.dynamic-form-grid--2col) .fl-wrap {
+    min-height: 4.5em;
+  }
+}

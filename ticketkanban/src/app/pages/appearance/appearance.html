@@ -1,0 +1,77 @@
+<app-form-split
+  [$heading]="'Apariencia'"
+  [$headingLevel]="$headingLevel()"
+  [$description]="'Elige el modo y el color principal. Se aplican al instante; generamos automáticamente la variante del color que cumple el contraste mínimo WCAG AA en modo claro y oscuro.'"
+>
+  <div class="appearance-content">
+    <section aria-labelledby="mode-title" class="appearance-block">
+      <h2 id="mode-title" class="appearance-block-title">Modo</h2>
+      <div class="appearance-toggle">
+        <label for="dark-mode">Modo oscuro</label>
+        <p-toggleswitch
+          inputId="dark-mode"
+          [ngModel]="_themeService.$isDark()"
+          (ngModelChange)="_themeService.set($event)"
+        />
+      </div>
+    </section>
+
+    <section aria-labelledby="color-title" class="appearance-block">
+      <h2 id="color-title" class="appearance-block-title">Color principal</h2>
+
+      <!-- Muestras: cada una es un botón con TEXTO accesible y aria-pressed (el color no es la
+           única señal de cuál está activo: también el borde grueso y el ✓). -->
+      <ul class="appearance-swatches" aria-label="Colores sugeridos">
+        @for (preset of presets; track preset.hex) {
+          @let active = $activeHex().toLowerCase() === preset.hex;
+          <li>
+            <button
+              type="button"
+              class="appearance-swatch"
+              [class.appearance-swatch--active]="active"
+              [style.--swatch-color]="preset.hex"
+              [attr.aria-pressed]="active"
+              [attr.aria-label]="preset.label"
+              [title]="preset.label"
+              (click)="selectPreset(preset.hex)"
+            >
+              @if (active) {
+                <span aria-hidden="true">✓</span>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+
+      <div class="appearance-picker">
+        <p-colorpicker
+          inputId="custom-color"
+          [ngModel]="$pickerValue()"
+          (ngModelChange)="onPickerChange($event)"
+          format="hex"
+          appendTo="body"
+        />
+        <label for="custom-color" class="appearance-picker-label">
+          Otro color <span class="appearance-picker-hex">{{ $activeHex() }}</span>
+        </label>
+      </div>
+
+      <div class="appearance-preview" aria-label="Vista previa">
+        <button pButton type="button">Botón de ejemplo</button>
+        <button pButton type="button" [outlined]="true">Con borde</button>
+      </div>
+
+      @if (_primaryColorService.$customColor()) {
+        <button
+          pButton
+          type="button"
+          severity="secondary"
+          [outlined]="true"
+          (click)="_primaryColorService.reset()"
+        >
+          Restablecer color predeterminado
+        </button>
+      }
+    </section>
+  </div>
+</app-form-split>

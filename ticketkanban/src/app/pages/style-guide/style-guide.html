@@ -1,0 +1,234 @@
+<header class="sg-header">
+  <h1 class="sg-title">Guía de estilos</h1>
+  <p class="sg-lead">
+    Componentes reales de Ticketit y cómo cumplen WCAG 2.2 nivel AA. Todo lo que ves aquí es la misma pieza
+    que usan las pantallas: si cambias el modo o el color en
+    <a routerLink="/appearance" class="app-link">Apariencia</a>, esta guía se actualiza.
+  </p>
+</header>
+
+<div class="sg-layout">
+  <nav class="sg-toc" aria-labelledby="sg-toc-title">
+    <h2 id="sg-toc-title" class="sg-toc-title">En esta página</h2>
+    <ol class="sg-toc-list">
+      @for (section of sections; track section.id) {
+        <li><a class="app-link" [href]="'#sg-' + section.id">{{ section.title }}</a></li>
+      }
+    </ol>
+  </nav>
+
+  <div class="sg-sections">
+    @for (section of sections; track section.id) {
+      <section class="sg-section" [id]="'sg-' + section.id" [attr.aria-labelledby]="'sg-' + section.id + '-title'">
+        <h2 class="sg-section-title" [id]="'sg-' + section.id + '-title'">{{ section.title }}</h2>
+
+        <div class="sg-demo">
+          @switch (section.id) {
+            @case ('color') {
+              <table class="sg-contrast">
+                <caption class="sg-caption">Contraste medido en vivo con el modo y el color actuales</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Par</th>
+                    <th scope="col">Muestra</th>
+                    <th scope="col">Contraste</th>
+                    <th scope="col">Resultado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of $contrast(); track row.label) {
+                    <tr>
+                      <th scope="row" class="sg-contrast-label">{{ row.label }}</th>
+                      <td>
+                        <span
+                          class="sg-swatch"
+                          [style.color]="row.foregroundHex"
+                          [style.background]="row.backgroundHex"
+                          [style.border-color]="row.foregroundHex"
+                          aria-hidden="true"
+                          >Aa</span
+                        >
+                        <span class="sg-mono">{{ row.foregroundHex }} / {{ row.backgroundHex }}</span>
+                      </td>
+                      <td class="sg-mono">{{ row.ratio.toFixed(2) }}:1 <span class="sg-muted">(mín. {{ row.minimum }}:1)</span></td>
+                      <td>
+                        <p-tag
+                          [value]="row.passes ? '✓ Cumple AA' : '✕ No cumple'"
+                          [severity]="row.passes ? 'success' : 'danger'"
+                        />
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+            @case ('typography') {
+              <div class="sg-type">
+                <p class="sg-type-h1">Título de página (h1) · 1.5rem</p>
+                <p class="sg-type-h2">Título de sección (h2) · 1.125rem</p>
+                <p class="sg-type-h3">Título de tarjeta (h3) · 1rem</p>
+                <p>Texto de cuerpo · 1rem, interlineado 1.5.</p>
+                <p class="sg-muted">Texto secundario · para metadatos y ayudas, nunca para información crítica.</p>
+              </div>
+            }
+            @case ('buttons') {
+              <div class="sg-row">
+                <button type="button" pButton>Primario</button>
+                <button type="button" pButton severity="secondary" [outlined]="true">Secundario</button>
+                <button type="button" pButton severity="secondary" [text]="true">Texto</button>
+                <button type="button" pButton severity="danger" (click)="openConfirm()">Eliminar…</button>
+                <button type="button" pButton size="small">Pequeño</button>
+              </div>
+              <div class="sg-row">
+                <button type="button" pButton [disabled]="true" aria-describedby="sg-disabled-reason">Deshabilitado</button>
+                <span id="sg-disabled-reason" class="sg-muted">Explica por qué: «Completa los campos obligatorios».</span>
+              </div>
+              <div class="sg-row">
+                <button type="button" pButton [loading]="$loadingDemo()" (click)="simulateLoading()">
+                  {{ $loadingDemo() ? 'Guardando…' : 'Guardar (con carga)' }}
+                </button>
+                <button type="button" pButton severity="secondary" [text]="true" class="sg-icon-button" aria-label="Cerrar aviso">
+                  <span aria-hidden="true">✕</span>
+                </button>
+                <a pButton severity="secondary" [outlined]="true" routerLink="/tickets">Enlace con forma de botón</a>
+              </div>
+            }
+            @case ('links') {
+              <p>
+                Un enlace dentro de un texto, como
+                <a routerLink="/appearance" class="app-link"><i class="pi pi-palette link-icon" aria-hidden="true"></i>Apariencia</a>,
+                lleva subrayado en reposo y toma el color principal: cámbialo y el subrayado lo sigue.
+              </p>
+              <p class="sg-row">
+                <a routerLink="/tickets" class="app-link--standalone"><i class="pi pi-th-large link-icon" aria-hidden="true"></i>Ir al tablero</a>
+                <a href="https://angular.dev" target="_blank" rel="noopener" class="app-link--standalone"
+                  >Documentación de Angular<i class="pi pi-external-link link-icon link-icon--external" aria-hidden="true"></i
+                ></a>
+                <span class="sg-muted">Enlaces independientes: el subrayado aparece al pasar el mouse o enfocar.</span>
+              </p>
+            }
+            @case ('breadcrumbs') {
+              <app-breadcrumb [$items]="breadcrumbDemo" [$ariaLabel]="'Ruta de ejemplo'" />
+            }
+            @case ('fields') {
+              <p class="sg-muted">
+                Un campo de cada tipo de control. Toca uno y sal sin completarlo para ver el error; el
+                contador «n / máx» limita lo que puedes escribir y sale del schema Zod. El «*» tiene tooltip.
+              </p>
+              <app-dynamic-form
+                [$definition]="galleryForm"
+                [$submitLabel]="'Validar'"
+                ($submitted)="onDemoSubmit()"
+              />
+            }
+            @case ('feedback') {
+              <div class="sg-row">
+                @for (priority of priorities; track priority) {
+                  <p-tag [value]="priorityLabels[priority]" [severity]="prioritySeverity[priority]" />
+                }
+              </div>
+              <div class="sg-stack">
+                <p-message severity="info">Información: tu rol es de solo lectura.</p-message>
+                <p-message severity="success">Éxito: ticket guardado.</p-message>
+                <p-message severity="warn">Advertencia: la sesión vence en 5 minutos.</p-message>
+                <p-message severity="error">Error: no se pudo cargar el tablero.</p-message>
+              </div>
+              <div class="sg-row">
+                <button type="button" pButton severity="secondary" [outlined]="true" (click)="showToast('success')">Toast de éxito</button>
+                <button type="button" pButton severity="secondary" [outlined]="true" (click)="showToast('error')">Toast de error</button>
+              </div>
+            }
+            @case ('tables') {
+              <p>
+                La tabla dinámica y sus tarjetas se ven en el
+                <a routerLink="/tickets/list" class="app-link">listado de tickets</a>. Achica la ventana por debajo de
+                640 px para ver cada fila como tarjeta.
+              </p>
+            }
+            @case ('motion') {
+              <p class="sg-muted" role="status">
+                @if (_motionService.$reducedMotion()) {
+                  Tu sistema pide reducir el movimiento: las demos no se animan.
+                } @else {
+                  Movimiento activado. Para desactivarlo, usa «reducir movimiento» en tu sistema operativo.
+                }
+              </p>
+              <div class="sg-row">
+                <button type="button" pButton severity="secondary" [outlined]="true" (click)="playStagger()">
+                  Reproducir stagger (anime.js)
+                </button>
+                <button
+                  type="button"
+                  pButton
+                  severity="secondary"
+                  [outlined]="true"
+                  [attr.aria-expanded]="$panelOpen()"
+                  aria-controls="sg-motion-panel"
+                  (click)="$panelOpen.set(!$panelOpen())"
+                >
+                  {{ $panelOpen() ? 'Ocultar' : 'Mostrar' }} panel (animate.enter / leave)
+                </button>
+              </div>
+              <ul #tilesList class="sg-tiles" aria-label="Tarjetas de ejemplo">
+                @for (tile of motionTiles; track tile) {
+                  <li class="sg-tile">{{ tile }}</li>
+                }
+              </ul>
+              <div id="sg-motion-panel">
+                @if ($panelOpen()) {
+                  <p class="sg-panel" animate.enter="app-enter-rise" animate.leave="app-leave-fade">
+                    Este panel entra con <code>animate.enter</code> y sale con <code>animate.leave</code>: Angular espera a
+                    que termine la animación CSS antes de quitarlo del DOM.
+                  </p>
+                }
+              </div>
+              <p class="sg-muted">
+                Las transiciones entre páginas usan la View Transitions API (<code>withViewTransitions</code>).
+              </p>
+            }
+            @case ('keyboard') {
+              <ol class="sg-steps">
+                <li>Recarga la página y presiona <kbd>Tab</kbd>: el primer foco es «Saltar al contenido».</li>
+                <li>Sigue con <kbd>Tab</kbd>: cada control muestra el anillo de foco.</li>
+                <li>Abre «Eliminar…» en Botones: el foco empieza en «Cancelar» y <kbd>Esc</kbd> cierra.</li>
+              </ol>
+            }
+          }
+        </div>
+
+        <h3 class="sg-subtitle">Criterios WCAG</h3>
+        <ul class="sg-criteria">
+          @for (criterion of section.criteria; track criterion.code) {
+            <li class="sg-criterion">
+              <p class="sg-criterion-head">
+                <span class="sg-mono">{{ criterion.code }}</span>
+                {{ criterion.name }}
+                <span class="sg-level">Nivel {{ criterion.level }}</span>
+              </p>
+              <p class="sg-muted">{{ criterion.howWeMeet }}</p>
+            </li>
+          }
+        </ul>
+
+        <div class="sg-guidelines">
+          <div>
+            <h3 class="sg-subtitle">✓ Hacer</h3>
+            <ul class="sg-bullets">
+              @for (item of section.do; track item) {
+                <li>{{ item }}</li>
+              }
+            </ul>
+          </div>
+          <div>
+            <h3 class="sg-subtitle">✕ Evitar</h3>
+            <ul class="sg-bullets">
+              @for (item of section.avoid; track item) {
+                <li>{{ item }}</li>
+              }
+            </ul>
+          </div>
+        </div>
+      </section>
+    }
+  </div>
+</div>

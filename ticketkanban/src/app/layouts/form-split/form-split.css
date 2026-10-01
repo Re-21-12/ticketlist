@@ -1,0 +1,41 @@
+:host {
+  display: grid;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+/* 900px: el punto en que dos columnas (26rem de form + contexto) dejan de apretarse.
+   `fit-content(34rem)` mide la columna de contexto por su contenido real en vez de repartirle
+   todo el sobrante (evita el hueco horizontal entre contexto y form). */
+@media (min-width: 900px) {
+  :host {
+    grid-template-columns: fit-content(34rem) minmax(0, var(--form-split-width, 26rem));
+    justify-content: center;
+    gap: 2rem;
+  }
+}
+
+.form-split-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 34rem;
+}
+
+.form-split-form {
+  width: 100%;
+  max-width: var(--form-split-width, 26rem);
+}
+
+.form-split-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.form-split-description {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--app-text-muted);
+}

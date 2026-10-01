@@ -1,0 +1,27 @@
+<section class="profile-card">
+  <app-form-split
+    [$heading]="'Datos personales'"
+    [$headingLevel]="'h2'"
+    [$description]="'Tu información básica en el sistema.'"
+  >
+    @if (_sessionStore.$user(); as user) {
+      <dl class="info-grid">
+        <div class="info-item">
+          <dt>Nombre</dt>
+          <dd>{{ user.name }}</dd>
+        </div>
+        <div class="info-item">
+          <dt>Correo</dt>
+          <dd>{{ user.email }}</dd>
+        </div>
+        <div class="info-item">
+          <dt>Rol</dt>
+          <dd>{{ roleLabels[user.role] }}</dd>
+        </div>
+      </dl>
+    }
+    <p-message severity="info" variant="simple" icon="pi pi-info-circle">
+      Para actualizar tu información personal, contacta a un administrador.
+    </p-message>
+  </app-form-split>
+</section>

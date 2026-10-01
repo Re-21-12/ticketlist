@@ -1,0 +1,82 @@
+<section class="profile-card" aria-labelledby="sessions-title">
+  <header class="tab-header">
+    <div>
+      <h2 id="sessions-title" class="tab-title">Sesiones activas</h2>
+      <p class="tab-subtitle">Dispositivos donde tu cuenta está abierta ahora mismo.</p>
+    </div>
+    <button
+      type="button"
+      pButton
+      severity="danger"
+      [outlined]="true"
+      [disabled]="$otherCount() === 0"
+      (click)="askRevokeOthers()"
+    >
+      <i pButtonIcon class="pi pi-sign-out" aria-hidden="true"></i>
+      <span pButtonLabel>Cerrar las demás</span>
+    </button>
+  </header>
+
+  @let state = _profileStore.$sessionsState();
+  @switch (state.kind) {
+    @case ('loading') {
+      <p class="tab-muted" role="status" aria-live="polite">Cargando sesiones…</p>
+    }
+    @case ('error') {
+      <div role="alert" class="tab-error">
+        <p>No se pudieron cargar tus sesiones.</p>
+        <button type="button" pButton severity="secondary" (click)="_profileStore.reloadSessions()">
+          Reintentar
+        </button>
+      </div>
+    }
+    @case ('success') {
+      <ul class="session-list">
+        @for (session of state.data.data; track session.id) {
+          @let device = display(session);
+          <li class="session" [class.session--current]="session.current">
+            <i [class]="device.icon + ' session-icon'" aria-hidden="true"></i>
+            <div class="session-body">
+              <p class="session-name">
+                {{ device.label }}
+                @if (session.current) {
+                  <p-tag value="Esta sesión" severity="success" />
+                }
+              </p>
+              <dl class="session-meta">
+                <div>
+                  <dt>IP</dt>
+                  <dd>{{ session.ipAddress }}</dd>
+                </div>
+                <div>
+                  <dt>Inició</dt>
+                  <dd>{{ session.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+                </div>
+                @if (session.expiresAt) {
+                  <div>
+                    <dt>Vence por inactividad</dt>
+                    <dd>{{ session.expiresAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+                  </div>
+                }
+              </dl>
+            </div>
+            @if (!session.current) {
+              <button
+                type="button"
+                pButton
+                size="small"
+                severity="danger"
+                [outlined]="true"
+                [attr.aria-label]="'Cerrar la sesión de ' + device.label + ' (' + session.ipAddress + ')'"
+                (click)="askRevoke(session)"
+              >
+                <i pButtonIcon class="pi pi-times" aria-hidden="true"></i>
+                <span pButtonLabel>Cerrar</span>
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    }
+  }
+</section>
