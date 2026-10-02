@@ -116,7 +116,7 @@ En local la API corre en `production` sin HTTPS, así que la cookie de sesión (
 
 ## 6. Actualizar y revertir
 
-- Actualizar: cada push a `main` publica `:latest` y `:sha-<7>`; en Dokploy **Redeploy** (o Watchtower si lo tienes con `--label-enable`, ya están los labels).
+- Actualizar: cada push a `main` publica `:latest` y `:sha-<7>`; **Watchtower ya viene en `docker-compose.dokploy.yml`** (`nickfedor/watchtower`, `--label-enable`, cada 5 min): recrea `web`/`api` cuando cambia el digest de `:latest`, sin tocar db, redis ni el stack de Dokploy. Si wallet-api ya corre su propio Watchtower en el mismo VPS, **quita el servicio `watchtower` de este compose**: el de wallet-api vigila todo el host por label y dos se pisan. Sin Watchtower, usa **Redeploy** en Dokploy.
 - Revertir: pon `WEB_IMAGE_TAG` / `API_IMAGE_TAG` (o `TICKETIT_IMAGE_TAG`) al `sha-<7>` anterior y redeploy.
 
 ## 7. Checklist de producción
