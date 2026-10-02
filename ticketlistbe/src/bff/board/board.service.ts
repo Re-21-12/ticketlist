@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { TICKET_STATUS } from '../../modules/tickets/schemas/ticket.schema.js';
+import { groupOf, STATUS_GROUP_KEYS, STATUS_GROUPS, type TStatusGroup } from '../../modules/tickets/lifecycle/ticket-lifecycle.js';
 import { TicketsService } from '../../modules/tickets/tickets.service.js';
 import { BoardResponseSchema, type TBoardResponse } from './dtos/board-response.dto.js';
 
-const STATUS_LABELS: Record<(typeof TICKET_STATUS)[number], string> = {
-  todo: 'Por hacer',
-  in_progress: 'En progreso',
-  done: 'Hecho',
+/** Las tres columnas del tablero; el estado exacto de cada tarjeta es su insignia (catálogo `ticket-status`). */
+const GROUP_LABELS: Record<TStatusGroup, string> = {
+  new: 'Nuevo',
+  in_attention: 'En atención',
+  closed: 'Cerrado',
 };
 
 /** Máximo de tarjetas por tablero en el mock (sin paginación por columna todavía). */
@@ -24,10 +25,11 @@ export class BoardService {
   async getBoard(): Promise<TBoardResponse> {
     const { data } = await this.ticketsService.findAll({ page: 1, take: BOARD_LIMIT });
     return BoardResponseSchema.parse({
-      columns: TICKET_STATUS.map((status) => ({
-        status,
-        label: STATUS_LABELS[status],
-        tickets: data.filter((ticket) => ticket.status === status),
+      columns: STATUS_GROUP_KEYS.map((group) => ({
+        group,
+        label: GROUP_LABELS[group],
+        statuses: STATUS_GROUPS[group],
+        tickets: data.filter((ticket) => groupOf(ticket.status) === group),
       })),
     });
   }

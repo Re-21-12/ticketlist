@@ -1,0 +1,57 @@
+:host {
+  display: block;
+  width: 100%;
+  max-width: var(--illustration-width, 11rem);
+  color: var(--app-text);
+}
+
+.ill {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Trazos y rellenos con los tokens del tema: siguen el modo claro/oscuro y el color de marca del usuario. */
+.ill-blob {
+  fill: var(--app-primary);
+  opacity: 0.1;
+}
+.ill-dot {
+  fill: var(--app-primary);
+  opacity: 0.3;
+}
+.ill-card {
+  fill: var(--app-surface);
+  stroke: currentColor;
+  stroke-opacity: 0.25;
+  stroke-width: 2;
+}
+.ill-line {
+  fill: currentColor;
+  opacity: 0.16;
+}
+.ill-stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-opacity: 0.35;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ill-accent {
+  fill: var(--app-primary);
+}
+.ill-accent-stroke {
+  fill: none;
+  stroke: var(--app-primary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ill-on-accent {
+  fill: none;
+  stroke: var(--app-primary-contrast, #fff);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

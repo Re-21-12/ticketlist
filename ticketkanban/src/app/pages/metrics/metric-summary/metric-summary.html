@@ -1,0 +1,46 @@
+@if ($isEmpty()) {
+  <p class="ms-empty" role="status">
+    <i class="pi pi-info-circle" aria-hidden="true"></i>
+    No hay tickets en este período: los conteos están en cero y los indicadores no tienen información.
+  </p>
+}
+
+<div class="ms-cards">
+  @for (card of $cards(); track card.key) {
+    <app-metric-card [$card]="card" />
+  }
+</div>
+
+<div class="ms-lower">
+  <section class="ms-panel" aria-labelledby="ms-counts-title">
+    <h3 id="ms-counts-title" class="ms-title">Tickets del período</h3>
+    <ul class="ms-counts">
+      @for (item of $counts(); track item.key) {
+        <li [class.ms-alert]="item.alert">
+          <i [class]="'pi ' + item.icon" aria-hidden="true"></i>
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="ms-panel" aria-labelledby="ms-aging-title">
+    <h3 id="ms-aging-title" class="ms-title">Antigüedad de los tickets abiertos</h3>
+    @if ($aging().total === 0) {
+      <p class="ms-muted">No hay tickets abiertos.</p>
+    } @else {
+      <ul class="ms-aging">
+        @for (row of $aging().rows; track row.key) {
+          <li>
+            <span class="ms-aging-label">{{ row.label }}</span>
+            <span class="ms-bar" aria-hidden="true">
+              <span class="ms-bar-fill" [attr.data-age]="row.key" [style.width.%]="row.pct"></span>
+            </span>
+            <strong class="ms-aging-value">{{ row.value }}</strong>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</div>

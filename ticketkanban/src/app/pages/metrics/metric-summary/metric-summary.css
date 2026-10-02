@@ -1,0 +1,107 @@
+:host {
+  display: grid;
+  gap: 1rem;
+}
+.ms-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface-muted);
+  font-size: 0.875rem;
+}
+.ms-cards {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+.ms-lower {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 900px) {
+  .ms-lower {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}
+.ms-panel {
+  padding: 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+}
+.ms-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.ms-muted {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+.ms-counts {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ms-counts li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--app-radius);
+  background: var(--app-surface-muted);
+  font-size: 0.875rem;
+}
+.ms-counts strong {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.ms-alert {
+  color: var(--app-danger);
+  font-weight: 600;
+}
+.ms-aging {
+  display: grid;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ms-aging li {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) 2rem;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+.ms-aging-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ms-bar {
+  height: 0.75rem;
+  border-radius: 999px;
+  background: var(--app-surface-muted);
+  overflow: hidden;
+}
+.ms-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--app-primary);
+}
+.ms-bar-fill[data-age='mid'] {
+  background: var(--app-warning);
+}
+.ms-bar-fill[data-age='old'] {
+  background: var(--app-danger);
+}

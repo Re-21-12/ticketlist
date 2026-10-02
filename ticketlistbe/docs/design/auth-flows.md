@@ -46,6 +46,8 @@ sequenceDiagram
   end
 ```
 
+> **Estado: implementado** (`AccountRecoveryService`, `AccountRecoveryController`, e2e `recovery.e2e-spec.ts`). El correo sale por `IMailService`; hoy el único adaptador es `LogMailService` (escribe el enlace en el log y lo devuelve como `devUrl` fuera de producción). Para producción falta un adaptador SMTP/API (Resend, Mailgun…) que implemente la misma interfaz.
+
 - El token son 32 bytes aleatorios; en Redis solo vive su **hash** (si se filtra Redis no sirve).
 - `POST /api/auth/resend-verification`: mismo mensaje siempre, con rate limit (3 por hora por correo).
 - Sin verificar no se puede iniciar sesión (`SAUT-E006`), salvo en desarrollo con `MAIL_MODE=log`.
@@ -53,6 +55,8 @@ sequenceDiagram
   devuelve en `devUrl`) y **SMTP** (producción, por variables de entorno).
 
 ## 2. Recuperación de contraseña
+
+> **Estado: implementado** junto con la verificación (ver §1). El token no se consume si la contraseña nueva es débil (la validación del DTO corre antes), y al completar se cierran todas las sesiones de la cuenta y se da el correo por verificado. Pendiente: pedir el segundo factor cuando exista TOTP, y el historial de contraseñas.
 
 Heredado: token de un solo uso (45 min), rate limit, **cierre de todas las sesiones** al completar,
 y verificación de segundo factor si la cuenta lo tiene.

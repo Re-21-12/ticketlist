@@ -2,14 +2,30 @@ import { computed, inject, Injector, Service, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, firstValueFrom } from 'rxjs';
 import { mapResourceState, type TAsyncState } from '../../core/interfaces/async-state.types';
+import { SessionStore } from '../../core/session/session.store';
+import { CatalogOptionsService } from '../../shared/catalog-options/catalog-options.service';
+import type { IFieldOption } from '../../shared/dynamic-form/field-config.interface';
+import { toMetaOptions } from '../../shared/dynamic-form/utils/to-options.util';
 import { createStateMachine } from '../../shared/fsm/create-state-machine';
-import { toTicketUpsert } from './ticket.mapper';
+import { toAssigneeOptions } from './ticket.mapper';
+import { TICKET_CATEGORY, TICKET_COMPLEXITY, TICKET_PRIORITY, TICKET_STATUS, TICKET_TYPE } from './ticket.schema';
+import {
+  TICKET_CATEGORY_META,
+  TICKET_COMPLEXITY_META,
+  TICKET_PRIORITY_META,
+  TICKET_STATUS_META,
+  TICKET_DEPARTMENT_FALLBACK,
+  TICKET_TYPE_META,
+} from './ticket.constants';
+import { TICKET_CUSTOMER_FORM, TICKET_FORM } from './ticket-form.config';
+import { activeFilterCount, EMPTY_TICKET_FILTERS, filterTickets, serverFilters, type ITicketFilters } from './ticket-filter.util';
 import { TicketsService } from './tickets.service';
 import type {
   TSaveEvent,
   TSaveState,
   TTicket,
   TTicketBoard,
+  TAssignee,
   TTicketQuickCreate,
   TTicketStatus,
   TTicketUpsert,
@@ -32,6 +48,32 @@ import type {
 export class TicketsStore {
   private readonly _ticketsService = inject(TicketsService);
   private readonly _injector = inject(Injector);
+  private readonly _catalogs = inject(CatalogOptionsService);
+  private readonly _session = inject(SessionStore);
+
+  /** Formulario según el rol: el equipo fija complejidad, estimación y responsable; el cliente los ve sin cambiarlos. */
+  readonly $form = computed(() => (this._session.$isTeam() ? TICKET_FORM : TICKET_CUSTOMER_FORM));
+
+  /**
+   * Opciones de categoría, prioridad y estado: salen de los CATÁLOGOS (editables por un administrador)
+   * y caen a las etiquetas del contrato mientras cargan. Los códigos son los mismos que valida Zod.
+   */
+  readonly $typeOptions = this._catalogs.options('ticket-type', toMetaOptions(TICKET_TYPE, TICKET_TYPE_META));
+  readonly $categoryOptions = this._catalogs.options('ticket-category', toMetaOptions(TICKET_CATEGORY, TICKET_CATEGORY_META));
+  readonly $priorityOptions = this._catalogs.options('ticket-priority', toMetaOptions(TICKET_PRIORITY, TICKET_PRIORITY_META));
+  readonly $complexityOptions = this._catalogs.options('ticket-complexity', toMetaOptions(TICKET_COMPLEXITY, TICKET_COMPLEXITY_META));
+  readonly $departmentOptions = this._catalogs.options('ticket-department', [TICKET_DEPARTMENT_FALLBACK], true);
+  readonly $statusOptions = this._catalogs.options('ticket-status', toMetaOptions(TICKET_STATUS, TICKET_STATUS_META));
+
+  /** código → etiqueta, para pintar avisos. */
+  readonly $priorityLabels = computed(() => labelsOf(this.$priorityOptions()));
+  readonly $statusLabels = computed(() => labelsOf(this.$statusOptions()));
+  /** código → opción (etiqueta + ícono + color) para las insignias de las tarjetas. */
+  readonly $departmentByCode = computed(() => byCode(this.$departmentOptions()));
+  readonly $typeByCode = computed(() => byCode(this.$typeOptions()));
+  readonly $priorityByCode = computed(() => byCode(this.$priorityOptions()));
+  readonly $complexityByCode = computed(() => byCode(this.$complexityOptions()));
+  readonly $statusByCode = computed(() => byCode(this.$statusOptions()));
 
   private readonly _saveMachine = createStateMachine<TSaveState, TSaveEvent>({
     initial: 'idle',
@@ -62,6 +104,12 @@ export class TicketsStore {
   private readonly $_pendingMoves = signal<ReadonlyMap<string, TTicketStatus>>(new Map());
   readonly $pendingMoves = this.$_pendingMoves.asReadonly();
 
+  /** Personal asignable (vacío mientras carga o si falla: el formulario sigue usable con «Sin asignar»). */
+  readonly $assignees = computed<TAssignee[]>(() => {
+    const assignees = this._ticketsService.assignees;
+    return assignees.hasValue() ? assignees.value().data : [];
+  });
+
   /** Tablero con los movimientos en vuelo ya aplicados — lo que se pinta. */
   readonly $boardView = computed<TAsyncState<TTicketBoard>>(() => {
     const state = this.$boardState();
@@ -72,11 +120,62 @@ export class TicketsStore {
     for (const source of state.data.columns) {
       for (const ticket of source.tickets) {
         const status = pending.get(ticket.uuid) ?? ticket.status;
-        columns.find((column) => column.status === status)?.tickets.push({ ...ticket, status });
+        columns.find((column) => column.statuses.includes(status))?.tickets.push({ ...ticket, status });
       }
     }
     return { kind: 'success', data: { ...state.data, columns } };
   });
+
+  // ── Filtros de búsqueda (los comparten el tablero y el listado) ─────────────────────────────────
+  private readonly $_filters = signal<ITicketFilters>(EMPTY_TICKET_FILTERS);
+  readonly $filters = this.$_filters.asReadonly();
+  readonly $activeFilters = computed(() => activeFilterCount(this.$_filters()));
+
+  /** El tablero ya trae todos los tickets: se filtra en el cliente (buscar es instantáneo). */
+  readonly $visibleBoard = computed<TAsyncState<TTicketBoard>>(() => {
+    const state = this.$boardView();
+    const filters = this.$_filters();
+    if (state.kind !== 'success' || activeFilterCount(filters) === 0) return state;
+    const user = this._session.$user();
+    const me = user ? { uuid: user.uuid, email: user.email } : null;
+    return {
+      kind: 'success',
+      data: { ...state.data, columns: state.data.columns.map((column) => ({ ...column, tickets: filterTickets(column.tickets, filters, me) })) },
+    };
+  });
+
+  /** «Mostrando n de m» del tablero. */
+  readonly $boardCounts = computed(() => {
+    const total = (state: TAsyncState<TTicketBoard>) => (state.kind === 'success' ? state.data.columns.reduce((sum, column) => sum + column.tickets.length, 0) : 0);
+    return { shown: total(this.$visibleBoard()), total: total(this.$boardView()) };
+  });
+
+  /** Cambia criterios; el listado paginado recibe los que el backend filtra (y vuelve a la página 1). */
+  setFilters(changes: Partial<ITicketFilters>): void {
+    const next = { ...this.$_filters(), ...changes };
+    this.$_filters.set(next);
+    this._ticketsService.setFilters(serverFilters(next));
+    // El buscador del listado vive en la barra de la tabla: solo se toca si este cambio trae texto.
+    if (changes.search !== undefined) this._ticketsService.setSearch(next.search);
+    this._ticketsService.setPage(1);
+  }
+
+  clearFilters(): void {
+    this.setFilters(EMPTY_TICKET_FILTERS);
+  }
+
+  /** Opciones de selects que llegan en runtime para los formularios de ticket (catálogos + personal). */
+  formOptions(currentAssignee?: string | null): Record<string, IFieldOption[]> {
+    return {
+      department: this.$departmentOptions(),
+      type: this.$typeOptions(),
+      category: this.$categoryOptions(),
+      complexity: this.$complexityOptions(),
+      priority: this.$priorityOptions(),
+      status: this.$statusOptions(),
+      assigneeEmail: toAssigneeOptions(this.$assignees(), currentAssignee),
+    };
+  }
 
   // ── Listado paginado (BaseApiAbstract.list: paginación y búsqueda de SERVIDOR) ───────────
   readonly $listState = this._ticketsService.$listState;
@@ -105,13 +204,12 @@ export class TicketsStore {
    * tickets pueden estar en vuelo a la vez, pero NO el mismo dos veces (un segundo arrastre del mismo
    * ticket mientras se guarda el primero se ignora).
    */
-  async move(ticket: TTicket, status: TTicketStatus): Promise<boolean> {
-    if (ticket.status === status || this.$_pendingMoves().has(ticket.uuid)) return false;
+  async move(ticket: TTicket, status: TTicketStatus, extra: { resolution?: string; note?: string } = {}): Promise<boolean> {
+    // Solo a los estados que el backend le ofreció a ESTA persona (`nextStatuses`): lo demás es 409.
+    if (ticket.status === status || !ticket.nextStatuses.includes(status) || this.$_pendingMoves().has(ticket.uuid)) return false;
     this.setPending(ticket.uuid, status);
     try {
-      await firstValueFrom(
-        this._ticketsService.update(ticket.uuid, toTicketUpsert(ticket, { status })),
-      );
+      await firstValueFrom(this._ticketsService.transition(ticket.uuid, { to: status, ...extra }));
       await this.reloadBoard();
       return true;
     } finally {
@@ -163,4 +261,12 @@ export class TicketsStore {
       throw error;
     }
   }
+}
+
+function labelsOf(options: readonly IFieldOption[]): Record<string, string> {
+  return Object.fromEntries(options.map((option) => [String(option.value), option.label]));
+}
+
+function byCode(options: readonly IFieldOption[]): Record<string, IFieldOption> {
+  return Object.fromEntries(options.map((option) => [String(option.value), option]));
 }

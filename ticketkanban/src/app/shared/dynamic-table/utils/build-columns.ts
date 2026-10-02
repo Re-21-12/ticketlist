@@ -31,6 +31,10 @@ export function buildTableColumns(
       header: field.table?.header ?? field.label,
       dataType: field.table?.dataType ?? DATA_TYPE_BY_FIELD[field.type] ?? 'string',
       options: field.options,
+      ...(field.table?.badge ? { badge: true } : {}),
+      ...(field.table?.badgeFrom ? { badgeFrom: field.table.badgeFrom } : {}),
+      ...(field.table?.iconValue ? { iconValue: true } : {}),
+      ...(field.table?.dangerWhenTrue ? { dangerWhenTrue: true } : {}),
     }));
   return [...extra, ...fromFields];
 }

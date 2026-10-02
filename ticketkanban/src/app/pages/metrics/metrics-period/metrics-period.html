@@ -1,0 +1,34 @@
+<search class="mp" aria-label="Período de las métricas">
+  <div class="mp-presets" role="group" aria-label="Períodos rápidos">
+    @for (preset of presets; track preset.days) {
+      <button
+        type="button"
+        pButton
+        size="small"
+        [severity]="_store.$presetDays() === preset.days ? 'primary' : 'secondary'"
+        [outlined]="_store.$presetDays() !== preset.days"
+        [attr.aria-pressed]="_store.$presetDays() === preset.days"
+        (click)="_store.setPreset(preset.days)"
+      >
+        <span pButtonLabel>Últimos {{ preset.label }}</span>
+      </button>
+    }
+  </div>
+
+  <form class="mp-range" (submit)="$event.preventDefault(); apply()">
+    <div class="mp-field">
+      <label class="mp-label" for="mp-from">Desde</label>
+      <input id="mp-from" type="date" class="mp-date" [value]="$from()" [max]="$to()" (input)="$from.set(value($event))" />
+    </div>
+    <div class="mp-field">
+      <label class="mp-label" for="mp-to">Hasta</label>
+      <input id="mp-to" type="date" class="mp-date" [value]="$to()" [min]="$from()" (input)="$to.set(value($event))" />
+    </div>
+    <button type="submit" pButton size="small" severity="secondary" [outlined]="true" [disabled]="!$dirty()">
+      <i pButtonIcon class="pi pi-calendar" aria-hidden="true"></i>
+      <span pButtonLabel>Aplicar rango</span>
+    </button>
+  </form>
+
+  <p class="mp-error" role="alert">{{ _store.$error() }}</p>
+</search>

@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import type { IFieldOption } from '../dynamic-form/field-config.interface';
 import type { IFormDefinition } from '../dynamic-form/form-definition.interface';
 
 /** Lo único que cambia por pantalla al abrir el modal de alta/edición. */
@@ -13,6 +14,8 @@ export interface IFormDialogOptions<TSchema extends z.ZodObject = z.ZodObject> {
   onSubmit: (value: z.output<TSchema>) => void;
   /** Estado de envío del caller: deshabilita Guardar y la X mientras hay un request en vuelo. */
   submitting: () => boolean;
+  /** Opciones por campo que llegan en runtime (getter/signal: se vuelve a leer si cambia, p. ej. al terminar de cargar). */
+  optionsByField?: () => Record<string, IFieldOption[]>;
   /** Override del ancho; por defecto se adapta a la cantidad de campos. */
   width?: { width: string; maxWidth: string };
 }
@@ -21,4 +24,4 @@ export interface IFormDialogOptions<TSchema extends z.ZodObject = z.ZodObject> {
 export type TDynamicFormDialogData = Required<
   Pick<IFormDialogOptions, 'definition' | 'onSubmit' | 'submitting'>
 > &
-  Pick<IFormDialogOptions, 'initialData' | 'readonlyMode' | 'submitLabel'>;
+  Pick<IFormDialogOptions, 'initialData' | 'readonlyMode' | 'submitLabel' | 'optionsByField'>;

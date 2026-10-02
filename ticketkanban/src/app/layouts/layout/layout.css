@@ -122,6 +122,18 @@
   text-transform: uppercase;
   color: var(--app-text-muted);
 }
+.app-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.app-nav-icon {
+  margin-inline-end: 0.625rem;
+  color: var(--app-text-muted);
+}
+.app-nav-link--active .app-nav-icon {
+  color: var(--app-primary);
+}
 .app-nav-link {
   display: block;
   padding: 0.5rem 0.75rem;

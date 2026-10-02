@@ -1,3 +1,6 @@
+import type { OnModuleInit } from '@nestjs/common';
+import type { EntitySchema } from 'typeorm';
+import type { PersistenceService } from '../database/persistence.service.js';
 import type { BaseEntity } from './base.entity.js';
 import type { IBasePagination } from './interfaces/Ibase-pagination.interface.js';
 import type { IBaseRepository, TRowPredicate, TWhere } from './interfaces/Ibase.repository.js';
@@ -8,16 +11,61 @@ function withChanges<T extends object>(row: T, changes: Partial<T>): T {
 }
 
 /**
+ * Cómo se persiste un repositorio (TypeORM): su tabla, cómo armar la entidad desde una fila y cómo se siembra.
+ *  - `seed: 'ensure'` → al arrancar se INSERTAN las semillas cuya clave natural falta (un lanzamiento que agrega un ítem de
+ *    menú o un permiso lo recibe; lo que un administrador editó o eliminó no se pisa).
+ *  - `seed: 'empty'`  → las semillas solo entran si la tabla está VACÍA (datos de demostración).
+ */
+export interface IRepositoryPersistence<T extends BaseEntity> {
+  service: PersistenceService;
+  schema: EntitySchema<T>;
+  create: () => T;
+  seed: 'ensure' | 'empty';
+  /** Clave natural de una fila (para `seed: 'ensure'`). */
+  naturalKey?: (row: T) => string;
+}
+
+/**
  * Capa de DATOS — implementación EN MEMORIA de `IBaseRepository` (mock). El contrato es el de
  * wallet-api (`findAll` → `[rows, total]`, borrado lógico, restore), así que cambiar a TypeORM es
  * reemplazar esta clase; servicio y controlador no se enteran.
+ *
+ * Con `persistence` (Postgres vía TypeORM, ver `PersistenceService`) las lecturas siguen saliendo de memoria y cada
+ * cambio se guarda en la base; al arrancar se hidrata desde ella (`onModuleInit`).
  */
-export abstract class InMemoryRepository<T extends BaseEntity> implements IBaseRepository<T> {
+export abstract class InMemoryRepository<T extends BaseEntity> implements IBaseRepository<T>, OnModuleInit {
+  private readonly persistence: IRepositoryPersistence<T> | undefined;
   protected rows: T[] = [];
   private nextId = 1;
 
-  protected constructor(seed: T[] = []) {
+  protected constructor(seed: T[] = [], persistence?: IRepositoryPersistence<T>) {
     this.rows = seed.map((row) => withChanges(row, { id: this.nextId++ } as Partial<T>));
+    this.persistence = persistence;
+  }
+
+  /** Carga la tabla, le suma las semillas que falten y deja esa vista en memoria. Sin persistencia no hace nada. */
+  async onModuleInit(): Promise<void> {
+    const persistence = this.persistence;
+    if (!persistence?.service.enabled) return;
+    const stored = (await persistence.service.load(persistence.schema)).map((row) => Object.assign(persistence.create(), row));
+    const seeds = this.rows; // lo que construyó el constructor (semillas en memoria)
+    let lastId = stored.reduce((max, row) => Math.max(max, row.id), 0);
+    const knownKeys = new Set(persistence.naturalKey ? stored.map(persistence.naturalKey) : []);
+    const missing =
+      persistence.seed === 'empty'
+        ? stored.length === 0
+          ? seeds
+          : []
+        : seeds.filter((row) => !knownKeys.has((persistence.naturalKey as (row: T) => string)(row)));
+    const inserted = missing.map((row) => withChanges(row, { id: ++lastId } as Partial<T>));
+    if (inserted.length > 0) persistence.service.save(persistence.schema, inserted);
+    this.rows = [...stored, ...inserted];
+    this.nextId = lastId + 1;
+  }
+
+  /** Guarda en la base (cola ordenada); no-op sin persistencia. */
+  protected persist(row: T): void {
+    this.persistence?.service.save(this.persistence.schema, row);
   }
 
   async findAll(
@@ -46,11 +94,13 @@ export abstract class InMemoryRepository<T extends BaseEntity> implements IBaseR
   async create(entity: T): Promise<T> {
     const saved = withChanges(entity, { id: this.nextId++ } as Partial<T>);
     this.rows = [...this.rows, saved];
+    this.persist(saved);
     return saved;
   }
 
   async update(entity: T): Promise<T> {
     this.rows = this.rows.map((row) => (row.uuid === entity.uuid ? entity : row));
+    this.persist(entity);
     return entity;
   }
 
@@ -87,5 +137,7 @@ export abstract class InMemoryRepository<T extends BaseEntity> implements IBaseR
 
   private patch(uuid: string, changes: Partial<T>): void {
     this.rows = this.rows.map((row) => (row.uuid === uuid ? withChanges(row, changes) : row));
+    const changed = this.rows.find((row) => row.uuid === uuid);
+    if (changed) this.persist(changed);
   }
 }

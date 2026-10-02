@@ -6,7 +6,7 @@ import { environment } from '../../../environments/environment';
 import { EUserRole } from '../casl/ability.enum';
 import { AppAbility } from '../casl/casl.types';
 import { SessionService } from './session.service';
-import type { TShell } from './session.types';
+import type { ISignInRequest, TShell } from './session.types';
 
 /**
  * Estado de la sesión: usuario, reglas CASL y menú.
@@ -29,27 +29,30 @@ export class SessionStore {
 
   readonly $user = computed(() => this.$_session()?.user ?? null);
   readonly $role = computed(() => this.$_session()?.user.role);
+  /** Equipo de soporte (agente, supervisor, administrador): fija complejidad, estimación y responsable. El cliente no. */
+  readonly $isTeam = computed(() => {
+    const role = this.$role();
+    return role === EUserRole.ADMIN || role === EUserRole.SUPERVISOR || role === EUserRole.AGENT;
+  });
   readonly $menu = computed(() => this.$_session()?.menu ?? []);
   readonly $isAuthenticated = computed(() => this.$_session() !== null);
   /** Hay usuarios de desarrollo: se muestra el selector «Rol de prueba». */
   readonly canSwitchRole = environment.devSignIn !== null;
 
   /**
-   * Arranque: retoma la sesión de la cookie `sid` si sigue viva. Sin sesión (401), en desarrollo
-   * inicia sesión como el agente sembrado; en producción queda sin sesión.
+   * Arranque: retoma la sesión de la cookie `sid` si sigue viva. Sin sesión (401) la app queda SIN
+   * sesión — es el estado normal de quien todavía no entró — y las pantallas protegidas mandan a
+   * `/sign-in`. (Antes en desarrollo iniciaba sola como agente, lo que escondía el flujo de acceso.)
    *
-   * NUNCA lanza: corre en `provideAppInitializer` y un error ahí deja la app en blanco. Si el BFF
-   * no responde, la app arranca sin sesión (sin permisos) y avisa.
+   * NUNCA lanza: corre en `provideAppInitializer` y un error ahí deja la app en blanco. Si el BFF no
+   * responde, la app arranca sin sesión y avisa.
    */
   async loadSession(): Promise<void> {
     try {
       this.apply(await firstValueFrom(this._sessionService.getShell()));
     } catch (error) {
       this.clear();
-      if (error instanceof HttpErrorResponse && error.status === 401) {
-        if (this.canSwitchRole) await this.signInAs(EUserRole.AGENT).catch(() => undefined);
-        return;
-      }
+      if (error instanceof HttpErrorResponse && error.status === 401) return;
       this._messageService.add({
         severity: 'error',
         summary: 'No se pudo conectar con el servidor',
@@ -57,6 +60,11 @@ export class SessionStore {
         sticky: true,
       });
     }
+  }
+
+  /** Inicia sesión con correo y contraseña. Los errores (401, 403 sin verificar, 429) los muestra quien llama. */
+  async signIn(credentials: ISignInRequest): Promise<void> {
+    this.apply(await firstValueFrom(this._sessionService.signIn(credentials)));
   }
 
   /** SOLO desarrollo: inicia sesión como el usuario sembrado de ese rol. */

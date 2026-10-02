@@ -49,12 +49,13 @@ export class DynamicTable {
   readonly $edit = output<TTableRow>();
   readonly $delete = output<TTableRow>();
 
-  protected readonly $canCreate = computed(() =>
-    this._abilityService.can('create', this.$config().subject),
+  protected readonly $canCreate = computed(
+    () => this.$config().creatable !== false && this._abilityService.can('create', this.$config().subject),
   );
   protected readonly $actions = computed<TTableAction[]>(
     () => this.$config().actions ?? ['view', 'update', 'delete'],
   );
+  protected readonly $rowActionAllowed = computed(() => this.$config().rowActionAllowed ?? (() => true));
   protected readonly $rowIdField = computed(() => this.$config().rowIdField ?? 'uuid');
   /** Índice absoluto de la primera fila de la página (p-table trabaja con `first`, 0-based). */
   protected readonly $first = computed(() => (this.$page() - 1) * this.$take());
@@ -63,7 +64,7 @@ export class DynamicTable {
   protected readonly $skeletonRows = computed(() => Array.from({ length: Math.min(this.$take(), 5) }, (_, i) => i));
 
   protected rowLabel(row: TTableRow): string {
-    return String(row['code'] ?? row[this.$rowIdField()] ?? '');
+    return String(row[this.$config().rowLabelField ?? 'code'] ?? row['code'] ?? row[this.$rowIdField()] ?? '');
   }
 
   protected readonly rowTrackBy = (_: number, row: TTableRow): string =>

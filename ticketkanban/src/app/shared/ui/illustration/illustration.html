@@ -1,0 +1,168 @@
+<svg
+  class="ill"
+  viewBox="0 0 160 120"
+  xmlns="http://www.w3.org/2000/svg"
+  aria-hidden="true"
+  focusable="false"
+>
+  <circle class="ill-blob" cx="80" cy="60" r="52" />
+  <circle class="ill-dot" cx="18" cy="26" r="4" />
+  @switch ($name()) {
+    @case ('tickets') {
+      <rect class="ill-card" x="14" y="26" width="38" height="70" rx="6" />
+      <rect class="ill-card" x="61" y="26" width="38" height="70" rx="6" />
+      <rect class="ill-card" x="108" y="26" width="38" height="70" rx="6" />
+      <rect class="ill-accent" x="19" y="34" width="28" height="14" rx="3" />
+      <rect class="ill-line" x="19" y="54" width="28" height="8" rx="3" />
+      <rect class="ill-line" x="66" y="34" width="28" height="14" rx="3" />
+      <rect class="ill-accent" x="66" y="54" width="28" height="14" rx="3" />
+      <rect class="ill-line" x="113" y="34" width="28" height="14" rx="3" />
+      <path class="ill-accent-stroke" d="M120 70l6 6 10-11" />
+    }
+    @case ('new-ticket') {
+      <rect class="ill-card" x="42" y="18" width="76" height="88" rx="8" />
+      <rect class="ill-line" x="54" y="32" width="40" height="7" rx="3" />
+      <rect class="ill-line" x="54" y="48" width="52" height="6" rx="3" />
+      <rect class="ill-line" x="54" y="62" width="46" height="6" rx="3" />
+      <rect class="ill-line" x="54" y="76" width="30" height="6" rx="3" />
+      <circle class="ill-accent" cx="112" cy="92" r="16" />
+      <path class="ill-on-accent" d="M112 84v16M104 92h16" />
+    }
+    @case ('list') {
+      <rect class="ill-card" x="22" y="22" width="116" height="76" rx="8" />
+      <circle class="ill-accent" cx="40" cy="42" r="6" />
+      <rect class="ill-line" x="54" y="38" width="66" height="8" rx="4" />
+      <circle class="ill-dot" cx="40" cy="62" r="6" />
+      <rect class="ill-line" x="54" y="58" width="52" height="8" rx="4" />
+      <circle class="ill-dot" cx="40" cy="82" r="6" />
+      <rect class="ill-line" x="54" y="78" width="60" height="8" rx="4" />
+    }
+    @case ('security') {
+      <rect class="ill-card" x="22" y="30" width="86" height="56" rx="8" />
+      <rect class="ill-line" x="34" y="42" width="34" height="6" rx="3" />
+      <circle class="ill-line" cx="42" cy="64" r="4" />
+      <circle class="ill-line" cx="56" cy="64" r="4" />
+      <circle class="ill-line" cx="70" cy="64" r="4" />
+      <circle class="ill-line" cx="84" cy="64" r="4" />
+      <path class="ill-accent" d="M112 54l22 8v18c0 14-9 23-22 28-13-5-22-14-22-28V62z" />
+      <path class="ill-on-accent" d="M103 82l7 7 14-15" />
+    }
+    @case ('two-factor') {
+      <rect class="ill-card" x="52" y="12" width="56" height="96" rx="10" />
+      <rect class="ill-line" x="68" y="20" width="24" height="4" rx="2" />
+      <rect class="ill-accent" x="60" y="44" width="8" height="12" rx="2" />
+      <rect class="ill-accent" x="71" y="44" width="8" height="12" rx="2" />
+      <rect class="ill-accent" x="82" y="44" width="8" height="12" rx="2" />
+      <rect class="ill-accent" x="93" y="44" width="8" height="12" rx="2" />
+      <rect class="ill-line" x="60" y="68" width="40" height="6" rx="3" />
+      <circle class="ill-accent" cx="118" cy="30" r="14" />
+      <path class="ill-on-accent" d="M111 30l5 5 9-10" />
+    }
+    @case ('recovery') {
+      <rect class="ill-card" x="22" y="34" width="92" height="62" rx="8" />
+      <path class="ill-stroke" d="M24 38l44 32 44-32" />
+      <circle class="ill-accent" cx="118" cy="78" r="12" />
+      <circle class="ill-card" cx="118" cy="78" r="4" />
+      <path class="ill-accent-stroke" d="M128 86l14 14M136 94l-6 6" />
+    }
+    @case ('lock') {
+      <rect class="ill-card" x="42" y="52" width="76" height="54" rx="10" />
+      <path class="ill-stroke" d="M56 52V40a24 24 0 0148 0v12" />
+      <circle class="ill-accent" cx="80" cy="76" r="8" />
+      <rect class="ill-accent" x="77" y="78" width="6" height="14" rx="3" />
+    }
+    @case ('access') {
+      <path class="ill-card" d="M80 18l40 14v30c0 24-16 38-40 46-24-8-40-22-40-46V32z" />
+      <circle class="ill-accent" cx="80" cy="62" r="22" />
+      <path class="ill-on-accent" d="M70 52l20 20M90 52L70 72" />
+    }
+    @case ('users') {
+      <circle class="ill-line" cx="46" cy="52" r="14" />
+      <path class="ill-line" d="M22 98c0-14 11-24 24-24s24 10 24 24z" />
+      <circle class="ill-line" cx="114" cy="52" r="14" />
+      <path class="ill-line" d="M90 98c0-14 11-24 24-24s24 10 24 24z" />
+      <circle class="ill-accent" cx="80" cy="40" r="18" />
+      <path class="ill-accent" d="M50 104c0-18 14-30 30-30s30 12 30 30z" />
+    }
+    @case ('catalog') {
+      <rect class="ill-card" x="28" y="22" width="104" height="22" rx="6" />
+      <rect class="ill-card" x="28" y="50" width="104" height="22" rx="6" />
+      <rect class="ill-card" x="28" y="78" width="104" height="22" rx="6" />
+      <circle class="ill-accent" cx="42" cy="33" r="5" />
+      <circle class="ill-dot" cx="42" cy="61" r="5" />
+      <circle class="ill-dot" cx="42" cy="89" r="5" />
+      <rect class="ill-line" x="54" y="30" width="60" height="6" rx="3" />
+      <rect class="ill-line" x="54" y="58" width="48" height="6" rx="3" />
+      <rect class="ill-line" x="54" y="86" width="54" height="6" rx="3" />
+    }
+    @case ('metrics') {
+      <rect class="ill-card" x="22" y="22" width="116" height="80" rx="8" />
+      <rect class="ill-line" x="38" y="68" width="14" height="22" rx="3" />
+      <rect class="ill-accent" x="62" y="52" width="14" height="38" rx="3" />
+      <rect class="ill-line" x="86" y="60" width="14" height="30" rx="3" />
+      <rect class="ill-accent" x="110" y="40" width="14" height="50" rx="3" />
+      <path class="ill-accent-stroke" d="M36 46l24-8 24 6 38-16" />
+    }
+    @case ('audit') {
+      <rect class="ill-card" x="30" y="16" width="76" height="92" rx="8" />
+      <rect class="ill-line" x="42" y="30" width="36" height="6" rx="3" />
+      <rect class="ill-line" x="42" y="46" width="52" height="6" rx="3" />
+      <rect class="ill-line" x="42" y="62" width="44" height="6" rx="3" />
+      <circle class="ill-card" cx="108" cy="78" r="18" />
+      <circle class="ill-accent-stroke" cx="108" cy="78" r="12" />
+      <path class="ill-accent-stroke" d="M117 87l14 14" />
+    }
+    @case ('sharing') {
+      <circle class="ill-card" cx="40" cy="60" r="18" />
+      <circle class="ill-line" cx="40" cy="54" r="6" />
+      <path class="ill-line" d="M28 74c2-7 7-10 12-10s10 3 12 10z" />
+      <circle class="ill-card" cx="120" cy="60" r="18" />
+      <circle class="ill-line" cx="120" cy="54" r="6" />
+      <path class="ill-line" d="M108 74c2-7 7-10 12-10s10 3 12 10z" />
+      <path class="ill-accent-stroke" d="M62 60h36" />
+      <path class="ill-accent-stroke" d="M90 52l8 8-8 8" />
+    }
+    @case ('empty') {
+      <path class="ill-card" d="M26 62l14-30h80l14 30v32a8 8 0 01-8 8H34a8 8 0 01-8-8z" />
+      <path class="ill-stroke" d="M26 62h36l6 12h24l6-12h36" />
+      <circle class="ill-dot" cx="124" cy="26" r="5" />
+      <circle class="ill-dot" cx="36" cy="30" r="4" />
+    }
+    @case ('survey') {
+      <rect class="ill-card" x="24" y="30" width="112" height="60" rx="10" />
+      <path class="ill-accent" d="M46 52l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" />
+      <path class="ill-accent" d="M80 52l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" />
+      <path class="ill-line" d="M114 52l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" />
+    }
+    @case ('menu') {
+      <rect class="ill-card" x="28" y="20" width="104" height="80" rx="8" />
+      <rect class="ill-accent" x="38" y="32" width="12" height="12" rx="3" />
+      <rect class="ill-line" x="58" y="35" width="56" height="6" rx="3" />
+      <rect class="ill-dot" x="38" y="54" width="12" height="12" rx="3" />
+      <rect class="ill-line" x="58" y="57" width="44" height="6" rx="3" />
+      <rect class="ill-dot" x="38" y="76" width="12" height="12" rx="3" />
+      <rect class="ill-line" x="58" y="79" width="50" height="6" rx="3" />
+    }
+    @case ('matrix') {
+      <rect class="ill-card" x="24" y="22" width="112" height="76" rx="8" />
+      <path class="ill-stroke" d="M24 44h112M24 66h112M62 22v76M100 22v76" />
+      <path class="ill-accent-stroke" d="M72 52l4 4 7-8" />
+      <path class="ill-accent-stroke" d="M34 74l4 4 7-8" />
+      <path class="ill-accent-stroke" d="M110 74l4 4 7-8" />
+    }
+    @case ('profile') {
+      <rect class="ill-card" x="24" y="24" width="112" height="72" rx="10" />
+      <circle class="ill-accent" cx="54" cy="52" r="14" />
+      <rect class="ill-line" x="76" y="42" width="48" height="8" rx="4" />
+      <rect class="ill-line" x="76" y="58" width="36" height="6" rx="3" />
+      <rect class="ill-line" x="38" y="78" width="84" height="6" rx="3" />
+    }
+    @case ('appearance') {
+      <circle class="ill-card" cx="80" cy="60" r="34" />
+      <path class="ill-accent" d="M80 26a34 34 0 000 68z" />
+      <circle class="ill-dot" cx="124" cy="30" r="5" />
+      <circle class="ill-accent" cx="66" cy="50" r="5" />
+      <circle class="ill-line" cx="96" cy="70" r="5" />
+    }
+  }
+</svg>

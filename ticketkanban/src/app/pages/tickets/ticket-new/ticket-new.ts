@@ -6,6 +6,7 @@ import { FormSplit } from '../../../layouts/form-split/form-split';
 import { TICKET_QUICK_FORM } from '../ticket-form.config';
 import type { TTicketQuickCreate } from '../ticket.types';
 import { TicketsStore } from '../tickets.store';
+import { Illustration } from '../../../shared/ui/illustration/illustration';
 
 /**
  * Alta rápida: el mismo `DynamicForm`, embebido en página (FormSplit) en vez de en modal.
@@ -16,7 +17,7 @@ import { TicketsStore } from '../tickets.store';
  */
 @Component({
   selector: 'app-ticket-new',
-  imports: [FormSplit, DynamicForm],
+  imports: [Illustration, FormSplit, DynamicForm],
   templateUrl: './ticket-new.html',
   styleUrl: './ticket-new.css',
 })

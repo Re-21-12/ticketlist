@@ -1,0 +1,160 @@
+<header class="matrix-header page-header-art">
+  <div>
+    <h1>Matriz de roles</h1>
+    <p>Qué puede hacer cada rol sobre cada recurso. Un clic concede o quita el permiso.</p>
+  </div>
+  <a routerLink="/role-permissions" class="app-link">Permisos por rol (condiciones)</a>
+  <app-illustration class="page-art" [$name]="'matrix'" />
+</header>
+
+@if ($failed()) {
+  <p class="matrix-error" role="alert">No se pudo cargar la matriz.</p>
+}
+@if ($truncated()) {
+  <p class="matrix-warning" role="status">
+    Hay más reglas de las que caben en esta vista; revisa «Permisos por rol».
+  </p>
+}
+
+<ul class="matrix-stats" aria-label="Resumen">
+  <li>
+    <strong>{{ $stats().roles }}</strong> roles
+  </li>
+  <li>
+    <strong>{{ $stats().users }}</strong> personas
+  </li>
+  <li>
+    <strong>{{ $stats().rules }}</strong> permisos
+  </li>
+  <li>
+    <strong>{{ $stats().conditional }}</strong> con condición
+  </li>
+</ul>
+
+<div class="matrix-roles" role="radiogroup" aria-label="Rol">
+  @for (entry of $roles(); track entry.role) {
+    <label class="matrix-role" [class.matrix-role--active]="entry.role === $role()">
+      <input
+        type="radio"
+        class="sr-only"
+        name="matrix-role"
+        [value]="entry.role"
+        [checked]="entry.role === $role()"
+        (change)="select(entry.role)"
+      />
+      <span class="matrix-role-name">{{ entry.label }}</span>
+      <span class="matrix-role-meta"
+        >{{ entry.members }} personas · {{ entry.rules }} permisos</span
+      >
+    </label>
+  }
+</div>
+
+<section class="matrix-card" aria-labelledby="matrix-title">
+  <div class="matrix-card-head">
+    <h2 id="matrix-title">Permisos de {{ $selected()?.label }}</h2>
+    <div class="matrix-filters">
+      <label for="matrix-search" class="sr-only">Buscar recurso</label>
+      <input
+        pInputText
+        id="matrix-search"
+        type="search"
+        placeholder="Buscar recurso…"
+        autocomplete="off"
+        [ngModel]="$search()"
+        (ngModelChange)="$search.set($event)"
+      />
+      <label for="matrix-filter" class="sr-only">Filtrar</label>
+      <p-select
+        inputId="matrix-filter"
+        [options]="filterOptions"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="$filter()"
+        (ngModelChange)="$filter.set($event)"
+      />
+    </div>
+  </div>
+
+  <div class="matrix-scroll">
+    <table class="matrix-table">
+      <caption class="sr-only">
+        Permisos de
+        {{
+          $selected()?.label
+        }}
+        por recurso y acción
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Recurso</th>
+          @for (action of actions; track action) {
+            <th scope="col" class="matrix-action">{{ actionLabels[action] }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of $rows(); track row.subject) {
+          <tr>
+            <th scope="row">{{ row.label }}</th>
+            @for (cell of row.cells; track cell.action) {
+              <td class="matrix-action">
+                <input
+                  type="checkbox"
+                  class="matrix-check"
+                  [checked]="cell.state !== 'off'"
+                  [disabled]="
+                    cell.state === 'inherited' || $busyCell() === row.subject + '|' + cell.action
+                  "
+                  [attr.aria-label]="cellTitle(row, cell)"
+                  [title]="cellTitle(row, cell)"
+                  (change)="toggle(row, cell, $any($event.target))"
+                />
+                <!-- El estado no depende solo del color: texto corto para lectores y daltonismo. -->
+                @if (cell.state === 'inherited') {
+                  <span class="matrix-note">heredado</span>
+                } @else if (cell.state === 'on' && cell.conditional) {
+                  <span class="matrix-note">parcial</span>
+                }
+              </td>
+            }
+          </tr>
+        } @empty {
+          <tr>
+            <td [attr.colspan]="actions.length + 1" class="matrix-empty">
+              @if ($loading()) {
+                Cargando…
+              } @else {
+                Ningún recurso coincide con el filtro.
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="matrix-card" aria-labelledby="members-title">
+  <h2 id="members-title">Personas con el rol {{ $selected()?.label }}</h2>
+  @if ($members().length) {
+    <ul class="matrix-members">
+      @for (user of $members(); track user.uuid) {
+        <li>
+          <app-user-avatar
+            [$icon]="user.avatarIcon ? 'pi ' + user.avatarIcon : null"
+            [$color]="user.avatarColor"
+            [$name]="user.name"
+          />
+          <span class="matrix-member-name">{{ user.name }}</span>
+          <span class="matrix-member-mail">{{ user.email }}</span>
+          @if (user.disabled) {
+            <span class="matrix-note">deshabilitada</span>
+          }
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="matrix-empty">Nadie tiene este rol todavía.</p>
+  }
+</section>

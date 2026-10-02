@@ -12,9 +12,26 @@ import {
  * class-validator y `maxLength: 30` en el `*-form.config.ts`.
  */
 
-export const TICKET_STATUS = ['todo', 'in_progress', 'done'] as const;
+/** Ciclo de vida (espejo de `lifecycle/ticket-lifecycle.ts` del backend; docs/standard/metrics.md §2). */
+export const TICKET_STATUS = [
+  'new',
+  'assigned',
+  'in_progress',
+  'pending_customer',
+  'escalated',
+  'resolved',
+  'closed',
+  'reopened',
+] as const;
 export const TICKET_PRIORITY = ['low', 'medium', 'high', 'critical'] as const;
-export const TICKET_CATEGORY = ['bug', 'feature', 'support', 'other'] as const;
+/** Tipo de incidencia o solicitud (CU05, paso 3). */
+export const TICKET_TYPE = ['incident', 'service_request', 'inquiry', 'improvement'] as const;
+/** Categoría funcional (CU05, paso 4). */
+export const TICKET_CATEGORY = ['hardware', 'software', 'network', 'access', 'email', 'other'] as const;
+/** Complejidad: la fija el equipo de soporte; el cliente no la edita. */
+export const TICKET_COMPLEXITY = ['simple', 'moderate', 'complex'] as const;
+/** Los estados son variaciones de tres grandes (el tablero tiene tres columnas). */
+export const TICKET_STATUS_GROUPS = ['new', 'in_attention', 'closed'] as const;
 
 /**
  * Fecha SIN hora ('YYYY-MM-DD' por JSON, `Date` desde el datepicker). No se usa `z.coerce.date()`
@@ -42,6 +59,9 @@ export const TicketBaseSchema = z.object({
     .string()
     .trim()
     .max(2000, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'La descripción', max: 2000 }) }),
+  type: z.enum(TICKET_TYPE, {
+    error: msg(V.GENERIC.REQUIRED_SELECTION, { field: 'un tipo' }),
+  }),
   category: z.enum(TICKET_CATEGORY, {
     error: msg(V.GENERIC.REQUIRED_SELECTION, { field: 'una categoría' }),
   }),
@@ -50,12 +70,20 @@ export const TicketBaseSchema = z.object({
     .trim()
     .max(120, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'El detalle', max: 120 }) })
     .optional(),
+  /** Departamento de ORIGEN (código del catálogo editable `ticket-department`; `it` = solicitud interna de TI). */
+  department: z
+    .string({ error: msg(V.GENERIC.REQUIRED_SELECTION, { field: 'un departamento' }) })
+    .trim()
+    .min(1, { error: msg(V.GENERIC.REQUIRED_SELECTION, { field: 'un departamento' }) })
+    .max(40, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'El departamento', max: 40 }) }),
   priority: z.enum(TICKET_PRIORITY, {
     error: msg(V.GENERIC.REQUIRED_SELECTION, { field: 'una prioridad' }),
   }),
-  status: z.enum(TICKET_STATUS, {
-    error: msg(V.GENERIC.REQUIRED_SELECTION, { field: 'un estado' }),
-  }),
+  /** Solo el equipo la fija; si no se envía, se conserva. */
+  complexity: z
+    .enum(TICKET_COMPLEXITY, { error: msg(V.GENERIC.REQUIRED_SELECTION, { field: 'una complejidad' }) })
+    .nullable()
+    .optional(),
   assigneeEmail: z.email({ error: msg(V.GENERIC.IS_EMAIL) }).or(z.literal('')),
   estimateHours: z
     .number({ error: msg(V.GENERIC.IS_NUMBER) })
@@ -91,7 +119,8 @@ export const TicketUpsertSchema = TicketBaseSchema.refine(hasDetailWhenOther, ot
  * «rápida» y perder campos en silencio. Espejo exacto del backend.
  */
 export const TicketCreateSchema = TicketBaseSchema.extend({
-  status: TicketBaseSchema.shape.status.default('todo'),
+  // Como el backend: sin dato se asume una solicitud interna de TI.
+  department: TicketBaseSchema.shape.department.default('it'),
   assigneeEmail: TicketBaseSchema.shape.assigneeEmail.default(''),
   estimateHours: TicketBaseSchema.shape.estimateHours.default(null),
   dueDate: TicketBaseSchema.shape.dueDate.default(null),
@@ -101,18 +130,71 @@ export const TicketCreateSchema = TicketBaseSchema.extend({
 /** Alta rápida (pantalla FormSplit): subconjunto del mismo contrato, no un schema paralelo. */
 export const TicketQuickCreateSchema = TicketBaseSchema.pick({
   title: true,
+  type: true,
+  department: true,
   category: true,
   priority: true,
   description: true,
+});
+
+/** Persona asignable: `GET /api/users/assignable` (espejo de `AssignableUserListSchema` del backend). */
+export const AssigneeListSchema = z.object({
+  data: z.array(z.object({ uuid: z.uuid(), name: z.string(), email: z.email(), role: z.string() })),
+});
+
+/** Plazos y veredictos de SLA (espejo de `TicketSlaSchema` del backend). */
+export const TicketSlaSchema = z.object({
+  responseMinutes: z.number().int(),
+  resolutionMinutes: z.number().int(),
+  responseStatus: z.enum(['met', 'breached', 'pending']),
+  resolutionStatus: z.enum(['met', 'breached', 'running', 'paused', 'escalated']),
+  responseDueAt: z.coerce.date(),
+  /** `null` mientras el reloj está en pausa o el ticket escaló. */
+  resolutionDueAt: z.coerce.date().nullable(),
 });
 
 /** Recurso tal como lo devuelve `GET /api/tickets/:uuid` (campos de servidor incluidos). */
 export const TicketSchema = TicketBaseSchema.extend({
   uuid: z.uuid(),
   code: z.string(),
-  /** Titular: quien lo creó. Base de las reglas CASL de titular y de alternante. */
+  /** Titular/solicitante: quien lo creó. Base de las reglas CASL de titular y de alternante. */
   ownerUuid: z.uuid(),
+  requesterName: z.string(),
+  complexity: z.enum(TICKET_COMPLEXITY).nullable(),
+  /** Desde cuándo está en atención (arranca el reloj de la tarjeta); `null` en otros estados. */
+  attendedSince: z.coerce.date().nullable(),
+  status: z.enum(TICKET_STATUS),
+  /** Quién atiende el caso, para que el solicitante lo sepa; `null` sin responsable. */
+  assigneeName: z.string().nullable(),
+  resolution: z.string().nullable(),
+  resolvedAt: z.coerce.date().nullable(),
+  closedAt: z.coerce.date().nullable(),
+  reopenCount: z.number().int(),
+  sla: TicketSlaSchema,
+  /** Estados a los que ESTA persona puede mover el ticket ahora (arma los botones y el arrastre). */
+  nextStatuses: z.array(z.enum(TICKET_STATUS)),
   createdAt: z.coerce.date(),
+});
+
+/** Cambio de estado (`POST /api/tickets/:uuid/transitions`). Resolver exige documentar la solución. */
+export const TicketTransitionSchema = z
+  .object({
+    to: z.enum(TICKET_STATUS, { error: msg(V.GENERIC.REQUIRED_SELECTION, { field: 'un estado' }) }),
+    note: z.string().trim().max(500, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'La nota', max: 500 }) }).optional(),
+    resolution: z.string().trim().max(2000, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'La solución', max: 2000 }) }).optional(),
+  })
+  .refine((value) => value.to !== 'resolved' || (value.resolution?.length ?? 0) >= 3, {
+    error: msg(V.TICKET.RESOLUTION_REQUIRED),
+    path: ['resolution'],
+  });
+
+/** Formulario del modal «Resolver»: solo la solución (el estado destino lo fija la acción). */
+export const TicketResolveFormSchema = z.object({
+  resolution: z
+    .string()
+    .trim()
+    .min(3, { error: msg(V.TICKET.RESOLUTION_REQUIRED) })
+    .max(2000, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'La solución', max: 2000 }) }),
 });
 
 /**
@@ -122,8 +204,10 @@ export const TicketSchema = TicketBaseSchema.extend({
 export const TicketBoardSchema = z.object({
   columns: z.array(
     z.object({
-      status: z.enum(TICKET_STATUS),
+      group: z.enum(TICKET_STATUS_GROUPS),
       label: z.string(),
+      /** Estados que caen en la columna, en orden de flujo. */
+      statuses: z.array(z.enum(TICKET_STATUS)),
       tickets: z.array(TicketSchema),
     }),
   ),
@@ -137,3 +221,16 @@ export function toLocalIsoDate(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
+
+/** Calificación del servicio al cerrarse un ticket (CSAT, escala 1–5). Espejo de `SurveyAnswerSchema` / `SurveyStateSchema` del backend. */
+export const SURVEY_SCORES = [1, 2, 3, 4, 5] as const;
+export const SurveyFormSchema = z.object({
+  score: z.number({ error: msg(V.TICKET.SURVEY_SCORE) }).int({ error: msg(V.TICKET.SURVEY_SCORE) }).min(1, { error: msg(V.TICKET.SURVEY_SCORE) }).max(5, { error: msg(V.TICKET.SURVEY_SCORE) }),
+  comment: z.string().trim().max(500, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'El comentario', max: 500 }) }),
+});
+export const SurveyStateSchema = z.object({
+  state: z.enum(['pending', 'answered', 'expired']),
+  expiresAt: z.coerce.date(),
+  score: z.number().int().nullable(),
+  comment: z.string().nullable(),
+});

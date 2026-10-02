@@ -59,7 +59,7 @@ describe('ticketlistbe (e2e)', () => {
     return rest;
   }
 
-  const newTicket = { title: 'Nuevo', description: '', category: 'bug', priority: 'high' };
+  const newTicket = { title: 'Nuevo', description: '', type: 'incident', category: 'software', priority: 'high' };
 
   // ── RFC 9457 ────────────────────────────────────────────────────────────
   describe('Problem Details (RFC 9457)', () => {
@@ -83,7 +83,7 @@ describe('ticketlistbe (e2e)', () => {
       const res = await agent
         .post('/api/tickets')
         .set('X-XSRF-TOKEN', xsrf)
-        .send({ title: 'ab', description: '', category: 'other', priority: 'low' })
+        .send({ title: 'ab', description: '', type: 'inquiry', category: 'other', priority: 'low' })
         .expect(400);
       expect(res.body.code).toBe('CVAL-E001');
       expect(res.body.errors).toEqual(
@@ -171,10 +171,13 @@ describe('ticketlistbe (e2e)', () => {
 
   // ── RBAC DB-first ───────────────────────────────────────────────────────
   describe('RBAC (role_permissions)', () => {
-    it('VIEWER no puede crear → 403 SAUT-E001', async () => {
+    it('el CLIENTE (VIEWER) registra solicitudes y ve SOLO las suyas; las ajenas responden 404', async () => {
       const { agent, xsrf } = await login(VICTOR);
-      const res = await agent.post('/api/tickets').set('X-XSRF-TOKEN', xsrf).send(newTicket).expect(403);
-      expect(res.body.code).toBe('SAUT-E001');
+      const created = await agent.post('/api/tickets').set('X-XSRF-TOKEN', xsrf).send(newTicket).expect(201);
+      expect(created.body).toMatchObject({ status: 'new', requesterName: 'Víctor Lector' });
+      const mine = await agent.get('/api/tickets').expect(200);
+      expect(mine.body.data.map((t: { uuid: string }) => t.uuid)).toEqual([created.body.uuid]);
+      await agent.get(`/api/tickets/${TCK_002}`).expect(404);
     });
 
     it('solo ADMIN gestiona permisos, y un cambio rige desde la siguiente request', async () => {
@@ -182,14 +185,19 @@ describe('ticketlistbe (e2e)', () => {
       await ana.agent.get('/api/role-permissions').expect(403);
 
       const marta = await login(MARTA);
-      const list = await marta.agent.get('/api/role-permissions?role=VIEWER').expect(200);
-      const viewerRead = list.body.data.find((p: { subject: string }) => p.subject === 'Ticket');
-
       const victor = await login(VICTOR);
+      // Sin permiso por rol, el cliente solo tiene la regla de titular: no ve nada ajeno (404, no se revela).
+      expect((await victor.agent.get('/api/tickets').expect(200)).body.meta.total).toBe(0);
+      await victor.agent.get(`/api/tickets/${TCK_002}`).expect(404);
+
+      const granted = await marta.agent
+        .post('/api/role-permissions')
+        .set('X-XSRF-TOKEN', marta.xsrf)
+        .send({ role: 'VIEWER', subject: 'Ticket', action: 'read', condition: 'NONE' })
+        .expect(201);
       expect((await victor.agent.get('/api/tickets').expect(200)).body.meta.total).toBe(3);
-      await marta.agent.delete(`/api/role-permissions/${viewerRead.uuid}`).set('X-XSRF-TOKEN', marta.xsrf).expect(204);
-      // Sin el permiso por rol solo le queda la regla de titular: ve SOLO lo suyo (nada) y un
-      // ticket ajeno responde 404 (no se revela que existe).
+
+      await marta.agent.delete(`/api/role-permissions/${granted.body.uuid}`).set('X-XSRF-TOKEN', marta.xsrf).expect(204);
       expect((await victor.agent.get('/api/tickets').expect(200)).body.meta.total).toBe(0);
       await victor.agent.get(`/api/tickets/${TCK_002}`).expect(404);
     });
@@ -301,10 +309,21 @@ describe('ticketlistbe (e2e)', () => {
 
   // ── Contrato de tickets / BFF / docs ──────────────────────────────────────
   describe('Tickets, BFF y documentación', () => {
-    it('BFF board agrupa por estado con etiqueta', async () => {
+    it('BFF board: TRES columnas (los estados son variaciones de tres grandes) con sus tarjetas', async () => {
       const { agent } = await login(ANA);
       const res = await agent.get('/api/bff/board').expect(200);
-      expect(res.body.columns.map((c: { label: string }) => c.label)).toEqual(['Por hacer', 'En progreso', 'Hecho']);
+      const columns = res.body.columns as { group: string; label: string; statuses: string[]; tickets: { status: string }[] }[];
+      expect(columns.map((c) => [c.group, c.label])).toEqual([
+        ['new', 'Nuevo'],
+        ['in_attention', 'En atención'],
+        ['closed', 'Cerrado'],
+      ]);
+      expect(columns[0]?.statuses).toEqual(['new', 'reopened']);
+      expect(columns[1]?.statuses).toEqual(['assigned', 'in_progress', 'escalated', 'pending_customer']);
+      expect(columns[2]?.statuses).toEqual(['resolved', 'closed']);
+      // Cada tarjeta cae en la columna de SU estado: TCK-001 en atención, TCK-002 nuevo, TCK-003 cerrado.
+      for (const column of columns) for (const ticket of column.tickets) expect(column.statuses).toContain(ticket.status);
+      expect(columns.map((c) => c.tickets.length)).toEqual([1, 1, 1]);
     });
 
     it('GET /api/tickets pagina con coerción de query params', async () => {
@@ -316,7 +335,7 @@ describe('ticketlistbe (e2e)', () => {
     it('POST alta rápida: defaults del schema y el creador queda como titular', async () => {
       const { agent, xsrf } = await login(ANA);
       const res = await agent.post('/api/tickets').set('X-XSRF-TOKEN', xsrf).send(newTicket).expect(201);
-      expect(res.body).toMatchObject({ status: 'todo', assigneeEmail: '', code: 'TCK-004', ownerUuid: ANA_UUID });
+      expect(res.body).toMatchObject({ status: 'new', assigneeEmail: '', code: 'TCK-004', ownerUuid: ANA_UUID });
     });
 
     it('PATCH conserva la fecha local (sin corrimiento de día por UTC)', async () => {

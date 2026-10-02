@@ -24,6 +24,10 @@ export class RowActions {
   /** Nombre legible de la fila para lectores de pantalla («Editar TCK-001»). */
   readonly $rowLabel = input('');
   readonly $busy = input(false);
+  /** Texto del botón de borrado (default «Eliminar»). */
+  readonly $deleteLabel = input('Eliminar');
+  /** Veto por fila (p. ej. elementos de sistema no se eliminan). Se suma al permiso CASL, no lo reemplaza. */
+  readonly $allow = input<(action: TTableAction, row: TTableRow) => boolean>(() => true);
 
   readonly $view = output<TTableRow>();
   readonly $edit = output<TTableRow>();

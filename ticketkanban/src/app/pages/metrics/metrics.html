@@ -1,0 +1,253 @@
+<header class="mx-header page-header-art">
+  <div>
+    <h1 class="mx-title">Métricas del equipo</h1>
+    <p class="mx-subtitle">
+      Cumplimiento del SLA, resolución al primer contacto y satisfacción, por equipo y por colaborador. Solo lectura:
+      nada aquí modifica un ticket.
+    </p>
+  </div>
+  <app-illustration class="page-art" [$name]="'metrics'" />
+</header>
+
+<app-metrics-period />
+
+<!-- ── Equipo ─────────────────────────────────────────────────────────────────────────────── -->
+<section class="mx-section" aria-labelledby="mx-team-title">
+  <h2 id="mx-team-title" class="mx-h2">Servicio</h2>
+  @let summary = _store.$summary();
+  @switch (summary.kind) {
+    @case ('loading') {
+      <p class="mx-muted" role="status" aria-live="polite">Cargando indicadores…</p>
+    }
+    @case ('error') {
+      <div role="alert" class="mx-error">
+        <p>No se pudieron cargar los indicadores.</p>
+        <button type="button" pButton severity="secondary" (click)="_store.reload()">
+          <i pButtonIcon class="pi pi-refresh" aria-hidden="true"></i>
+          <span pButtonLabel>Reintentar</span>
+        </button>
+      </div>
+    }
+    @case ('success') {
+      <app-metric-summary [$summary]="summary.data.summary" [$targets]="summary.data.targets" />
+    }
+  }
+</section>
+
+<!-- ── Colaboradores ──────────────────────────────────────────────────────────────────────── -->
+<section class="mx-section" aria-labelledby="mx-agents-title">
+  <h2 id="mx-agents-title" class="mx-h2">Desempeño por colaborador</h2>
+  <p class="mx-muted">
+    Se muestra siempre con el tamaño de la muestra: con pocos tickets, un porcentaje no sirve para comparar. Úsalo
+    para coaching, no como ranking.
+  </p>
+  @let agents = _store.$agents();
+  @switch (agents.kind) {
+    @case ('loading') {
+      <p class="mx-muted" role="status" aria-live="polite">Cargando colaboradores…</p>
+    }
+    @case ('error') {
+      <p role="alert" class="mx-error">No se pudo cargar el desempeño por colaborador.</p>
+    }
+    @case ('success') {
+      @if ($agentRows().length === 0) {
+        <p class="mx-muted" role="status">Todavía no hay colaboradores con tickets asignados.</p>
+      } @else {
+        <div class="mx-scroll" role="region" aria-label="Desempeño por colaborador" tabindex="0">
+          <table class="mx-table">
+            <caption class="sr-only">
+              Indicadores de cada colaborador en el período, con el tamaño de la muestra entre paréntesis
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Colaborador</th>
+                <th scope="col" class="mx-num">Pendientes</th>
+                <th scope="col" class="mx-num">Resueltos</th>
+                <th scope="col" class="mx-num">Fuera de SLA</th>
+                <th scope="col">SLA de resolución</th>
+                <th scope="col">1.er contacto</th>
+                <th scope="col">CSAT</th>
+                <th scope="col">Tiempo medio</th>
+                <th scope="col"><span class="sr-only">Acciones</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of $agentRows(); track row.email) {
+                <tr [class.mx-selected]="_store.$agentEmail() === row.email">
+                  <th scope="row">
+                    <span class="mx-name">{{ row.name }}</span>
+                    <span class="mx-email">{{ row.email }}</span>
+                  </th>
+                  <td class="mx-num">{{ row.pending }}</td>
+                  <td class="mx-num">{{ row.resolved }}</td>
+                  <td class="mx-num" [class.mx-alert]="row.overdue > 0">{{ row.overdue }}</td>
+                  @for (cell of [row.sla, row.fcr, row.csat]; track $index) {
+                    <td>
+                      <app-badge
+                        [$label]="cell.display"
+                        [$icon]="statusMeta[cell.status].icon"
+                        [$severity]="statusMeta[cell.status].severity"
+                      />
+                      <span class="mx-sample">
+                        @if (cell.status !== 'no-data') {
+                          <span class="sr-only">{{ statusMeta[cell.status].label }}, </span>
+                        }
+                        (n = {{ cell.sample }})
+                      </span>
+                    </td>
+                  }
+                  <td class="mx-num">{{ row.averageResolution }}</td>
+                  <td>
+                    <button
+                      type="button"
+                      pButton
+                      size="small"
+                      severity="secondary"
+                      [outlined]="true"
+                      [attr.aria-label]="'Ver detalle de ' + row.name"
+                      [attr.aria-pressed]="_store.$agentEmail() === row.email"
+                      (click)="select(row.email)"
+                    >
+                      <i pButtonIcon class="pi pi-eye" aria-hidden="true"></i>
+                      <span pButtonLabel>Detalle</span>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+  }
+</section>
+
+<!-- ── Detalle de un colaborador ──────────────────────────────────────────────────────────── -->
+@if (_store.$agentEmail()) {
+  <section class="mx-section mx-detail" aria-labelledby="mx-detail-title" aria-live="polite">
+    <header class="mx-detail-head">
+      <h2 id="mx-detail-title" class="mx-h2">Detalle: {{ $selectedName() }}</h2>
+      <button type="button" pButton size="small" severity="secondary" [outlined]="true" (click)="closeDetail()">
+        <i pButtonIcon class="pi pi-times" aria-hidden="true"></i>
+        <span pButtonLabel>Cerrar detalle</span>
+      </button>
+    </header>
+    @let detail = _store.$agentDetail();
+    @switch (detail.kind) {
+      @case ('success') {
+        <app-metric-summary [$summary]="detail.data.summary" [$targets]="detail.data.targets" />
+        <h3 class="mx-h3">Tickets gestionados</h3>
+        <app-metric-tickets [$tickets]="detail.data.tickets" />
+      }
+      @case ('error') {
+        <p role="alert" class="mx-error">No se pudo cargar el detalle de esta persona.</p>
+      }
+      @default {
+        <p class="mx-muted" role="status" aria-live="polite">Cargando detalle…</p>
+      }
+    }
+  </section>
+}
+
+<!-- ── Problemas frecuentes ───────────────────────────────────────────────────────────────── -->
+<section class="mx-section" aria-labelledby="mx-problems-title">
+  <h2 id="mx-problems-title" class="mx-h2">Problemas frecuentes y áreas críticas</h2>
+  @let problemsState = _store.$problems();
+  @switch (problemsState.kind) {
+    @case ('loading') {
+      <p class="mx-muted" role="status" aria-live="polite">Cargando problemas frecuentes…</p>
+    }
+    @case ('error') {
+      <p role="alert" class="mx-error">No se pudieron cargar los problemas frecuentes.</p>
+    }
+    @case ('success') {
+      @if ($problems(); as problems) {
+        <div class="mx-grid">
+          <div class="mx-panel">
+            <h3 class="mx-h3">Por categoría</h3>
+            @if (problems.categories.length === 0) {
+              <p class="mx-muted">No hay tickets en el período.</p>
+            } @else {
+              <div class="mx-scroll" role="region" aria-label="Problemas por categoría" tabindex="0">
+                <table class="mx-table">
+                  <caption class="sr-only">Cantidad, incumplimiento de SLA, reapertura y tiempo medio por categoría</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Categoría</th>
+                      <th scope="col" class="mx-num">Tickets</th>
+                      <th scope="col" class="mx-num">Fuera de SLA</th>
+                      <th scope="col" class="mx-num">Reabiertos</th>
+                      <th scope="col" class="mx-num">Tiempo medio</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (c of problems.categories; track c.category) {
+                      <tr>
+                        <th scope="row">{{ c.label }}</th>
+                        <td class="mx-num">{{ c.count }}</td>
+                        <td class="mx-num">{{ c.outOfSla }}</td>
+                        <td class="mx-num">{{ c.reopen }}</td>
+                        <td class="mx-num">{{ c.average }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+
+          <div class="mx-panel">
+            <h3 class="mx-h3">Horas pico de creación</h3>
+            <p class="mx-muted" role="status">{{ problems.peakText }}</p>
+            <ol class="mx-hours" aria-label="Tickets creados por hora del día">
+              @for (h of problems.hours; track h.hour) {
+                <li class="mx-hour" [title]="h.label + ' — ' + h.count + ' tickets'">
+                  <span class="mx-hour-bar" [style.height.%]="h.pct" aria-hidden="true"></span>
+                  <span class="sr-only">{{ h.label }}: {{ h.count }}</span>
+                  <span class="mx-hour-tick" aria-hidden="true">{{ h.hour % 3 === 0 ? h.hour : '' }}</span>
+                </li>
+              }
+            </ol>
+          </div>
+        </div>
+
+        <div class="mx-grid">
+          <div class="mx-panel">
+            <h3 class="mx-h3">Solicitantes recurrentes</h3>
+            <p class="mx-muted">Mismo solicitante y misma categoría, al menos dos veces en 30 días.</p>
+            @if (problems.recurring.length === 0) {
+              <p class="mx-muted">No hay incidencias recurrentes.</p>
+            } @else {
+              <ul class="mx-list">
+                @for (r of problems.recurring; track r.requester + r.category) {
+                  <li>
+                    <strong>{{ r.requester }}</strong> · {{ r.categoryLabel }} · {{ r.count }} tickets
+                    <span class="mx-muted">({{ r.codes.join(', ') }})</span>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+
+          <div class="mx-panel">
+            <h3 class="mx-h3">Calificaciones bajas (1–2)</h3>
+            @if (problems.lowScores.length === 0) {
+              <p class="mx-muted">No hay calificaciones bajas en el período.</p>
+            } @else {
+              <ul class="mx-list">
+                @for (s of problems.lowScores; track s.code) {
+                  <li>
+                    <strong>{{ s.code }}</strong> · {{ s.score }} / 5 · {{ s.assignee ?? 'Sin responsable' }}
+                    @if (s.comment) {
+                      <span class="mx-quote">«{{ s.comment }}»</span>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </div>
+      }
+    }
+  }
+</section>

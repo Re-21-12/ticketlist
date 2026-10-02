@@ -28,6 +28,7 @@ export const ShellResponseSchema = z.object({
       label: z.string(),
       route: z.string(),
       group: z.string().optional(),
+      icon: z.string().optional(),
       subject: SubjectSchema.optional(),
       requiredAction: z.enum(EAbility).optional(),
       hiddenForRoles: z.array(z.enum(EUserRole)).optional(),

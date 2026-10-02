@@ -14,7 +14,6 @@ export const GrantSchema = z.object({
   }),
   canRead: z.boolean().default(true),
   canUpdate: z.boolean().default(false),
-  canDelete: z.boolean().default(false),
   /** Avisar al titular cuando el alternante cambie algo. */
   notifyTitular: z.boolean().default(true),
 });

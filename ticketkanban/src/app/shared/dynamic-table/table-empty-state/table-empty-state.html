@@ -1,1 +1,4 @@
-<p class="table-empty-state" role="status">{{ $message() }}</p>
+<div class="table-empty-state" role="status">
+  <app-illustration class="table-empty-art" [$name]="'empty'" />
+  <p class="table-empty-text">{{ $message() }}</p>
+</div>

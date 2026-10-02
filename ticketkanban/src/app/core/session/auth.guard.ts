@@ -4,8 +4,15 @@ import { SessionStore } from './session.store';
 
 /**
  * Pantallas que solo necesitan SESIÓN (no una habilidad CASL concreta), como «Mi perfil». Sin sesión
- * redirige a `/access` (ruta sin guard). Usar con `runGuardsAndResolvers: 'always'`: al cerrar sesión
- * el layout re-navega a la misma URL y el guard debe volver a evaluarse.
+ * manda a `/sign-in` recordando a dónde iba (`returnUrl`). Usar con `runGuardsAndResolvers: 'always'`:
+ * al cerrar sesión el layout re-navega a la misma URL y el guard debe volver a evaluarse.
  */
-export const authenticatedGuard: CanActivateFn = () =>
-  inject(SessionStore).$isAuthenticated() || inject(Router).createUrlTree(['/access']);
+export const authenticatedGuard: CanActivateFn = (_route, state) => {
+  const router = inject(Router);
+  return inject(SessionStore).$isAuthenticated() || signInTree(router, state.url);
+};
+
+/** `/sign-in?returnUrl=…` — el destino se valida al volver (ver `safeReturnUrl`). */
+export function signInTree(router: Router, returnUrl: string) {
+  return router.createUrlTree(['/sign-in'], { queryParams: { returnUrl } });
+}

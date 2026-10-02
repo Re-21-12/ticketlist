@@ -25,4 +25,10 @@ export const NOTIFICATION_ICONS: Record<TNotification['type'], string> = {
   TICKET_CHANGED_BY_ALTERNANTE: 'pi pi-pencil',
   RELATIONSHIP_GRANTED: 'pi pi-share-alt',
   RELATIONSHIP_REVOKED: 'pi pi-ban',
+  TICKET_STATUS_CHANGED: 'pi pi-sync',
+  TICKET_COMMENTED: 'pi pi-comment',
+  TICKET_REOPENED: 'pi pi-replay',
+  TICKET_SURVEY: 'pi pi-star',
+  TICKET_SURVEY_ALERT: 'pi pi-exclamation-triangle',
+  ACCOUNT_LOCKED: 'pi pi-lock',
 };

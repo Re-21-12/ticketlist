@@ -1,5 +1,7 @@
-@let canUpdate = $hasUpdate() && ('update' | can: $subject() : $row())();
-@let canDelete = $hasDelete() && ('delete' | can: $subject() : $row())();
+@let canUpdate =
+  $hasUpdate() && $allow()('update', $row()) && ('update' | can: $subject() : $row())();
+@let canDelete =
+  $hasDelete() && $allow()('delete', $row()) && ('delete' | can: $subject() : $row())();
 
 <!-- Colores fijos por acción (criterio de wallet-api): ojo = celeste, lápiz = ámbar, papelera = rojo,
      en claro y oscuro. `severity` info/warn/danger son theme-aware. Cada botón lleva ÍCONO + etiqueta
@@ -48,13 +50,13 @@
       severity="danger"
       [outlined]="true"
       [disabled]="$busy()"
-      [pTooltip]="'Eliminar ' + $rowLabel()"
+      [pTooltip]="$deleteLabel() + ' ' + $rowLabel()"
       tooltipPosition="top"
-      [attr.aria-label]="'Eliminar ' + $rowLabel()"
+      [attr.aria-label]="$deleteLabel() + ' ' + $rowLabel()"
       (click)="$delete.emit($row())"
     >
       <i pButtonIcon class="pi pi-trash" aria-hidden="true"></i>
-      <span pButtonLabel>Eliminar</span>
+      <span pButtonLabel>{{ $deleteLabel() }}</span>
     </button>
   }
 </div>

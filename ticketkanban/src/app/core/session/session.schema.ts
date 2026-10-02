@@ -17,6 +17,8 @@ export const NavItemSchema = z.object({
   label: z.string(),
   route: z.string(),
   group: z.string().optional(),
+  /** Clase de ícono (`pi-users`) administrable desde «Menú». */
+  icon: z.string().optional(),
   subject: SubjectSchema.optional(),
   requiredAction: z.enum(EAbility).optional(),
   hiddenForRoles: z.array(z.enum(EUserRole)).optional(),

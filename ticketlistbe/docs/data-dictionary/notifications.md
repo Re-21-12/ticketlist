@@ -13,7 +13,7 @@ omite al propio actor). El destinatario solo puede listarlos y marcarlos como le
 |---|---|---|---|---|---|---|
 | `uuid` | `uuid` | `uuid` | NO | generado | UNIQUE | Identificador público |
 | `recipient_uuid` | `recipientUuid` | `uuid` | NO | — | FK `users` | Destinatario |
-| `type` | `type` | `enum` | NO | — | `NOTIFICATION_TYPES` | Tipo de evento |
+| `type` | `type` | `enum` | NO | — | `NOTIFICATION_TYPES`: `TICKET_ASSIGNED`, `TICKET_CHANGED_BY_ALTERNANTE`, `RELATIONSHIP_GRANTED`, `RELATIONSHIP_REVOKED`, `TICKET_STATUS_CHANGED`, `TICKET_COMMENTED`, `TICKET_REOPENED`, `TICKET_SURVEY` (encuesta para quien solicitó el ticket cerrado), `TICKET_SURVEY_ALERT` (calificación baja, a supervisores), `ACCOUNT_LOCKED` (cuenta bloqueada, a administradores) | Tipo de evento |
 | `message` | `message` | `varchar(300)` | NO | — | — | Texto visible |
 | `resource_type` | `resourceType` | `enum` | SÍ | NULL | `Ticket` \| `Relationship` | Recurso relacionado (para navegar) |
 | `resource_uuid` | `resourceUuid` | `uuid` | SÍ | NULL | — | uuid del recurso |

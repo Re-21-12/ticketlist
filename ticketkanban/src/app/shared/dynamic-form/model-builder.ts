@@ -16,6 +16,7 @@ function emptyValue(field: IFieldConfig, constraints?: IFieldConstraints): unkno
     case FieldType.TEXT:
     case FieldType.TEXT_NUMBER:
     case FieldType.TEXTAREA:
+    case FieldType.EDITOR:
     case FieldType.EMAIL:
     case FieldType.URL:
     case FieldType.PASSWORD:

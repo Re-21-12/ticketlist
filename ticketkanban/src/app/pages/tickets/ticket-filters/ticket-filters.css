@@ -1,0 +1,75 @@
+.tf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+}
+.tf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 10rem;
+}
+.tf-search {
+  flex: 1 1 14rem;
+}
+.tf-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--app-text-muted);
+}
+.tf-input {
+  position: relative;
+  display: block;
+}
+.tf-input-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  transform: translateY(-50%);
+  color: var(--app-text-muted);
+}
+.tf-input-control {
+  width: 100%;
+  padding-left: 2.25rem;
+}
+:host ::ng-deep .tf-select {
+  width: 100%;
+  min-width: 10rem;
+}
+.tf-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  min-height: 2.75rem;
+}
+.tf-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.tf-check input {
+  width: 1.125rem;
+  height: 1.125rem;
+  accent-color: var(--app-primary);
+}
+.tf-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+  min-height: 2.75rem;
+}
+.tf-count {
+  font-size: 0.8125rem;
+  color: var(--app-text-muted);
+}

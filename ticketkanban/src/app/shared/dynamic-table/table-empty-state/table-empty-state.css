@@ -1,6 +1,15 @@
 .table-empty-state {
-  margin: 0;
-  padding: 2rem 1rem;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
   color: var(--app-text-muted);
+}
+.table-empty-art {
+  --illustration-width: 7rem;
+}
+.table-empty-text {
+  margin: 0;
+  text-align: center;
 }

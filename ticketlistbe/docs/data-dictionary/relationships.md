@@ -25,8 +25,7 @@ granular por tipo de recurso y consentimiento explícito. Revocar no borra: pasa
 |---|---|---|---|---|---|
 | `object_type` | `objectType` | `enum` | NO | — | `Ticket` |
 | `can_read` | `canRead` | `boolean` | NO | `true` | Leer |
-| `can_update` | `canUpdate` | `boolean` | NO | `false` | Editar (con techo por rol) |
-| `can_delete` | `canDelete` | `boolean` | NO | `false` | Eliminar (con techo por rol) |
+| `can_update` | `canUpdate` | `boolean` | NO | `false` | Editar (con techo por rol). **Eliminar no se concede**: es solo del administrador |
 | `notify_titular` | `notifyTitular` | `boolean` | NO | `true` | Avisar al titular de los cambios |
 | `consent_version` | `consentVersion` | `varchar` | NO | `CURRENT_CONSENT_VERSION` | Texto aceptado |
 | `consented_at` / `consented_by` | `consentedAt` / `consentedBy` | `timestamptz` / `uuid` | NO | servidor | Auditoría del consentimiento |
@@ -40,11 +39,15 @@ granular por tipo de recurso y consentimiento explícito. Revocar no borra: pasa
 | `grants[].objectType` | enum | `GENERIC.REQUIRED_SELECTION` |
 | `consent` | `literal(true)` | `RELATIONSHIP.CONSENT_REQUIRED` |
 
+## Administración (`/api/relationships/admin`)
+
+Exige `manage Relationship` (ADMIN). `GET` lista TODAS las relaciones con nombre y correo de ambas personas, estado y lo concedido (filtros `status`, `search`, paginación). `DELETE /:uuid` revoca cualquier relación activa: no borra (queda `REVOKED` con `endedAt`) y avisa a titular y alternante. Un titular común solo ve y gestiona las suyas en `/api/relationships`.
+
 ## Errores del módulo
 
 | Código | HTTP | Endpoint(s) | Cuándo |
 |---|---|---|---|
-| `RREL-E001` | 404 | PATCH `/:uuid/grants`, DELETE `/:uuid` | Inexistente, ajena o ya revocada |
+| `RREL-E001` | 404 | PATCH `/:uuid/grants`, DELETE `/:uuid`, DELETE `/admin/:uuid` | Inexistente, ajena o ya revocada |
 | `SREL-E001` | 422 | POST | Compartir consigo mismo |
 | `SREL-E002` | 422 | POST | El correo del alternante no existe |
 | `SREL-E003` | 409 | POST | Ya hay una relación ACTIVA con esa persona |

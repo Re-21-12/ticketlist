@@ -1,5 +1,6 @@
 import {
   HttpStatus,
+  StreamableFile,
   Injectable,
   type CallHandler,
   type ExecutionContext,
@@ -45,8 +46,13 @@ export class HttpCacheInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       map((body: unknown) => {
-        response.setHeader('Cache-Control', `private, max-age=${ttl}`);
         response.setHeader('Vary', 'Cookie, Accept-Language');
+        // Un archivo (adjunto) no se cachea ni lleva ETag de «su JSON»: puede ser evidencia privada.
+        if (body instanceof StreamableFile) {
+          response.setHeader('Cache-Control', 'private, no-store');
+          return body;
+        }
+        response.setHeader('Cache-Control', `private, max-age=${ttl}`);
         if (body === undefined) return body;
         const etag = buildEtag(body);
         response.setHeader('ETag', etag);

@@ -1,3 +1,6 @@
+import { PersistenceService } from '../../database/persistence.service.js';
+import { NotificationSchema } from '../../database/entity-schemas.js';
+import { NotificationEntity as NotificationRow } from './notification.entity.js';
 import { Injectable } from '@nestjs/common';
 import { InMemoryRepository } from '../../core/base.repository.js';
 import type { NotificationEntity } from './notification.entity.js';
@@ -6,8 +9,8 @@ import type { NotificationEntity } from './notification.entity.js';
 export class NotificationsRepository extends InMemoryRepository<NotificationEntity> {
   protected readonly searchableFields: (keyof NotificationEntity)[] = ['message'];
 
-  constructor() {
-    super([]);
+  constructor(persistence: PersistenceService) {
+    super([], { service: persistence, schema: NotificationSchema, create: () => new NotificationRow(), seed: 'empty' });
   }
 
   findForRecipient(recipientUuid: string, limit = 50): NotificationEntity[] {

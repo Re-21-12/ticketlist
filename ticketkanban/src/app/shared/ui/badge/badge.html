@@ -1,0 +1,6 @@
+<p-tag [severity]="$tagSeverity()" styleClass="app-badge">
+  @if ($iconClass(); as icon) {
+    <i [class]="icon + ' app-badge-icon'" aria-hidden="true"></i>
+  }
+  <span>{{ $label() }}</span>
+</p-tag>

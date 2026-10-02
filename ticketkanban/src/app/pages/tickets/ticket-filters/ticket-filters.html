@@ -1,0 +1,81 @@
+<search class="tf" aria-label="Filtros de tickets">
+  @if ($mode() === 'board') {
+    <div class="tf-field tf-search">
+      <label class="tf-label" for="tf-search">Buscar</label>
+      <span class="tf-input">
+        <i class="pi pi-search tf-input-icon" aria-hidden="true"></i>
+        <input
+          id="tf-search"
+          type="search"
+          pInputText
+          class="tf-input-control"
+          placeholder="Código, título, responsable…"
+          autocomplete="off"
+          [ngModel]="_ticketsStore.$filters().search"
+          (ngModelChange)="set('search', $event)"
+        />
+      </span>
+    </div>
+  }
+
+  @for (select of $selects(); track select.key) {
+    <div class="tf-field">
+      <label class="tf-label" [attr.for]="'tf-' + select.key">{{ select.label }}</label>
+      <p-select
+        [inputId]="'tf-' + select.key"
+        [options]="select.options"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Todos"
+        [showClear]="true"
+        appendTo="body"
+        styleClass="tf-select"
+        [ngModel]="_ticketsStore.$filters()[select.key] || null"
+        (ngModelChange)="set(select.key, $event)"
+      />
+    </div>
+  }
+
+  @if ($mode() === 'board') {
+    <div class="tf-checks">
+      <label class="tf-check">
+        <input
+          type="checkbox"
+          [checked]="_ticketsStore.$filters().mine"
+          (change)="set('mine', $any($event.target).checked)"
+        />
+        <span>Solo mis tickets</span>
+      </label>
+      <label class="tf-check">
+        <input
+          type="checkbox"
+          [checked]="_ticketsStore.$filters().breached"
+          (change)="set('breached', $any($event.target).checked)"
+        />
+        <span>Fuera de SLA</span>
+      </label>
+    </div>
+  }
+
+  <div class="tf-summary">
+    @if ($mode() === 'board' && _ticketsStore.$activeFilters() > 0) {
+      <span class="tf-count" role="status" aria-live="polite">
+        Mostrando {{ _ticketsStore.$boardCounts().shown }} de
+        {{ _ticketsStore.$boardCounts().total }}
+      </span>
+    }
+    @if (_ticketsStore.$activeFilters() > 0) {
+      <button
+        type="button"
+        pButton
+        size="small"
+        severity="secondary"
+        [outlined]="true"
+        (click)="_ticketsStore.clearFilters()"
+      >
+        <i pButtonIcon class="pi pi-filter-slash" aria-hidden="true"></i>
+        <span pButtonLabel>Limpiar filtros ({{ _ticketsStore.$activeFilters() }})</span>
+      </button>
+    }
+  </div>
+</search>

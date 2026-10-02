@@ -26,7 +26,8 @@
       <div role="alert" class="tab-error">
         <p>No se pudieron cargar tus sesiones.</p>
         <button type="button" pButton severity="secondary" (click)="_profileStore.reloadSessions()">
-          Reintentar
+          <i pButtonIcon class="pi pi-refresh" aria-hidden="true"></i>
+          <span pButtonLabel>Reintentar</span>
         </button>
       </div>
     }
@@ -67,7 +68,9 @@
                 size="small"
                 severity="danger"
                 [outlined]="true"
-                [attr.aria-label]="'Cerrar la sesión de ' + device.label + ' (' + session.ipAddress + ')'"
+                [attr.aria-label]="
+                  'Cerrar la sesión de ' + device.label + ' (' + session.ipAddress + ')'
+                "
                 (click)="askRevoke(session)"
               >
                 <i pButtonIcon class="pi pi-times" aria-hidden="true"></i>

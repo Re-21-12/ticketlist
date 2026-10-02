@@ -99,6 +99,10 @@ export class CustomExceptionFilter implements ExceptionFilter {
       const dbError = DB_CODES[(exception as TDbError).driverError?.code ?? ''];
       if (dbError) return { detail: dbError, context: null };
     }
+    // multer corta una subida que pasa del tope («File too large») → el mismo código que el chequeo propio.
+    if (exception instanceof HttpException && exception.getStatus() === 413 && exception.message === 'File too large') {
+      return { detail: ERROR_CODES.ATT.TOO_LARGE, context: null };
+    }
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const body = exception.getResponse();

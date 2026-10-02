@@ -90,3 +90,17 @@
     margin-left: auto;
   }
 }
+
+.notification button,
+.notification a[pButton] {
+  min-width: 8.5rem;
+  justify-content: center;
+}
+
+.tab-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}

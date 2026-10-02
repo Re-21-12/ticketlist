@@ -40,6 +40,7 @@ export class FormDialogService {
         submitLabel: options.submitLabel,
         onSubmit: options.onSubmit as TDynamicFormDialogData['onSubmit'],
         submitting,
+        optionsByField: options.optionsByField,
       };
 
       this._ref = this._dialogService.open(DynamicFormDialog, {

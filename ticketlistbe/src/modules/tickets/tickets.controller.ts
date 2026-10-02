@@ -65,10 +65,13 @@ export class TicketsController extends BaseController<
   @ApiProblemResponse(...E401)
   @ApiProblemResponse(...E403)
   override findAll(@Query() query: TicketQueryDto): Promise<IPaginatedResult<TTicketResponse>> {
-    const { status, priority, ...pagination } = query;
+    const { status, priority, type, category, department, ...pagination } = query;
     return this.service.findAll(pagination, {
       ...(status ? { status } : {}),
       ...(priority ? { priority } : {}),
+      ...(type ? { type } : {}),
+      ...(category ? { category } : {}),
+      ...(department ? { department } : {}),
     });
   }
 

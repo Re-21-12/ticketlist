@@ -9,7 +9,7 @@ describe('isFieldRequired', () => {
     .map((field) => field.key);
 
   it('deduce los obligatorios del schema Zod, sin state.required en la config', () => {
-    expect(requiredKeys).toEqual(['title', 'category', 'priority', 'status']);
+    expect(requiredKeys).toEqual(['title', 'department', 'type', 'category', 'priority']);
   });
 });
 
@@ -17,9 +17,10 @@ describe('TicketUpsertSchema', () => {
   const valid = {
     title: 'Algo roto',
     description: '',
-    category: 'bug',
+    department: 'it',
+    type: 'incident',
+    category: 'software',
     priority: 'low',
-    status: 'todo',
     assigneeEmail: '',
     estimateHours: null,
     dueDate: null,

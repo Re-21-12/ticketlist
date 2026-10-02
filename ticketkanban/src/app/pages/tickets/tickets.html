@@ -1,16 +1,23 @@
 @let canCreate = ('create' | can: 'Ticket')();
 
-<header class="board-header">
+<header class="board-header page-header-art">
   <div>
     <h1 class="board-title">Tablero</h1>
     <p class="board-subtitle">
-      Datos mock. Escribe «error» en el título para simular un fallo del BFF.
+      Tres columnas; cada tarjeta muestra su estado exacto como insignia.
     </p>
   </div>
+  <app-illustration class="page-art" [$name]="'tickets'" />
   @if (canCreate) {
     <div class="board-header-actions">
-      <a pButton severity="secondary" [outlined]="true" routerLink="/tickets/new">Alta rápida</a>
-      <button type="button" pButton (click)="openCreate()">Nuevo ticket</button>
+      <a pButton severity="secondary" [outlined]="true" routerLink="/tickets/new">
+        <i pButtonIcon class="pi pi-bolt" aria-hidden="true"></i>
+        <span pButtonLabel>Alta rápida</span>
+      </a>
+      <button type="button" pButton (click)="openCreate()">
+        <i pButtonIcon class="pi pi-plus" aria-hidden="true"></i>
+        <span pButtonLabel>Nuevo ticket</span>
+      </button>
     </div>
   }
 </header>
@@ -18,9 +25,14 @@
 @if (('update' | can: 'Ticket')()) {
   <p class="board-hint">
     <i class="pi pi-arrows-alt link-icon" aria-hidden="true"></i>
-    Arrastra una tarjeta a otra columna para cambiar su estado, o usa «Mover a…» en la tarjeta.
+    Arrastra una tarjeta a otra columna, o usa «Mover a…» para elegir el estado exacto (Escalado,
+    Pendiente del cliente…).
   </p>
 }
+<app-sla-ranges />
+
+<app-ticket-filters [$mode]="'board'" />
+
 <!-- Anuncio para lectores de pantalla: el arrastre es visual, esto dice qué pasó. -->
 <p class="sr-only" role="status" aria-live="polite">{{ $announcement() }}</p>
 
@@ -30,7 +42,7 @@
   </p-message>
 }
 
-@let board = _ticketsStore.$boardView();
+@let board = _ticketsStore.$visibleBoard();
 @switch (board.kind) {
   @case ('loading') {
     <p class="board-muted" role="status" aria-live="polite">Cargando tablero…</p>
@@ -39,118 +51,194 @@
     <div role="alert" class="board-error">
       <p>No se pudo cargar el tablero.</p>
       <button type="button" pButton severity="secondary" (click)="_ticketsStore.reload()">
-        Reintentar
+        <i pButtonIcon class="pi pi-refresh" aria-hidden="true"></i>
+        <span pButtonLabel>Reintentar</span>
       </button>
     </div>
   }
   @case ('success') {
-        <div class="board-columns">
-          @for (column of board.data.columns; track column.status) {
-            <section
-              class="board-column"
-              [attr.aria-labelledby]="'col-' + column.status"
-            >
-              <h2
-                [id]="'col-' + column.status"
-                class="board-column-title"
+    <div class="board-columns">
+      @for (column of board.data.columns; track column.group) {
+        <section class="board-column" [attr.aria-labelledby]="'col-' + column.group">
+          <h2 [id]="'col-' + column.group" class="board-column-title">
+            {{ column.label }}
+            <span class="board-column-count">
+              {{ column.tickets.length }}<span class="sr-only"> tickets</span>
+            </span>
+          </h2>
+          <ul
+            class="board-cards"
+            cdkDropList
+            [id]="listId(column.group)"
+            [cdkDropListData]="column.group"
+            [cdkDropListConnectedTo]="$listIds()"
+            [cdkDropListEnterPredicate]="enterPredicate(column.group)"
+            [cdkDropListSortingDisabled]="true"
+            (cdkDropListDropped)="onDrop($event)"
+            [attr.aria-label]="'Tickets en ' + column.label"
+          >
+            @for (ticket of column.tickets; track ticket.uuid) {
+              @let canMove = ticket.nextStatuses.length > 0;
+              <li
+                cdkDrag
+                [cdkDragData]="ticket"
+                [cdkDragDisabled]="!canMove"
+                [cdkDragStartDelay]="{ touch: 150, mouse: 0 }"
               >
-                {{ column.label }}
-                <span class="board-column-count">
-                  {{ column.tickets.length }}<span class="sr-only"> tickets</span>
-                </span>
-              </h2>
-              <ul
-                class="board-cards"
-                cdkDropList
-                [id]="listId(column.status)"
-                [cdkDropListData]="column.status"
-                [cdkDropListConnectedTo]="$listIds()"
-                [cdkDropListSortingDisabled]="true"
-                (cdkDropListDropped)="onDrop($event)"
-                [attr.aria-label]="'Tickets en ' + column.label"
-              >
-                @for (ticket of column.tickets; track ticket.uuid) {
-                  @let canMove = ('update' | can: 'Ticket' : ticket)();
-                  <li
-                    cdkDrag
-                    [cdkDragData]="ticket"
-                    [cdkDragDisabled]="!canMove"
-                    [cdkDragStartDelay]="{ touch: 150, mouse: 0 }"
-                  >
-                    <!-- Hueco que queda en la columna de origen mientras se arrastra. -->
-                    <div *cdkDragPlaceholder class="board-card-placeholder"></div>
-                    <article
-                      class="board-card"
-                      [class.board-card--draggable]="canMove"
-                      [class.board-card--moving]="_ticketsStore.$pendingMoves().has(ticket.uuid)"
-                      [attr.aria-busy]="_ticketsStore.$pendingMoves().has(ticket.uuid)"
-                    >
-                      <header class="board-card-header">
-                        <span class="board-card-code">{{ ticket.code }}</span>
-                        <p-tag
-                          [value]="priorityLabels[ticket.priority]"
-                          [severity]="prioritySeverity[ticket.priority]"
+                <!-- Hueco que queda en la columna de origen mientras se arrastra. -->
+                <div *cdkDragPlaceholder class="board-card-placeholder"></div>
+                <article
+                  class="board-card"
+                  [class.board-card--draggable]="canMove"
+                  [class.board-card--moving]="_ticketsStore.$pendingMoves().has(ticket.uuid)"
+                  [attr.aria-busy]="_ticketsStore.$pendingMoves().has(ticket.uuid)"
+                >
+                  <header class="board-card-header">
+                    <span class="board-card-code">{{ ticket.code }}</span>
+                    @if ($statusByCode()[ticket.status]; as status) {
+                      <!-- Estado EXACTO (la columna es solo el grupo): Reabierto, Escalado, Pendiente del cliente… -->
+                      <app-badge
+                        [$label]="status.label"
+                        [$icon]="status.icon"
+                        [$severity]="status.severity"
+                      />
+                    }
+                  </header>
+                  <h3 class="board-card-title">{{ ticket.title }}</h3>
+                  <ul class="board-card-badges" aria-label="Clasificación">
+                    @if ($priorityByCode()[ticket.priority]; as priority) {
+                      <li>
+                        <app-badge
+                          [$label]="'Urgencia: ' + priority.label"
+                          [$icon]="priority.icon"
+                          [$severity]="priority.severity"
                         />
-                      </header>
-                      <h3 class="board-card-title">{{ ticket.title }}</h3>
-                      <dl class="board-card-meta">
-                        <dt class="sr-only">Asignado a</dt>
-                        <dd>{{ ticket.assigneeEmail || 'Sin asignar' }}</dd>
-                        @if (ticket.dueDate) {
-                          <dt class="sr-only">Fecha límite</dt>
-                          <dd class="board-card-due">{{ ticket.dueDate | date: 'dd/MM/yyyy' }}</dd>
+                      </li>
+                    }
+                    @if (
+                      ticket.complexity && $complexityByCode()[ticket.complexity];
+                      as complexity
+                    ) {
+                      <li>
+                        <app-badge
+                          [$label]="complexity.label"
+                          [$icon]="complexity.icon"
+                          [$severity]="complexity.severity"
+                        />
+                      </li>
+                    }
+                    @if ($departmentByCode()[ticket.department]; as department) {
+                      <li>
+                        <app-badge
+                          [$label]="'Origen: ' + department.label"
+                          [$icon]="department.icon"
+                          [$severity]="department.severity"
+                        />
+                      </li>
+                    }
+                    @if ($typeByCode()[ticket.type]; as type) {
+                      <li>
+                        <app-badge
+                          [$label]="type.label"
+                          [$icon]="type.icon"
+                          [$severity]="type.severity"
+                        />
+                      </li>
+                    }
+                  </ul>
+                  @if (ticket.attendedSince) {
+                    <app-elapsed-clock [$since]="ticket.attendedSince" />
+                  }
+                  <dl class="board-card-meta">
+                    <dt class="sr-only">Asignado a</dt>
+                    <dd>
+                      {{ ticket.assigneeName ? 'Atiende: ' + ticket.assigneeName : 'Sin asignar' }}
+                    </dd>
+                    @if (slaOf(ticket); as sla) {
+                      <!-- El texto acompaña siempre al color (WCAG 1.4.1). -->
+                      <dt class="sr-only">SLA</dt>
+                      <dd class="board-card-sla">
+                        <app-badge
+                          [$label]="sla.meta.label"
+                          [$icon]="sla.meta.icon"
+                          [$severity]="sla.meta.severity"
+                        />
+                        @if (sla.dueAt) {
+                          <span class="board-card-due-at">
+                            Resolver antes de {{ sla.dueAt | date: 'dd/MM HH:mm' }}
+                          </span>
                         }
-                      </dl>
-                      <footer class="board-card-actions">
-                        <!-- Alternativa al arrastre (WCAG 2.5.7): mover con teclado o puntero simple. -->
-                        @if (canMove) {
-                          <label class="sr-only" [for]="'move-' + ticket.uuid">Mover {{ ticket.code }} a</label>
-                          <select
-                            class="board-move"
-                            [id]="'move-' + ticket.uuid"
-                            (change)="onMoveSelect(ticket, $event)"
-                          >
-                            <option value="" selected>Mover a…</option>
-                            @for (option of statusOptions; track option.value) {
-                              @if (option.value !== ticket.status) {
-                                <option [value]="option.value">{{ option.label }}</option>
-                              }
-                            }
-                          </select>
-                        }
-                        <!-- Regla con condiciones: el pipe recibe la instancia del ticket. -->
-                        @if (canMove) {
-                          <button
-                            type="button"
-                            pButton
-                            severity="secondary"
-                            [outlined]="true"
-                            size="small"
-                            (click)="openEdit(ticket)"
-                          >
-                            Editar <span class="sr-only">{{ ticket.code }}</span>
-                          </button>
-                        } @else {
-                          <button
-                            type="button"
-                            pButton
-                            severity="secondary"
-                            [text]="true"
-                            size="small"
-                            (click)="openView(ticket)"
-                          >
-                            Ver <span class="sr-only">{{ ticket.code }}</span>
-                          </button>
-                        }
-                      </footer>
-                    </article>
-                  </li>
-                } @empty {
-                  <li class="board-muted">Sin tickets</li>
-                }
-              </ul>
-            </section>
-          }
-        </div>
+                      </dd>
+                    }
+                    @if (ticket.dueDate) {
+                      <dt class="sr-only">Fecha límite</dt>
+                      <dd class="board-card-due">{{ ticket.dueDate | date: 'dd/MM/yyyy' }}</dd>
+                    }
+                  </dl>
+                  <footer class="board-card-actions">
+                    @if (
+                      ticket.status === 'assigned' && ticket.nextStatuses.includes('in_progress')
+                    ) {
+                      <button type="button" pButton size="small" (click)="startAttention(ticket)">
+                        <i pButtonIcon class="pi pi-play" aria-hidden="true"></i>
+                        <span pButtonLabel>Iniciar atención</span>
+                        <span class="sr-only">{{ ticket.code }}</span>
+                      </button>
+                    }
+                    <!-- Alternativa al arrastre (WCAG 2.5.7): mover con teclado o puntero simple. -->
+                    @if (canMove) {
+                      <p-select
+                        #move
+                        [options]="$moveOptions().get(ticket.uuid) ?? []"
+                        optionLabel="label"
+                        optionValue="value"
+                        [ngModel]="null"
+                        (onChange)="onMoveSelect(ticket, $event.value); move.writeValue(null)"
+                        placeholder="Mover a…"
+                        [ariaLabel]="'Mover ' + ticket.code + ' a'"
+                        appendTo="body"
+                        size="small"
+                        styleClass="board-move"
+                      />
+                    }
+                    @if (('update' | can: 'Ticket' : ticket)()) {
+                      <button
+                        type="button"
+                        pButton
+                        severity="secondary"
+                        [outlined]="true"
+                        size="small"
+                        (click)="openEdit(ticket)"
+                      >
+                        <i pButtonIcon class="pi pi-pencil" aria-hidden="true"></i>
+                        <span pButtonLabel>Editar</span>
+                        <span class="sr-only">{{ ticket.code }}</span>
+                      </button>
+                    } @else {
+                      <button
+                        type="button"
+                        pButton
+                        severity="secondary"
+                        [text]="true"
+                        size="small"
+                        (click)="openView(ticket)"
+                      >
+                        <i pButtonIcon class="pi pi-eye" aria-hidden="true"></i>
+                        <span pButtonLabel>Ver</span> <span class="sr-only">{{ ticket.code }}</span>
+                      </button>
+                    }
+                  </footer>
+                </article>
+              </li>
+            } @empty {
+              <li class="board-empty">
+                <app-illustration class="board-empty-art" [$name]="'empty'" />
+                <span class="board-muted">Sin tickets</span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </div>
   }
 }

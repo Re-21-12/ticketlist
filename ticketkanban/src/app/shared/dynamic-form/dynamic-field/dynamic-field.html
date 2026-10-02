@@ -74,6 +74,49 @@
       />
     </ng-template>
   }
+  @case (FieldType.EDITOR) {
+    <ng-container *ngTemplateOutlet="groupLabel" />
+    <!-- Editor de texto enriquecido: valor HTML. Con el control ligado por ngModel (no `[formField]`): el editor
+         de optimus-ui no expone la interfaz que pide Signal Forms. -->
+    <p-editor
+      [ngModel]="$state().value()"
+      (onTextChange)="onEditorChange($event.htmlValue)"
+      [attr.id]="$fieldId()"
+      [readonly]="$isDisabled()"
+      [style]="{ height: (f.rows ?? 6) * 1.6 + 'rem' }"
+      [attr.aria-labelledby]="$labelId()"
+      [attr.aria-describedby]="$describedBy()"
+      class="df-editor"
+    >
+      <ng-template #header>
+        <span class="ql-formats">
+          <button type="button" class="ql-bold" aria-label="Negrita"></button>
+          <button type="button" class="ql-italic" aria-label="Cursiva"></button>
+          <button type="button" class="ql-underline" aria-label="Subrayado"></button>
+          <button type="button" class="ql-strike" aria-label="Tachado"></button>
+        </span>
+        <span class="ql-formats">
+          <button
+            type="button"
+            class="ql-list"
+            value="ordered"
+            aria-label="Lista numerada"
+          ></button>
+          <button
+            type="button"
+            class="ql-list"
+            value="bullet"
+            aria-label="Lista con viñetas"
+          ></button>
+          <button type="button" class="ql-blockquote" aria-label="Cita"></button>
+        </span>
+        <span class="ql-formats">
+          <button type="button" class="ql-link" aria-label="Enlace"></button>
+          <button type="button" class="ql-clean" aria-label="Quitar formato"></button>
+        </span>
+      </ng-template>
+    </p-editor>
+  }
   @case (FieldType.EMAIL) {
     <ng-container *ngTemplateOutlet="label" />
     <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: emailControl }" />
@@ -274,6 +317,25 @@
     </div>
   }
 
+  @case (FieldType.RATING) {
+    <ng-container *ngTemplateOutlet="groupLabel" />
+    <div
+      class="df-rating"
+      role="group"
+      [attr.aria-labelledby]="$labelId()"
+      [attr.aria-describedby]="$describedBy()"
+    >
+      <p-rating
+        [stars]="$options().length"
+        [ngModel]="$ratingLevel()"
+        (ngModelChange)="onRate($event)"
+        [readonly]="$isDisabled()"
+      />
+      <!-- El texto acompaña a las estrellas: la escala no depende de verlas (WCAG 1.4.1). -->
+      <span class="df-rating-label" aria-live="polite">{{ $ratingLabel() || 'Sin elegir' }}</span>
+    </div>
+  }
+
   <!-- ── Fechas ────────────────────────────────────────────────────────────────────────────── -->
   @case (FieldType.DATE) {
     <ng-container *ngTemplateOutlet="label" />
@@ -380,11 +442,29 @@
           optionLabel="label"
           optionValue="value"
           [placeholder]="$placeholder() || 'Selecciona una opción'"
-          [showClear]="!$required()"
+          [showClear]="!$required() && !$hasEmptyOption()"
           appendTo="body"
           styleClass="w-full"
           class="w-full"
-        />
+        >
+          <!-- Las opciones con ícono (catálogos de tipo, estado…) lo muestran junto al texto. -->
+          <ng-template #selectedItem let-option>
+            <span class="df-option">
+              @if (optionIcon(option.icon); as icon) {
+                <i [class]="icon" aria-hidden="true"></i>
+              }
+              {{ option.label }}
+            </span>
+          </ng-template>
+          <ng-template #item let-option>
+            <span class="df-option">
+              @if (optionIcon(option.icon); as icon) {
+                <i [class]="icon" aria-hidden="true"></i>
+              }
+              {{ option.label }}
+            </span>
+          </ng-template>
+        </p-select>
       }
     </ng-template>
   }
@@ -432,7 +512,9 @@
             [inputId]="$fieldId() + '-' + option.value"
             [value]="option.value"
           />
-          <label class="df-radio-label" [for]="$fieldId() + '-' + option.value">{{ option.label }}</label>
+          <label class="df-radio-label" [for]="$fieldId() + '-' + option.value">{{
+            option.label
+          }}</label>
         </div>
       }
     </div>
@@ -542,7 +624,12 @@
     >
       <ng-template #empty>
         <!-- Zona de soltar: el clic abre el selector (alternativa accesible al arrastrar). -->
-        <button type="button" class="df-dropzone" [disabled]="$isDisabled()" (click)="fileUploadRef.choose()">
+        <button
+          type="button"
+          class="df-dropzone"
+          [disabled]="$isDisabled()"
+          (click)="fileUploadRef.choose()"
+        >
           <i class="pi pi-cloud-upload df-dropzone-icon" aria-hidden="true"></i>
           <span class="df-dropzone-title">Arrastra y suelta tu archivo aquí</span>
           <span class="df-dropzone-sub">o haz clic para elegir · {{ $acceptedFormats() }}</span>
@@ -555,15 +642,28 @@
     <div class="df-upload">
       @if ($imagePreview()) {
         <div class="df-upload-preview-wrap">
-          <img [src]="$imagePreview()" class="df-upload-preview" alt="Vista previa" loading="lazy" />
-          <button type="button" class="df-upload-remove" (click)="removeImage()" aria-label="Quitar imagen">
+          <img
+            [src]="$imagePreview()"
+            class="df-upload-preview"
+            alt="Vista previa"
+            loading="lazy"
+          />
+          <button
+            type="button"
+            class="df-upload-remove"
+            (click)="removeImage()"
+            aria-label="Quitar imagen"
+          >
             <i class="pi pi-times" aria-hidden="true"></i>
           </button>
         </div>
       }
       <div class="df-upload-actions">
         <label class="df-upload-btn" [class.df-upload-btn--loading]="$uploading()">
-          <i [class]="$uploading() ? 'pi pi-spin pi-spinner' : 'pi pi-upload'" aria-hidden="true"></i>
+          <i
+            [class]="$uploading() ? 'pi pi-spin pi-spinner' : 'pi pi-upload'"
+            aria-hidden="true"
+          ></i>
           {{ $uploading() ? 'Subiendo…' : $imagePreview() ? 'Cambiar' : 'Seleccionar imagen' }}
           <input
             type="file"

@@ -1,0 +1,55 @@
+<details class="sla" open>
+  <summary class="sla-summary">
+    <i class="pi pi-stopwatch" aria-hidden="true"></i>
+    <span class="sla-title">Plazos de servicio (SLA)</span>
+    <span class="sla-hint">Horario hábil: lunes a viernes, 8:00–17:00</span>
+  </summary>
+
+  <div class="sla-body">
+    <table class="sla-table">
+      <caption class="sr-only">
+        Plazos de primera respuesta y de resolución según la urgencia del ticket
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Urgencia</th>
+          <th scope="col">Primera respuesta</th>
+          <th scope="col">Resolución</th>
+          <th scope="col" class="sla-example">Ejemplo</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of $rows(); track row.priority) {
+          <tr>
+            <th scope="row">
+              @if (row.badge; as badge) {
+                <app-badge
+                  [$label]="badge.label"
+                  [$icon]="badge.icon"
+                  [$severity]="badge.severity"
+                />
+              } @else {
+                {{ row.priority }}
+              }
+            </th>
+            <td>{{ row.response }}</td>
+            <td>
+              <strong>{{ row.resolution }}</strong>
+            </td>
+            <td class="sla-example">{{ row.example }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <ul class="sla-targets" aria-label="Metas de servicio">
+      @for (target of targets; track target.label) {
+        <li>
+          <i [class]="'pi ' + target.icon" aria-hidden="true"></i>
+          <span>{{ target.label }}</span>
+          <strong>{{ target.value }}</strong>
+        </li>
+      }
+    </ul>
+  </div>
+</details>

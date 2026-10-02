@@ -1,0 +1,95 @@
+name: CI
+
+# Validación de código (lint + pruebas + build) de ambos proyectos. `push` solo a main/develop (post-merge); las ramas
+# feature/release/hotfix se validan por `pull_request` (evita correr el CI dos veces por el mismo cambio).
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Qué cambió
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.f.outputs.api }}
+      web: ${{ steps.f.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: f
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            api:
+              - 'ticketlistbe/**'
+              - '.github/workflows/ci.yml'
+            web:
+              - 'ticketkanban/**'
+              - '.github/workflows/ci.yml'
+
+  api:
+    name: API · lint, pruebas y build
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ticketlistbe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run test
+      - run: bun run test:e2e
+      - run: bun run build
+
+  web:
+    name: Web · lint, pruebas y build
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ticketkanban
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ticketkanban/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npx ng test --watch=false
+      - run: npm run build
+
+  docker:
+    name: Las imágenes construyen
+    needs: changes
+    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: api
+            context: ticketlistbe
+          - name: web
+            context: ticketkanban
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: false
+          cache-from: type=gha,scope=ticketit-${{ matrix.name }}

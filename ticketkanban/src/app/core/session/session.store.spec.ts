@@ -7,6 +7,7 @@ import { EUserRole } from '../casl/ability.enum';
 import { AppAbility } from '../casl/casl.types';
 import { readProblem } from '../interfaces/problem-details.interface';
 import { errorInterceptor } from '../interceptors/error.interceptor';
+import { resetMockBff } from '../mock-bff/mock-bff.handler';
 import { mockBffInterceptor } from '../mock-bff/mock-bff.interceptor';
 import { SessionStore } from './session.store';
 
@@ -21,6 +22,7 @@ describe('SessionStore (con el mock del BFF)', () => {
   let toast: { add: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
+    resetMockBff();
     toast = { add: vi.fn() };
     TestBed.configureTestingModule({
       providers: [
@@ -34,17 +36,29 @@ describe('SessionStore (con el mock del BFF)', () => {
     http = TestBed.inject(HttpClient);
   });
 
-  it('sin sesión (401) inicia sesión como el agente de desarrollo, sin toast', async () => {
+  it('sin sesión (401) la app queda SIN sesión y sin toast (ya no inicia sola como agente)', async () => {
     await store.loadSession();
+    expect(store.$isAuthenticated()).toBe(false);
+    expect(store.$role()).toBeUndefined();
+    expect(ability.rules).toEqual([]);
+    expect(toast.add).not.toHaveBeenCalled();
+  });
+
+  it('signIn con credenciales válidas abre la sesión; con las de otra persona no', async () => {
+    await expect(store.signIn({ email: 'ana@ticketit.dev', password: 'incorrecta-1A!' })).rejects.toBeTruthy();
+    expect(store.$isAuthenticated()).toBe(false);
+
+    await store.signIn({ email: 'ana@ticketit.dev', password: 'ticketit-dev' });
     expect(store.$role()).toBe(EUserRole.AGENT);
     expect(ability.can('create', 'Ticket')).toBe(true);
-    expect(toast.add).not.toHaveBeenCalled();
   });
 
   it('cambiar de rol recalcula las reglas; cerrar sesión las vacía y el BFF responde 401 Problem Details', async () => {
     await store.signInAs(EUserRole.VIEWER);
     expect(store.$user()?.email).toBe('victor@ticketit.dev');
-    expect(ability.can('create', 'Ticket')).toBe(false);
+    // El cliente registra solicitudes pero no administra nada.
+    expect(ability.can('create', 'Ticket')).toBe(true);
+    expect(ability.can('read', 'RolePermission')).toBe(false);
 
     await store.signOut();
     expect(store.$isAuthenticated()).toBe(false);

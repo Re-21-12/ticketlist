@@ -1,3 +1,6 @@
+import { PersistenceService } from '../../../database/persistence.service.js';
+import { RolePermissionSchema } from '../../../database/entity-schemas.js';
+import { RolePermissionEntity as RolePermissionRow } from './role-permission.entity.js';
 import { Injectable } from '@nestjs/common';
 import { InMemoryRepository } from '../../../core/base.repository.js';
 import type { EUserRole } from '../../auth/casl/ability.enum.js';
@@ -8,8 +11,14 @@ import { ROLE_PERMISSIONS_SEED } from './role-permissions.seed.js';
 export class RolePermissionsRepository extends InMemoryRepository<RolePermissionEntity> {
   protected readonly searchableFields: (keyof RolePermissionEntity)[] = ['role', 'subject', 'action'];
 
-  constructor() {
-    super(ROLE_PERMISSIONS_SEED);
+  constructor(persistence: PersistenceService) {
+    super(ROLE_PERMISSIONS_SEED, {
+      service: persistence,
+      schema: RolePermissionSchema,
+      create: () => new RolePermissionRow(),
+      seed: 'ensure',
+      naturalKey: (row) => `${row.role}|${row.subject}|${row.action}|${row.condition}`,
+    });
   }
 
   /** Permisos vigentes de un rol — la fuente de `CaslAbilityFactory` (DB-first). */

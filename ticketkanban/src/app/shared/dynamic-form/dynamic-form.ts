@@ -18,7 +18,7 @@ import { StepperModule } from '@openng/optimus-ui/stepper';
 import type { z } from 'zod';
 import { computeAutoSections } from './auto-sections.util';
 import { DynamicField } from './dynamic-field/dynamic-field';
-import type { IFieldConfig } from './field-config.interface';
+import type { IFieldConfig, IFieldOption } from './field-config.interface';
 import type { IFormDefinition, IFormSection } from './form-definition.interface';
 import { buildModel } from './model-builder';
 import { buildSchemaFn } from './schema-builder';
@@ -53,6 +53,11 @@ export class DynamicForm<TSchema extends z.ZodObject = z.ZodObject> {
   readonly $submitLabel = input('Guardar');
   readonly $showClear = input(true);
   readonly $singleColumn = input(false);
+  /**
+   * Opciones por `key` de campo que llegan en runtime (p. ej. el personal asignable). Reemplazan a las
+   * `options` estáticas de la config; se actualizan solas cuando el signal que las origina cambia.
+   */
+  readonly $optionsByField = input<Record<string, IFieldOption[]>>({});
 
   readonly $submitted = output<z.output<TSchema>>();
 

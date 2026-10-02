@@ -2,7 +2,7 @@ import type { ForcedSubject, MongoAbility, RawRuleOf } from '@casl/ability';
 import type { EAbility } from './ability.enum.js';
 
 // Espejo de ticketkanban/src/app/core/casl/casl.types.ts.
-export const SUBJECTS = ['Ticket', 'User', 'RolePermission', 'Relationship', 'Notification', 'all'] as const;
+export const SUBJECTS = ['Ticket', 'User', 'RolePermission', 'Relationship', 'Notification', 'AuditLog', 'MenuItem', 'Catalog', 'Metric', 'MyMetric', 'all'] as const;
 export type TSubjects = (typeof SUBJECTS)[number];
 export type TAppAbility = MongoAbility<[EAbility, TSubjects | ForcedSubject<TSubjects>]>;
 export type TAppRule = RawRuleOf<TAppAbility>;

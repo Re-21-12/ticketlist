@@ -1,0 +1,23 @@
+# Prueba LOCAL del stack (sin Dokploy ni Traefik): construye las imágenes de este repo y publica web en :8080.
+#   docker network create dokploy-network        # (una vez; en el VPS ya existe)
+#   mkdir -p secrets  → crear los 3 archivos (DOKPLOY.md §3)
+#   docker compose -f docker-compose.dokploy.yml -f docker-compose.local-test.yml --env-file .env.local up --build
+services:
+  web:
+    build: { context: ../ticketkanban }
+    image: ticketit-web:local
+    ports: ['8080:80']
+  api:
+    build: { context: ../ticketlistbe }
+    image: ticketit-api:local
+    ports: ['3001:3000']
+    environment:
+      # Local sin proxy ni HTTPS: la cookie de sesión no puede ser `Secure`.
+      TRUST_PROXY: 'false'
+secrets:
+  ticketit_session_secret:
+    file: ./secrets/ticketit_session_secret
+  ticketit_totp_encryption_key:
+    file: ./secrets/ticketit_totp_encryption_key
+  ticketit_seed_users:
+    file: ./secrets/ticketit_seed_users

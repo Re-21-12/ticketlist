@@ -54,6 +54,8 @@ const NO_ICON_TYPES: ReadonlySet<string> = new Set<string>([
   FieldType.FILE,
   FieldType.COLOR,
   FieldType.SLIDER,
+  FieldType.RATING,
+  FieldType.EDITOR,
   FieldType.RADIO,
   FieldType.RADIO_BUTTON,
   FieldType.TOGGLE_BUTTON,

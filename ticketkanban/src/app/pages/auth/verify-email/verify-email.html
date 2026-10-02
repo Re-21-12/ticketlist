@@ -1,0 +1,25 @@
+@switch ($state()) {
+  @case ('verifying') {
+    <h1 class="auth-title">Verificando tu correo…</h1>
+    <p class="auth-lead" role="status" aria-live="polite">
+      Un momento, estamos confirmando tu enlace.
+    </p>
+  }
+  @case ('verified') {
+    <h1 class="auth-title">Correo verificado</h1>
+    <p class="auth-lead" role="status">Listo: tu cuenta está activa. Ya puedes iniciar sesión.</p>
+    <nav class="auth-links" aria-label="Siguientes pasos">
+      <a routerLink="/sign-in" class="app-link">Iniciar sesión</a>
+    </nav>
+  }
+  @case ('invalid') {
+    <h1 class="auth-title">Enlace no válido</h1>
+    <p class="auth-lead" role="alert">
+      Este enlace venció o ya se usó. Si ya verificaste tu correo, inicia sesión; si no, pide un
+      enlace nuevo desde esa pantalla.
+    </p>
+    <nav class="auth-links" aria-label="Siguientes pasos">
+      <a routerLink="/sign-in" class="app-link">Ir a iniciar sesión</a>
+    </nav>
+  }
+}

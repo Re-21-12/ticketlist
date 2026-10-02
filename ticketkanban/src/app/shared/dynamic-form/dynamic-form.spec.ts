@@ -56,8 +56,7 @@ describe('DynamicForm · campos (formulario de alta rápida de tickets)', () => 
   it('el control limita la escritura con `maxlength` (lo pone [formField] desde la regla del schema)', () => {
     const title = fieldHost('title').querySelector<HTMLInputElement>('#field-title');
     expect(title?.getAttribute('maxlength')).toBe('120');
-    const description = fieldHost('description').querySelector<HTMLTextAreaElement>('#field-description');
-    expect(description?.getAttribute('maxlength')).toBe('2000');
+    // La descripción es un editor de texto enriquecido: su tope (2000) lo valida el schema y lo muestra el contador.
   });
 
   it('un campo obligatorio lleva «*» con tooltip; uno opcional, «(Opcional)»', () => {

@@ -1,0 +1,11 @@
+:host {
+  display: inline-flex;
+  vertical-align: middle;
+  /* Una insignia es una etiqueta corta: no se parte en varias líneas dentro de una celda angosta. */
+  white-space: nowrap;
+}
+
+.app-badge-icon {
+  margin-inline-end: 0.375rem;
+  font-size: 0.75rem;
+}

@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { CaslAbilityFactory } from './casl/casl-ability.factory.js';
 import { CaslGuard } from './casl/casl.guard.js';
+import { AccountRecoveryService } from './session/account-recovery.service.js';
 import { AccountSecurityService } from './session/account-security.service.js';
 import { AuthSessionService } from './session/auth-session.service.js';
 import { SessionIndexService } from './session/session-index.service.js';
@@ -23,10 +24,11 @@ import { SessionAuthGuard } from './session/session-auth.guard.js';
     AuthSessionService,
     SessionIndexService,
     AccountSecurityService,
+    AccountRecoveryService,
     { provide: APP_GUARD, useClass: SessionAuthGuard },
     { provide: APP_GUARD, useClass: CsrfGuard },
     { provide: APP_GUARD, useClass: CaslGuard },
   ],
-  exports: [CaslAbilityFactory, AuthSessionService, SessionIndexService, AccountSecurityService],
+  exports: [CaslAbilityFactory, AuthSessionService, SessionIndexService, AccountSecurityService, AccountRecoveryService],
 })
 export class AuthModule {}

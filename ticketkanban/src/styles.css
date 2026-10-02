@@ -20,6 +20,8 @@
   --app-primary: var(--p-primary-color);
   --app-primary-contrast: var(--p-primary-contrast-color);
   --app-danger: var(--p-red-700);
+  --app-success: var(--p-green-700);
+  --app-warning: var(--p-orange-700);
   --app-focus-ring: var(--p-primary-color);
   --app-radius: 0.75rem;
   /* Movimiento (WCAG 2.2.2 / 2.3.3): cortos, sin rebotes, y anulados con «reducir movimiento». */
@@ -32,6 +34,8 @@
   --app-surface: var(--p-surface-900);
   --app-surface-muted: var(--p-surface-800);
   --app-danger: var(--p-red-300);
+  --app-success: var(--p-green-300);
+  --app-warning: var(--p-orange-300);
 }
 
 html,
@@ -192,4 +196,54 @@ app-dynamic-field:not(.field-error-visible) .p-invalid .p-select-label.p-placeho
 }
 .cdk-drag-animating {
   transition: transform 200ms var(--app-motion-ease);
+}
+
+/* ── Pantallas de acceso (iniciar sesión, crear cuenta, recuperar): primitivas compartidas ───────── */
+.auth-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.auth-lead {
+  margin: 0 0 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--app-text-muted);
+}
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-top: 1.25rem;
+  font-size: 0.875rem;
+}
+.auth-note {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+
+/* Ilustración decorativa a la derecha del encabezado de una pantalla (se oculta en pantallas angostas). */
+.page-header-art {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.page-art {
+  --illustration-width: 6.5rem;
+  flex: none;
+  margin-left: auto;
+}
+@media (max-width: 639px) {
+  .page-art {
+    display: none;
+  }
+}
+
+/* Ilustración centrada sobre las pantallas de acceso. */
+.auth-art {
+  --illustration-width: 8rem;
+  margin: 0 auto 0.75rem;
 }

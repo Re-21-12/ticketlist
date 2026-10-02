@@ -10,6 +10,14 @@ import {
 } from '../../core/decorators/api-zod.decorator.js';
 import { CustomBusinessException } from '../../core/exceptions/app.exception.js';
 import { RateLimit } from '../../core/rate-limit/rate-limit.decorator.js';
+import {
+  TotpDisableDto,
+  TotpDisableSchema,
+  TotpEnableDto,
+  TotpEnableSchema,
+  TotpSetupSchema,
+  TotpStatusSchema,
+} from './dtos/account-recovery.dto.js';
 import { ChangePasswordDto, ChangePasswordSchema } from './dtos/change-password.dto.js';
 import { SessionListSchema, type TSessionInfo } from './dtos/session-info.dto.js';
 import { AccountSecurityService } from './session/account-security.service.js';
@@ -42,6 +50,46 @@ export class AccountSecurityController {
   @ApiProblemResponse(429, 'SRTL-E001 · Demasiados intentos fallidos')
   async changePassword(@Body() dto: ChangePasswordDto, @Req() req: Request): Promise<void> {
     await this.security.changePassword(this.me(), req, dto);
+  }
+
+  @Get('totp')
+  @ApiZodResponse(200, TotpStatusSchema)
+  @ApiProblemResponse(401, 'SAUT-E002 · Sin sesión')
+  totpStatus(): { enabled: boolean } {
+    return this.security.totpStatus(this.me());
+  }
+
+  @Post('totp/setup')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 10, windowSeconds: 900 })
+  @ApiZodResponse(200, TotpSetupSchema, 'Secreto nuevo PENDIENTE de confirmar; se muestra una sola vez')
+  @ApiProblemResponse(401, 'SAUT-E002 · Sin sesión')
+  @ApiProblemResponse(409, 'SAUT-E013 · El autenticador ya está activado')
+  setupTotp(): { secret: string; otpauthUrl: string } {
+    return this.security.setupTotp(this.me());
+  }
+
+  @Post('totp/enable')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @RateLimit({ limit: 20, windowSeconds: 900 })
+  @ApiZodBody(TotpEnableSchema)
+  @ApiResponse({ status: 204, description: 'Autenticador activado' })
+  @ApiProblemResponse(409, 'SAUT-E012 · No hay una configuración en curso')
+  @ApiProblemResponse(422, 'SAUT-E011 · El código no es correcto')
+  @ApiProblemResponse(429, 'SRTL-E001 · Demasiados intentos fallidos')
+  async enableTotp(@Body() dto: TotpEnableDto): Promise<void> {
+    await this.security.enableTotp(this.me(), dto.code);
+  }
+
+  @Post('totp/disable')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @RateLimit({ limit: 20, windowSeconds: 900 })
+  @ApiZodBody(TotpDisableSchema)
+  @ApiResponse({ status: 204, description: 'Autenticador desactivado' })
+  @ApiProblemResponse(422, 'SAUT-E006 · La contraseña actual no es correcta')
+  @ApiProblemResponse(429, 'SRTL-E001 · Demasiados intentos fallidos')
+  async disableTotp(@Body() dto: TotpDisableDto): Promise<void> {
+    await this.security.disableTotp(this.me(), dto.currentPassword);
   }
 
   @Get('sessions')

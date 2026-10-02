@@ -1,0 +1,98 @@
+<header class="sharing-header page-header-art">
+  <div>
+    <h1>Compartir mis tickets</h1>
+    <p>
+      Da acceso a tus tickets a otra persona. Tú decides si solo los ve o también los edita, y
+      puedes revocarlo cuando quieras.
+    </p>
+  </div>
+  <button type="button" pButton (click)="onShare()" [disabled]="$saving()">
+    <i pButtonIcon class="pi pi-share-alt" aria-hidden="true"></i>
+    <span pButtonLabel>Compartir con alguien</span>
+  </button>
+  <app-illustration class="page-art" [$name]="'sharing'" />
+</header>
+
+@if ($failed()) {
+  <p class="sharing-error" role="alert">No se pudo cargar la lista.</p>
+}
+
+<section class="sharing-card" aria-labelledby="by-me-title">
+  <h2 id="by-me-title">Lo que comparto</h2>
+  @if ($byMe().length) {
+    <ul class="sharing-list">
+      @for (relationship of $byMe(); track relationship.uuid) {
+        <li class="sharing-item">
+          <div class="sharing-item-main">
+            <span class="sharing-person">{{ relationship.alternanteEmail }}</span>
+            @if (relationship.status === 'ACTIVE') {
+              <span class="sharing-status">Activo · {{ summary(relationship) }}</span>
+              @if (relationship.grants[0]?.notifyTitular) {
+                <span class="sharing-meta">Te avisa de sus cambios</span>
+              }
+            } @else {
+              <span class="sharing-status sharing-status--ended">
+                Revocado el {{ relationship.endedAt | date: 'dd/MM/yyyy' }}
+              </span>
+            }
+          </div>
+          @if (relationship.status === 'ACTIVE') {
+            <div class="sharing-actions">
+              <button
+                type="button"
+                pButton
+                size="small"
+                severity="warn"
+                [outlined]="true"
+                [disabled]="$saving()"
+                [attr.aria-label]="'Cambiar permisos de ' + relationship.alternanteEmail"
+                (click)="onEdit(relationship)"
+              >
+                <i pButtonIcon class="pi pi-pencil" aria-hidden="true"></i>
+                <span pButtonLabel>Permisos</span>
+              </button>
+              <button
+                type="button"
+                pButton
+                size="small"
+                severity="danger"
+                [outlined]="true"
+                [disabled]="$saving()"
+                [attr.aria-label]="'Dejar de compartir con ' + relationship.alternanteEmail"
+                (click)="onRevoke(relationship)"
+              >
+                <i pButtonIcon class="pi pi-ban" aria-hidden="true"></i>
+                <span pButtonLabel>Revocar</span>
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  } @else if ($loading()) {
+    <p class="sharing-muted" aria-live="polite">Cargando…</p>
+  } @else {
+    <p class="sharing-empty">Todavía no compartes tus tickets con nadie.</p>
+  }
+</section>
+
+<section class="sharing-card" aria-labelledby="with-me-title">
+  <h2 id="with-me-title">Compartido conmigo</h2>
+  @if ($withMe().length) {
+    <ul class="sharing-list">
+      @for (relationship of $withMe(); track relationship.uuid) {
+        <li class="sharing-item">
+          <div class="sharing-item-main">
+            <span class="sharing-person">Una persona te dio acceso a sus tickets</span>
+            <span class="sharing-status">Puedes: {{ summary(relationship).toLowerCase() }}</span>
+            <span class="sharing-meta"
+              >Desde el {{ relationship.createdAt | date: 'dd/MM/yyyy' }}</span
+            >
+          </div>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="sharing-empty">Nadie ha compartido sus tickets contigo.</p>
+  }
+</section>
