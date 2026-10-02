@@ -27,15 +27,62 @@
   width: 15rem;
   flex-shrink: 0;
   flex-direction: column;
+  overflow: hidden;
   border-right: 1px solid var(--app-border);
   background: var(--app-surface);
+  transition: width var(--app-motion-base) var(--app-motion-ease);
+}
+/* Plegado: riel de solo íconos. El texto sigue en el DOM (nombre accesible) pero fuera de la vista. */
+.app-sidebar--collapsed {
+  width: 4.5rem;
+}
+.app-sidebar--collapsed .app-nav-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.app-sidebar--collapsed .app-brand {
+  justify-content: center;
+  padding-inline: 0;
+}
+.app-sidebar--collapsed .app-nav {
+  padding-inline: 0.5rem;
+}
+.app-sidebar--collapsed .app-nav-group {
+  justify-content: center;
+  padding-inline: 0;
+}
+.app-sidebar--collapsed .app-nav-link {
+  justify-content: center;
+  padding-inline: 0;
+}
+.app-sidebar--collapsed .app-nav-icon {
+  margin-inline-end: 0;
+}
+.app-sidebar--collapsed .app-nav-link--active {
+  box-shadow: inset 0 -3px 0 var(--app-primary);
 }
 
 .app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
   margin: 0;
   padding: 1rem 1.25rem;
   font-size: 1.125rem;
   font-weight: 600;
+}
+
+.app-brand-icon {
+  color: var(--app-primary);
+}
+
+/* El botón de plegar solo existe donde hay sidebar (en móvil el menú es un drawer). */
+.app-sidebar-toggle {
+  display: none;
 }
 
 .app-main-column {
@@ -135,7 +182,8 @@
   color: var(--app-primary);
 }
 .app-nav-link {
-  display: block;
+  display: flex;
+  align-items: center;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   font-size: 0.875rem;
@@ -163,6 +211,9 @@
   }
   .app-menu-trigger {
     display: none;
+  }
+  .app-sidebar-toggle {
+    display: block;
   }
   .app-content {
     padding: 1.5rem;

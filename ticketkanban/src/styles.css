@@ -24,6 +24,9 @@
   --app-warning: var(--p-orange-700);
   --app-focus-ring: var(--p-primary-color);
   --app-radius: 0.75rem;
+  /* Círculo del barrido entre rutas (inicio y fin del `clip-path`). */
+  --circle-top-right-out: circle(0% at 100% 0%);
+  --circle-bottom-right-in: circle(150% at 100% 100%);
   /* Movimiento (WCAG 2.2.2 / 2.3.3): cortos, sin rebotes, y anulados con «reducir movimiento». */
   --app-motion-fast: 150ms;
   --app-motion-base: 220ms;
@@ -72,16 +75,30 @@ body {
   to { opacity: 0; }
 }
 
-/* Transición entre rutas (router `withViewTransitions`). Solo el contenido principal: sidebar y
-   topbar no se mueven (evita que toda la pantalla "parpadee"). */
-.app-content {
-  view-transition-name: app-content;
+/* Transición entre rutas (router `withViewTransitions`): barrido circular, igual que wallet-api. La vista vieja
+   queda fija de fondo y la nueva entra con un círculo que crece desde la esquina superior derecha hasta cubrir
+   la pantalla. Con «reducir movimiento» no corre (ver el bloque de abajo y `skipTransitionIfReducedMotion`). */
+@keyframes in-circle-swoop {
+  from {
+    clip-path: var(--circle-top-right-out);
+  }
+  to {
+    clip-path: var(--circle-bottom-right-in);
+  }
 }
-::view-transition-old(app-content) {
-  animation: app-fade-out var(--app-motion-fast) var(--app-motion-ease) both;
+::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }
-::view-transition-new(app-content) {
-  animation: app-rise-in var(--app-motion-base) var(--app-motion-ease) both;
+::view-transition-new(root) {
+  animation: 1.2s cubic-bezier(0.25, 1, 0.5, 1) both in-circle-swoop;
+  mix-blend-mode: normal;
+}
+
+/* Texto subrayado (seleccionado): el color de marca del tema elegido, claro u oscuro, como en wallet-api. */
+::selection {
+  background-color: var(--app-primary);
+  color: var(--app-primary-contrast);
 }
 
 /* Respeta "reducir movimiento" del SO (WCAG 2.3.3). */

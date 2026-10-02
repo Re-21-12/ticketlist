@@ -1,0 +1,68 @@
+<p-overlaybadge [value]="$unread()" severity="danger" [badgeDisabled]="$unread() === 0">
+  <button
+    type="button"
+    pButton
+    severity="secondary"
+    [text]="true"
+    class="np-trigger"
+    aria-haspopup="dialog"
+    [attr.aria-label]="$label()"
+    (click)="panel.toggle($event)"
+  >
+    <i pButtonIcon class="pi pi-bell" aria-hidden="true"></i>
+  </button>
+</p-overlaybadge>
+
+<p-popover #panel>
+  <section class="np" aria-label="Notificaciones">
+    <header class="np-header">
+      <h2 class="np-title">Notificaciones</h2>
+      @if ($unread() > 0) {
+        <span class="np-count" role="status">{{ $unread() }} {{ $unread() === 1 ? 'nueva' : 'nuevas' }}</span>
+      }
+      @if ($pending().length > 0) {
+        <button type="button" class="np-icon-btn" aria-label="Marcar todas como leídas" title="Marcar todas como leídas" (click)="markAllRead()">
+          <i class="pi pi-check-circle" aria-hidden="true"></i>
+        </button>
+      }
+    </header>
+
+    <ul class="np-list">
+      @if ($loading()) {
+        <li class="np-empty" role="status">Cargando…</li>
+      } @else if ($failed()) {
+        <li class="np-empty np-empty--error" role="alert">No se pudieron cargar las notificaciones.</li>
+      } @else if ($pending().length === 0) {
+        <li class="np-empty">
+          <i class="pi pi-bell" aria-hidden="true"></i>
+          <span>No hay notificaciones pendientes</span>
+        </li>
+      } @else {
+        @for (item of $pending(); track item.uuid) {
+          <li class="np-item">
+            <button type="button" class="np-item-main" (click)="open(item, panel)">
+              <i [class]="icons[item.type] + ' np-item-icon'" aria-hidden="true"></i>
+              <span class="np-item-text">
+                <span class="np-item-message">{{ item.message }}</span>
+                <time class="np-item-date" [attr.datetime]="item.createdAt.toISOString()">{{ item.createdAt | date: 'dd/MM/yyyy HH:mm' }}</time>
+              </span>
+            </button>
+            <button
+              type="button"
+              class="np-icon-btn"
+              [attr.aria-label]="'Marcar como leída: ' + item.message"
+              title="Marcar como leída"
+              (click)="markRead(item, $event)"
+            >
+              <i class="pi pi-eye" aria-hidden="true"></i>
+            </button>
+          </li>
+        }
+      }
+    </ul>
+
+    <footer class="np-footer">
+      <button type="button" class="np-link" (click)="seeAll(panel)">Ver todas las notificaciones</button>
+    </footer>
+  </section>
+</p-popover>

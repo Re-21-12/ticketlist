@@ -201,6 +201,11 @@ Port de `Profile` de wallet-api: cabecera (portada + avatar + nombre + rol) y pe
 - La tabla de colaboradores muestra SIEMPRE el tamaño de la muestra («n = …»); es para coaching, no ranking. Tokens `--app-success` / `--app-warning` para el semáforo (claro/oscuro).
 - Mock (`core/mock-bff/mock-metrics.ts`): mismas metas y reglas de semáforo, pero con lo que el mock sabe (sin historial de eventos: primera respuesta inferida del estado, reloj corrido). Lo cubre `mock-bff.metrics.spec.ts` (contrato con el MISMO schema, permisos por rol, A1–A3).
 
+### Shell: menú plegable y buzón de notificaciones (`layouts/layout/`)
+
+- **Menú lateral plegable** (escritorio): el botón de hamburguesa del topbar alterna entre el menú completo (15 rem) y un riel de solo íconos (4.5 rem, como el `collapsible: 'icon'` de wallet-api). El texto de cada ítem va en `.app-nav-label`, que al plegar se oculta VISUALMENTE pero sigue en el DOM (nombre accesible); cada enlace lleva `title`. La preferencia se guarda en `localStorage` (`ticketit_sidebar_collapsed`, con try/catch). En móvil el menú sigue siendo el drawer.
+- **Buzón** (`notification-panel/`): campana con contador (`p-overlaybadge`) y `p-popover` con las últimas 5 PENDIENTES (marcar leída la saca de la bandeja; el historial completo está en Mi perfil → Notificaciones). Abrir una la marca leída y navega según su tipo (`NOTIFICATION_ROUTES`: tickets, `/sharing`, `/users`, o la pestaña de notificaciones para calificar). Usa `ProfileStore` (la misma fuente que la pestaña). El backend no tiene tiempo real: se consulta cada 60 s con la pestaña visible y un aviso emergente anuncia las nuevas; al cambiar de cuenta se recarga.
+
 ### Dynamic table (`shared/dynamic-table/`)
 
 - Los overlays de la tabla (p. ej. filas por página) se adjuntan al `body` (`paginatorDropdownAppendTo="body"`): `.dynamic-table-shell` es un contenedor con scroll y un overlay dentro lo desfasa/recorta.
@@ -222,7 +227,8 @@ Port de `Profile` de wallet-api: cabecera (portada + avatar + nombre + rol) y pe
 ### Movimiento (WCAG 2.3.3 / 2.2.2)
 
 - Entrar/salir: `animate.enter="app-enter-fade|app-enter-rise"` / `animate.leave="app-leave-fade"` (clases en styles.css). NO `@angular/animations` (deprecado).
-- Entre rutas: `withViewTransitions` (solo `.app-content` tiene `view-transition-name`).
+- Entre rutas: `withViewTransitions` con el barrido circular de wallet-api (`::view-transition-new(root)` + `in-circle-swoop`, variables `--circle-*` en `styles.css`, 1.2 s); con «reducir movimiento» no corre.
+- Texto seleccionado: `::selection` usa `--app-primary` / `--app-primary-contrast` (sigue el tema y el color de marca).
 - Coreografías (stagger): `MotionService` (anime.js, import lazy). Solo `opacity`/`transform`, ≤ 300 ms, nunca en bucle.
 - Con «reducir movimiento» no se anima nada: CSS global, `skipTransitionIfReducedMotion` y `MotionService.$reducedMotion`.
 

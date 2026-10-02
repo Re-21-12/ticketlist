@@ -26,6 +26,18 @@ import { UserAvatar } from '../../core/ui/user-avatar/user-avatar';
 import { Breadcrumb } from '../../shared/breadcrumb/breadcrumb';
 import type { IBreadcrumbItem } from '../../shared/breadcrumb/breadcrumb.interface';
 import { NAV_GROUP_ICONS, type INavItem, type TNavNode } from './layout.interface';
+import { NotificationPanel } from './notification-panel/notification-panel';
+
+/** Clave donde se recuerda si el menú lateral está plegado (preferencia del navegador, no del servidor). */
+const SIDEBAR_COLLAPSED_KEY = 'ticketit_sidebar_collapsed';
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+  } catch {
+    return false; // almacenamiento bloqueado (modo privado): se arranca desplegado
+  }
+}
 
 /** Opciones del selector de rol de prueba (solo desarrollo: `environment.devSignIn`). */
 const ROLE_OPTIONS = Object.values(EUserRole).map((value) => ({ value, label: ROLE_LABELS[value] }));
@@ -52,6 +64,7 @@ const ROLE_OPTIONS = Object.values(EUserRole).map((value) => ({ value, label: RO
     SelectModule,
     Breadcrumb,
     UserAvatar,
+    NotificationPanel,
   ],
   templateUrl: './layout.html',
   styleUrl: './layout.css',
@@ -64,6 +77,8 @@ export class Layout {
 
   protected readonly roleOptions = ROLE_OPTIONS;
   protected readonly $drawerOpen = signal(false);
+  /** Menú lateral plegado a un riel de íconos (solo escritorio; en móvil el menú es un drawer). */
+  protected readonly $sidebarCollapsed = signal(readCollapsed());
   protected readonly $switchingRole = signal(false);
 
   /**
@@ -126,6 +141,16 @@ export class Layout {
       { label: current, link: null },
     ];
   });
+
+  protected toggleSidebar(): void {
+    const next = !this.$sidebarCollapsed();
+    this.$sidebarCollapsed.set(next);
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0');
+    } catch {
+      // sin almacenamiento: vale para esta visita
+    }
+  }
 
   /**
    * Cambia de rol (SOLO desarrollo): inicia sesión como el usuario sembrado de ese rol. Si la

@@ -1,8 +1,11 @@
 <a class="skip-link" href="#main-content">Saltar al contenido</a>
 
 <div class="app-shell">
-  <aside class="app-sidebar" aria-label="Barra lateral">
-    <p class="app-brand">Ticketit</p>
+  <aside class="app-sidebar" [class.app-sidebar--collapsed]="$sidebarCollapsed()" aria-label="Barra lateral">
+    <p class="app-brand">
+      <i class="pi pi-ticket app-brand-icon" aria-hidden="true"></i>
+      <span class="app-nav-label">Ticketit</span>
+    </p>
     <ng-container *ngTemplateOutlet="navMenu" />
   </aside>
 
@@ -19,6 +22,22 @@
 
   <div class="app-main-column">
     <header class="app-topbar">
+      <!-- Pliega/despliega el menú lateral (riel de íconos), como wallet-api. Solo escritorio. -->
+      <div class="app-sidebar-toggle">
+        <button
+          type="button"
+          pButton
+          severity="secondary"
+          [text]="true"
+          [attr.aria-expanded]="!$sidebarCollapsed()"
+          [attr.aria-label]="$sidebarCollapsed() ? 'Desplegar menú lateral' : 'Plegar menú lateral'"
+          [attr.title]="$sidebarCollapsed() ? 'Desplegar menú lateral' : 'Plegar menú lateral'"
+          (click)="toggleSidebar()"
+        >
+          <i pButtonIcon class="pi pi-bars" aria-hidden="true"></i>
+        </button>
+      </div>
+
       <app-breadcrumb class="app-breadcrumb" [$items]="$breadcrumbs()" [$collapseOnMobile]="true" />
 
       <!-- Selector de rol: SOLO desarrollo. Inicia sesión como el usuario sembrado de ese rol. -->
@@ -57,6 +76,7 @@
       </button>
 
       @if (_sessionStore.$user(); as user) {
+        <app-notification-panel />
         <a routerLink="/profile" class="app-user-link app-link--standalone">
           <app-user-avatar
             [$icon]="user.avatarIcon ? 'pi ' + user.avatarIcon : null"
@@ -121,11 +141,11 @@
           </li>
         } @else {
           <li>
-            <p class="app-nav-group">
+            <p class="app-nav-group" [attr.title]="node.label">
               @if (node.icon) {
                 <i [class]="'pi ' + node.icon" aria-hidden="true"></i>
               }
-              {{ node.label }}
+              <span class="app-nav-label">{{ node.label }}</span>
             </p>
             <ul>
               @for (item of node.items; track item.key) {
@@ -148,11 +168,10 @@
     [routerLinkActiveOptions]="{ exact: true }"
     ariaCurrentWhenActive="page"
     class="app-nav-link"
+    [attr.title]="item.label"
     (click)="$drawerOpen.set(false)"
   >
-    @if (item.icon) {
-      <i [class]="'pi ' + item.icon + ' app-nav-icon'" aria-hidden="true"></i>
-    }
-    {{ item.label }}
+    <i [class]="'pi ' + (item.icon || 'pi-circle') + ' app-nav-icon'" aria-hidden="true"></i>
+    <span class="app-nav-label">{{ item.label }}</span>
   </a>
 </ng-template>
