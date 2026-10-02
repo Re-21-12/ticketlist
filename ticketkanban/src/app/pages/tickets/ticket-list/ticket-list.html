@@ -1,14 +1,21 @@
-<header class="ticket-list-header">
-  <h1>Listado</h1>
-  <p>Paginación y búsqueda en el servidor. En pantallas angostas cada fila se muestra como tarjeta.</p>
+<header class="ticket-list-header page-header-art">
+  <div>
+    <h1>Listado</h1>
+    <p>
+      Paginación y búsqueda en el servidor. En pantallas angostas cada fila se muestra como tarjeta.
+    </p>
+  </div>
+  <app-illustration class="page-art" [$name]="'list'" />
 </header>
+
+<app-ticket-filters [$mode]="'list'" />
 
 @if ($failed()) {
   <p class="ticket-list-error" role="alert">No se pudo cargar el listado.</p>
 }
 
 <app-dynamic-table
-  [$config]="tableConfig"
+  [$config]="$tableConfig()"
   [$rows]="$rows()"
   [$totalRecords]="$total()"
   [$page]="_ticketsStore.$listPagination().page"

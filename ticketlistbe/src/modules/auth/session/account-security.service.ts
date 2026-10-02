@@ -4,6 +4,7 @@ import { ERROR_CODES } from '../../../common/codes/error-codes.js';
 import { CustomBusinessException } from '../../../core/exceptions/app.exception.js';
 import { RateLimitService, type IRateLimitRule } from '../../../core/rate-limit/rate-limit.service.js';
 import { UsersRepository } from '../../users/users.repository.js';
+import { generateTotpSecret, otpauthUrl } from './totp.util.js';
 import { SessionIndexService } from './session-index.service.js';
 import type { ISessionUser } from './session-user.interface.js';
 
@@ -18,6 +19,48 @@ export class AccountSecurityService {
     private readonly rateLimit: RateLimitService,
     private readonly sessionIndex: SessionIndexService,
   ) {}
+
+  totpStatus(user: ISessionUser): { enabled: boolean } {
+    return { enabled: this.usersRepository.isTotpEnabled(user.uuid) };
+  }
+
+  /** Genera el secreto y lo deja PENDIENTE: no protege nada hasta confirmarlo con un código (`enableTotp`). */
+  setupTotp(user: ISessionUser): { secret: string; otpauthUrl: string } {
+    if (this.usersRepository.isTotpEnabled(user.uuid)) {
+      throw new CustomBusinessException(ERROR_CODES.AUT.TOTP_ALREADY_ENABLED);
+    }
+    const secret = generateTotpSecret();
+    this.usersRepository.beginTotp(user.uuid, secret);
+    return { secret, otpauthUrl: otpauthUrl(secret, user.email) };
+  }
+
+  /** Confirma el alta: el código demuestra que la app ya tiene el secreto. */
+  async enableTotp(user: ISessionUser, code: string): Promise<void> {
+    const rule: IRateLimitRule = { key: `totp-enable:${user.uuid}`, ...CHANGE_PASSWORD_LIMIT };
+    await this.rateLimit.assertAllowed(rule);
+    if (!this.usersRepository.pendingTotpSecret(user.uuid)) {
+      throw new CustomBusinessException(ERROR_CODES.AUT.TOTP_NOT_PENDING);
+    }
+    const step = this.usersRepository.matchPendingTotp(user.uuid, code, Date.now());
+    if (step === null) {
+      await this.rateLimit.recordFailure(rule);
+      throw new CustomBusinessException(ERROR_CODES.AUT.TOTP_CODE_INVALID);
+    }
+    this.usersRepository.activateTotp(user.uuid, step);
+    await this.rateLimit.reset(rule);
+  }
+
+  /** Quitar el autenticador exige la contraseña actual (una sesión robada no puede desactivarlo). */
+  async disableTotp(user: ISessionUser, currentPassword: string): Promise<void> {
+    const rule: IRateLimitRule = { key: `pwd-change:${user.uuid}`, ...CHANGE_PASSWORD_LIMIT };
+    await this.rateLimit.assertAllowed(rule);
+    if (!this.usersRepository.verifyPassword(user.uuid, currentPassword)) {
+      await this.rateLimit.recordFailure(rule);
+      throw new CustomBusinessException(ERROR_CODES.AUT.CURRENT_PASSWORD_INVALID);
+    }
+    this.usersRepository.disableTotp(user.uuid);
+    await this.rateLimit.reset(rule);
+  }
 
   /**
    * Cambia la contraseña y cierra TODAS las demás sesiones: quien tenga una sesión abierta con la

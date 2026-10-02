@@ -1,0 +1,11 @@
+@let card = $card();
+<article class="mc" [attr.aria-label]="card.label">
+  <header class="mc-head">
+    <i [class]="'pi ' + card.icon" aria-hidden="true"></i>
+    <h3 class="mc-label">{{ card.label }}</h3>
+  </header>
+  <p class="mc-value" [class.mc-value-empty]="card.status === 'no-data'">{{ card.display }}</p>
+  <app-badge [$label]="$status().label" [$icon]="$status().icon" [$severity]="$status().severity" />
+  <p class="mc-target">{{ card.target }}</p>
+  <p class="mc-detail">{{ card.detail }}</p>
+</article>

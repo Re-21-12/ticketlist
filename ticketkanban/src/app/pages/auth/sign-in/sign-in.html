@@ -1,0 +1,86 @@
+<app-illustration class="auth-art" [$name]="'lock'" />
+<h1 class="auth-title">Iniciar sesión</h1>
+<p class="auth-lead">Entra con tu correo para ver y gestionar tus tickets.</p>
+
+@if ($unverifiedEmail(); as email) {
+  <p-message
+    severity="warn"
+    variant="simple"
+    icon="pi pi-envelope"
+    styleClass="auth-note"
+    role="alert"
+  >
+    Falta verificar <strong>{{ email }}</strong
+    >. Revisa tu correo o pide un enlace nuevo.
+  </p-message>
+  <button
+    type="button"
+    pButton
+    severity="secondary"
+    [outlined]="true"
+    [loading]="$resending()"
+    (click)="resend()"
+  >
+    <i pButtonIcon class="pi pi-send" aria-hidden="true"></i>
+    <span pButtonLabel>Reenviar enlace de verificación</span>
+  </button>
+}
+
+@if ($lockedContacts(); as contacts) {
+  <p-message
+    severity="error"
+    variant="simple"
+    icon="pi pi-lock"
+    styleClass="auth-note"
+    role="alert"
+  >
+    Tu cuenta está <strong>bloqueada</strong> por demasiados intentos fallidos. Para desbloquearla
+    comunícate con un administrador:
+  </p-message>
+  <ul class="locked-contacts" aria-label="Contacto de los administradores">
+    @for (contact of contacts; track contact.email) {
+      <li>
+        {{ contact.name }} ·
+        <a class="app-link" [href]="'mailto:' + contact.email">{{ contact.email }}</a>
+      </li>
+    }
+  </ul>
+}
+
+<app-dynamic-form
+  [$definition]="form"
+  [$submitting]="$submitting()"
+  [$submitLabel]="'Iniciar sesión'"
+  [$showClear]="false"
+  [$singleColumn]="true"
+  ($submitted)="onSubmit($event)"
+/>
+
+<nav class="auth-links" aria-label="Otras opciones de acceso">
+  <a routerLink="/forgot-password" class="app-link">¿Olvidaste tu contraseña?</a>
+  <a routerLink="/sign-up" class="app-link">Crear una cuenta</a>
+</nav>
+
+@if (devRoles; as roles) {
+  <section class="sign-in-dev" aria-labelledby="dev-title">
+    <h2 id="dev-title" class="sign-in-dev-title">
+      Usuarios de prueba <span>(solo desarrollo)</span>
+    </h2>
+    <div class="sign-in-dev-buttons">
+      @for (item of roles; track item.role) {
+        <button
+          type="button"
+          pButton
+          size="small"
+          severity="secondary"
+          [outlined]="true"
+          [disabled]="$submitting()"
+          (click)="onDevSignIn(item.role)"
+        >
+          <i pButtonIcon class="pi pi-user" aria-hidden="true"></i>
+          <span pButtonLabel>{{ item.label }}</span>
+        </button>
+      }
+    </div>
+  </section>
+}

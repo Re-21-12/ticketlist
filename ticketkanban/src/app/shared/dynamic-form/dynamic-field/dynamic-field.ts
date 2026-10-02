@@ -15,6 +15,7 @@ import { AutoCompleteModule } from '@openng/optimus-ui/autocomplete';
 import { CheckboxModule } from '@openng/optimus-ui/checkbox';
 import { ColorPickerModule } from '@openng/optimus-ui/colorpicker';
 import { DatePickerModule } from '@openng/optimus-ui/datepicker';
+import { EditorModule } from '@openng/optimus-ui/editor';
 import { FileUpload, FileUploadModule } from '@openng/optimus-ui/fileupload';
 import { InputGroupModule } from '@openng/optimus-ui/inputgroup';
 import { InputGroupAddonModule } from '@openng/optimus-ui/inputgroupaddon';
@@ -24,6 +25,7 @@ import { InputTextModule } from '@openng/optimus-ui/inputtext';
 import { MultiSelectModule } from '@openng/optimus-ui/multiselect';
 import { PasswordModule } from '@openng/optimus-ui/password';
 import { RadioButtonModule } from '@openng/optimus-ui/radiobutton';
+import { RatingModule } from '@openng/optimus-ui/rating';
 import { SelectModule } from '@openng/optimus-ui/select';
 import { SliderModule } from '@openng/optimus-ui/slider';
 import { ToggleButtonModule } from '@openng/optimus-ui/togglebutton';
@@ -37,7 +39,7 @@ import { resolveFieldIcon } from '../utils/infer-field-icon.util';
 import { filterKeypress, filterPaste, resolveInputFilter } from '../utils/input-filters.util';
 
 /** Un SELECT con MÁS opciones que esto se pinta como autocomplete (se escribe para filtrar). */
-export const SELECT_AUTOCOMPLETE_THRESHOLD = 10;
+export const SELECT_AUTOCOMPLETE_THRESHOLD = 5;
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 type TUploadState =
@@ -65,6 +67,7 @@ type TUploadState =
     CheckboxModule,
     ColorPickerModule,
     DatePickerModule,
+    EditorModule,
     FileUploadModule,
     InputGroupModule,
     InputGroupAddonModule,
@@ -74,6 +77,7 @@ type TUploadState =
     MultiSelectModule,
     PasswordModule,
     RadioButtonModule,
+    RatingModule,
     SelectModule,
     SliderModule,
     ToggleButtonModule,
@@ -94,6 +98,11 @@ export class DynamicField {
   readonly $node = input.required<FieldTree<unknown>>();
   /** Restricciones derivadas del schema Zod (obligatorio, máximos…). */
   readonly $constraints = input<IFieldConstraints>(NO_CONSTRAINTS);
+  /**
+   * Opciones que llegan en RUNTIME (personal disponible, catálogos del backend) y reemplazan a las
+   * estáticas de la config. `undefined` = usar las de la config.
+   */
+  readonly $optionsOverride = input<IFieldOption[] | undefined>(undefined);
 
   protected readonly FieldType = FieldType;
   private readonly _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -180,16 +189,34 @@ export class DynamicField {
   });
 
   // ── Opciones: SELECT / MULTISELECT / RADIO / AUTOCOMPLETE ──────────────────────────────────────
-  protected readonly $options = computed<IFieldOption[]>(() => this.$field().options ?? []);
+  protected readonly $options = computed<IFieldOption[]>(
+    () => this.$optionsOverride() ?? this.$field().options ?? [],
+  );
+  /** Hay una opción «vacía» explícita (p. ej. «Sin asignar», valor `''`): no hace falta el botón de limpiar. */
+  protected readonly $hasEmptyOption = computed(() => this.$options().some((option) => option.value === ''));
   protected readonly $useAutocompleteForSelect = computed(
     () => this.$options().length > SELECT_AUTOCOMPLETE_THRESHOLD,
   );
   /** Opción cuyo `value` es el valor actual — el autocomplete de SELECT muestra su `label`. */
   protected readonly $selectedOption = computed(() => {
     const current = this.$state().value();
-    if (current === null || current === undefined || current === '') return null;
+    // Solo null/undefined son «sin valor»: `''` puede ser una opción real («Sin asignar»).
+    if (current === null || current === undefined) return null;
     return this.$options().find((option) => option.value === current) ?? null;
   });
+  /** RATING: nivel (1…n) de la opción actual; 0 si no hay valor. La escala es la lista de opciones. */
+  protected readonly $ratingLevel = computed(() => {
+    const current = this.$state().value();
+    return this.$options().findIndex((option) => option.value === current) + 1;
+  });
+  protected readonly $ratingLabel = computed(() => this.$options()[this.$ratingLevel() - 1]?.label ?? '');
+
+  protected onRate(level: number | null): void {
+    const option = level ? this.$options()[level - 1] : undefined;
+    this.$state().value.set(option ? option.value : null);
+    this.markTouched();
+  }
+
   protected readonly $optionSuggestions = signal<IFieldOption[]>([]);
   protected readonly $textSuggestions = signal<string[]>([]);
 
@@ -305,6 +332,19 @@ export class DynamicField {
   protected onPhoneChange(value: string | null): void {
     this.$state().value.set(value ?? null);
   }
+  /** Clase de ícono de una opción (`pi-clock` o `pi pi-clock`), o `null` si no tiene. */
+  protected optionIcon(icon: string | null | undefined): string | null {
+    if (!icon) return null;
+    return icon.startsWith('pi ') ? icon : `pi ${icon}`;
+  }
+
+  /** El editor entrega HTML; un editor vacío (`<p><br></p>`) se guarda como `''`. */
+  protected onEditorChange(html: string | null): void {
+    const value = html ?? '';
+    this.$state().value.set(value.replace(/<[^>]*>/g, '').trim() === '' && !value.includes('<a') ? '' : value);
+    this.markTouched();
+  }
+
   protected markTouched(): void {
     this.$state().markAsTouched();
   }

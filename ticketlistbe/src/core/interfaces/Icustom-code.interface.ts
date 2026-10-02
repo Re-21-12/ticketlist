@@ -14,6 +14,8 @@ export interface IErrorContext {
   uuid?: string;
   /** 429: segundos hasta poder reintentar (también viaja en la cabecera `Retry-After`). */
   retryAfterSeconds?: number;
+  /** 423 `SAUT-E014`: a quién pedirle el desbloqueo de una cuenta bloqueada (administradores). */
+  contacts?: { name: string; email: string }[];
 }
 
 export interface IServiceErrorCodes {

@@ -80,6 +80,14 @@ export const VALIDATION_ERRORS = {
       messageEs: 'Describe la categoría',
       messageEn: 'Describe the category',
     },
+    RESOLUTION_REQUIRED: {
+      messageEs: 'Documenta la solución para poder resolver el ticket',
+      messageEn: 'Document the solution to resolve the ticket',
+    },
+    SURVEY_SCORE: {
+      messageEs: 'Elige una calificación de 1 a 5',
+      messageEn: 'Choose a rating from 1 to 5',
+    },
   },
 
   /** Cambio de contraseña (`modules/auth/dtos/change-password.dto.ts`). */
@@ -94,6 +102,18 @@ export const VALIDATION_ERRORS = {
     },
   },
 
+  /** Alta de cuenta y enlaces por correo (`modules/auth/dtos/*.dto.ts`). */
+  ACCOUNT: {
+    TOKEN_REQUIRED: {
+      messageEs: 'El enlace no es válido',
+      messageEn: 'The link is not valid',
+    },
+    CODE_INVALID: {
+      messageEs: 'Escribe el código de 6 dígitos de tu autenticador',
+      messageEn: 'Enter the 6-digit code from your authenticator',
+    },
+  },
+
   /** Relaciones Titular/Alternante (`modules/relationships/schemas/relationship.schema.ts`). */
   RELATIONSHIP: {
     GRANTS_REQUIRED: {
@@ -103,6 +123,38 @@ export const VALIDATION_ERRORS = {
     CONSENT_REQUIRED: {
       messageEs: 'Debes aceptar el consentimiento para compartir tus datos',
       messageEn: 'You must accept the consent to share your data',
+    },
+  },
+
+  /** Administración (menú, catálogos): identificadores y rutas con formato cerrado. */
+  ADMIN: {
+    INVALID_KEY: {
+      messageEs: 'Usa solo minúsculas, números y guiones (empieza con una letra)',
+      messageEn: 'Use only lowercase letters, numbers and hyphens (start with a letter)',
+    },
+    INVALID_ROUTE: {
+      messageEs: 'Escribe una ruta interna que empiece con una sola barra, por ejemplo /tickets',
+      messageEn: 'Enter an internal path that starts with a single slash, for example /tickets',
+    },
+    INVALID_ICON: {
+      messageEs: 'El ícono debe tener la forma pi-nombre',
+      messageEn: 'The icon must look like pi-name',
+    },
+    INVALID_CODE: {
+      messageEs: 'Usa solo mayúsculas, números y guion bajo (empieza con una letra)',
+      messageEn: 'Use only uppercase letters, numbers and underscores (start with a letter)',
+    },
+  },
+
+  /** Métricas del servicio (`modules/metrics/metrics.schema.ts`). */
+  METRICS: {
+    PERIOD_ORDER: {
+      messageEs: 'La fecha final no puede ser anterior a la inicial',
+      messageEn: 'The end date cannot be before the start date',
+    },
+    PERIOD_TOO_LONG: {
+      messageEs: 'El período no puede superar {max} días',
+      messageEn: 'The period cannot exceed {max} days',
     },
   },
 } as const satisfies Record<string, Record<string, IValidationMessage>>;

@@ -1,8 +1,8 @@
 <header class="sg-header">
   <h1 class="sg-title">Guía de estilos</h1>
   <p class="sg-lead">
-    Componentes reales de Ticketit y cómo cumplen WCAG 2.2 nivel AA. Todo lo que ves aquí es la misma pieza
-    que usan las pantallas: si cambias el modo o el color en
+    Componentes reales de Ticketit y cómo cumplen WCAG 2.2 nivel AA. Todo lo que ves aquí es la
+    misma pieza que usan las pantallas: si cambias el modo o el color en
     <a routerLink="/appearance" class="app-link">Apariencia</a>, esta guía se actualiza.
   </p>
 </header>
@@ -12,21 +12,29 @@
     <h2 id="sg-toc-title" class="sg-toc-title">En esta página</h2>
     <ol class="sg-toc-list">
       @for (section of sections; track section.id) {
-        <li><a class="app-link" [href]="'#sg-' + section.id">{{ section.title }}</a></li>
+        <li>
+          <a class="app-link" [href]="'#sg-' + section.id">{{ section.title }}</a>
+        </li>
       }
     </ol>
   </nav>
 
   <div class="sg-sections">
     @for (section of sections; track section.id) {
-      <section class="sg-section" [id]="'sg-' + section.id" [attr.aria-labelledby]="'sg-' + section.id + '-title'">
+      <section
+        class="sg-section"
+        [id]="'sg-' + section.id"
+        [attr.aria-labelledby]="'sg-' + section.id + '-title'"
+      >
         <h2 class="sg-section-title" [id]="'sg-' + section.id + '-title'">{{ section.title }}</h2>
 
         <div class="sg-demo">
           @switch (section.id) {
             @case ('color') {
               <table class="sg-contrast">
-                <caption class="sg-caption">Contraste medido en vivo con el modo y el color actuales</caption>
+                <caption class="sg-caption">
+                  Contraste medido en vivo con el modo y el color actuales
+                </caption>
                 <thead>
                   <tr>
                     <th scope="col">Par</th>
@@ -48,9 +56,14 @@
                           aria-hidden="true"
                           >Aa</span
                         >
-                        <span class="sg-mono">{{ row.foregroundHex }} / {{ row.backgroundHex }}</span>
+                        <span class="sg-mono"
+                          >{{ row.foregroundHex }} / {{ row.backgroundHex }}</span
+                        >
                       </td>
-                      <td class="sg-mono">{{ row.ratio.toFixed(2) }}:1 <span class="sg-muted">(mín. {{ row.minimum }}:1)</span></td>
+                      <td class="sg-mono">
+                        {{ row.ratio.toFixed(2) }}:1
+                        <span class="sg-muted">(mín. {{ row.minimum }}:1)</span>
+                      </td>
                       <td>
                         <p-tag
                           [value]="row.passes ? '✓ Cumple AA' : '✕ No cumple'"
@@ -68,43 +81,85 @@
                 <p class="sg-type-h2">Título de sección (h2) · 1.125rem</p>
                 <p class="sg-type-h3">Título de tarjeta (h3) · 1rem</p>
                 <p>Texto de cuerpo · 1rem, interlineado 1.5.</p>
-                <p class="sg-muted">Texto secundario · para metadatos y ayudas, nunca para información crítica.</p>
+                <p class="sg-muted">
+                  Texto secundario · para metadatos y ayudas, nunca para información crítica.
+                </p>
               </div>
             }
             @case ('buttons') {
               <div class="sg-row">
                 <button type="button" pButton>Primario</button>
-                <button type="button" pButton severity="secondary" [outlined]="true">Secundario</button>
+                <button type="button" pButton severity="secondary" [outlined]="true">
+                  Secundario
+                </button>
                 <button type="button" pButton severity="secondary" [text]="true">Texto</button>
-                <button type="button" pButton severity="danger" (click)="openConfirm()">Eliminar…</button>
+                <button type="button" pButton severity="danger" (click)="openConfirm()">
+                  Eliminar…
+                </button>
                 <button type="button" pButton size="small">Pequeño</button>
               </div>
               <div class="sg-row">
-                <button type="button" pButton [disabled]="true" aria-describedby="sg-disabled-reason">Deshabilitado</button>
-                <span id="sg-disabled-reason" class="sg-muted">Explica por qué: «Completa los campos obligatorios».</span>
+                <button
+                  type="button"
+                  pButton
+                  [disabled]="true"
+                  aria-describedby="sg-disabled-reason"
+                >
+                  Deshabilitado
+                </button>
+                <span id="sg-disabled-reason" class="sg-muted"
+                  >Explica por qué: «Completa los campos obligatorios».</span
+                >
               </div>
               <div class="sg-row">
-                <button type="button" pButton [loading]="$loadingDemo()" (click)="simulateLoading()">
+                <button
+                  type="button"
+                  pButton
+                  [loading]="$loadingDemo()"
+                  (click)="simulateLoading()"
+                >
                   {{ $loadingDemo() ? 'Guardando…' : 'Guardar (con carga)' }}
                 </button>
-                <button type="button" pButton severity="secondary" [text]="true" class="sg-icon-button" aria-label="Cerrar aviso">
+                <button
+                  type="button"
+                  pButton
+                  severity="secondary"
+                  [text]="true"
+                  class="sg-icon-button"
+                  aria-label="Cerrar aviso"
+                >
                   <span aria-hidden="true">✕</span>
                 </button>
-                <a pButton severity="secondary" [outlined]="true" routerLink="/tickets">Enlace con forma de botón</a>
+                <a pButton severity="secondary" [outlined]="true" routerLink="/tickets"
+                  >Enlace con forma de botón</a
+                >
               </div>
             }
             @case ('links') {
               <p>
                 Un enlace dentro de un texto, como
-                <a routerLink="/appearance" class="app-link"><i class="pi pi-palette link-icon" aria-hidden="true"></i>Apariencia</a>,
-                lleva subrayado en reposo y toma el color principal: cámbialo y el subrayado lo sigue.
+                <a routerLink="/appearance" class="app-link"
+                  ><i class="pi pi-palette link-icon" aria-hidden="true"></i>Apariencia</a
+                >, lleva subrayado en reposo y toma el color principal: cámbialo y el subrayado lo
+                sigue.
               </p>
               <p class="sg-row">
-                <a routerLink="/tickets" class="app-link--standalone"><i class="pi pi-th-large link-icon" aria-hidden="true"></i>Ir al tablero</a>
-                <a href="https://angular.dev" target="_blank" rel="noopener" class="app-link--standalone"
-                  >Documentación de Angular<i class="pi pi-external-link link-icon link-icon--external" aria-hidden="true"></i
+                <a routerLink="/tickets" class="app-link--standalone"
+                  ><i class="pi pi-th-large link-icon" aria-hidden="true"></i>Ir al tablero</a
+                >
+                <a
+                  href="https://angular.dev"
+                  target="_blank"
+                  rel="noopener"
+                  class="app-link--standalone"
+                  >Documentación de Angular<i
+                    class="pi pi-external-link link-icon link-icon--external"
+                    aria-hidden="true"
+                  ></i
                 ></a>
-                <span class="sg-muted">Enlaces independientes: el subrayado aparece al pasar el mouse o enfocar.</span>
+                <span class="sg-muted"
+                  >Enlaces independientes: el subrayado aparece al pasar el mouse o enfocar.</span
+                >
               </p>
             }
             @case ('breadcrumbs') {
@@ -112,8 +167,9 @@
             }
             @case ('fields') {
               <p class="sg-muted">
-                Un campo de cada tipo de control. Toca uno y sal sin completarlo para ver el error; el
-                contador «n / máx» limita lo que puedes escribir y sale del schema Zod. El «*» tiene tooltip.
+                Un campo de cada tipo de control. Toca uno y sal sin completarlo para ver el error;
+                el contador «n / máx» limita lo que puedes escribir y sale del schema Zod. El «*»
+                tiene tooltip.
               </p>
               <app-dynamic-form
                 [$definition]="galleryForm"
@@ -124,7 +180,11 @@
             @case ('feedback') {
               <div class="sg-row">
                 @for (priority of priorities; track priority) {
-                  <p-tag [value]="priorityLabels[priority]" [severity]="prioritySeverity[priority]" />
+                  <app-badge
+                    [$label]="priorityMeta[priority].label"
+                    [$icon]="priorityMeta[priority].icon"
+                    [$severity]="priorityMeta[priority].severity"
+                  />
                 }
               </div>
               <div class="sg-stack">
@@ -134,15 +194,31 @@
                 <p-message severity="error">Error: no se pudo cargar el tablero.</p-message>
               </div>
               <div class="sg-row">
-                <button type="button" pButton severity="secondary" [outlined]="true" (click)="showToast('success')">Toast de éxito</button>
-                <button type="button" pButton severity="secondary" [outlined]="true" (click)="showToast('error')">Toast de error</button>
+                <button
+                  type="button"
+                  pButton
+                  severity="secondary"
+                  [outlined]="true"
+                  (click)="showToast('success')"
+                >
+                  Toast de éxito
+                </button>
+                <button
+                  type="button"
+                  pButton
+                  severity="secondary"
+                  [outlined]="true"
+                  (click)="showToast('error')"
+                >
+                  Toast de error
+                </button>
               </div>
             }
             @case ('tables') {
               <p>
                 La tabla dinámica y sus tarjetas se ven en el
-                <a routerLink="/tickets/list" class="app-link">listado de tickets</a>. Achica la ventana por debajo de
-                640 px para ver cada fila como tarjeta.
+                <a routerLink="/tickets/list" class="app-link">listado de tickets</a>. Achica la
+                ventana por debajo de 640 px para ver cada fila como tarjeta.
               </p>
             }
             @case ('motion') {
@@ -150,11 +226,18 @@
                 @if (_motionService.$reducedMotion()) {
                   Tu sistema pide reducir el movimiento: las demos no se animan.
                 } @else {
-                  Movimiento activado. Para desactivarlo, usa «reducir movimiento» en tu sistema operativo.
+                  Movimiento activado. Para desactivarlo, usa «reducir movimiento» en tu sistema
+                  operativo.
                 }
               </p>
               <div class="sg-row">
-                <button type="button" pButton severity="secondary" [outlined]="true" (click)="playStagger()">
+                <button
+                  type="button"
+                  pButton
+                  severity="secondary"
+                  [outlined]="true"
+                  (click)="playStagger()"
+                >
                   Reproducir stagger (anime.js)
                 </button>
                 <button
@@ -177,20 +260,28 @@
               <div id="sg-motion-panel">
                 @if ($panelOpen()) {
                   <p class="sg-panel" animate.enter="app-enter-rise" animate.leave="app-leave-fade">
-                    Este panel entra con <code>animate.enter</code> y sale con <code>animate.leave</code>: Angular espera a
-                    que termine la animación CSS antes de quitarlo del DOM.
+                    Este panel entra con <code>animate.enter</code> y sale con
+                    <code>animate.leave</code>: Angular espera a que termine la animación CSS antes
+                    de quitarlo del DOM.
                   </p>
                 }
               </div>
               <p class="sg-muted">
-                Las transiciones entre páginas usan la View Transitions API (<code>withViewTransitions</code>).
+                Las transiciones entre páginas usan la View Transitions API
+                (<code>withViewTransitions</code>).
               </p>
             }
             @case ('keyboard') {
               <ol class="sg-steps">
-                <li>Recarga la página y presiona <kbd>Tab</kbd>: el primer foco es «Saltar al contenido».</li>
+                <li>
+                  Recarga la página y presiona <kbd>Tab</kbd>: el primer foco es «Saltar al
+                  contenido».
+                </li>
                 <li>Sigue con <kbd>Tab</kbd>: cada control muestra el anillo de foco.</li>
-                <li>Abre «Eliminar…» en Botones: el foco empieza en «Cancelar» y <kbd>Esc</kbd> cierra.</li>
+                <li>
+                  Abre «Eliminar…» en Botones: el foco empieza en «Cancelar» y
+                  <kbd>Esc</kbd> cierra.
+                </li>
               </ol>
             }
           }

@@ -6,6 +6,7 @@ import { RequestContext } from '../../core/context/request-context.js';
 import { CustomBusinessException } from '../../core/exceptions/app.exception.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { UsersRepository } from '../users/users.repository.js';
+import type { RelationshipAdminQueryDto, RelationshipAdminResponseSchema } from './dtos/relationship-admin.dto.js';
 import { RelationshipEntity, type IRelationshipGrant } from './relationship.entity.js';
 import { RelationshipsRepository } from './relationships.repository.js';
 import {
@@ -17,6 +18,7 @@ import {
 } from './schemas/relationship.schema.js';
 
 type TRelationshipResponse = z.output<typeof RelationshipResponseSchema>;
+type TAdminRelationship = z.output<typeof RelationshipAdminResponseSchema>;
 
 /**
  * Relaciones Titular → Alternante (docs/standard/authorization.md, modelo de wallet-api
@@ -121,6 +123,45 @@ export class RelationshipsService {
     });
   }
 
+  /** Administración: TODAS las relaciones (con ambas personas) con filtro de estado y búsqueda, paginadas. */
+  listAll(query: RelationshipAdminQueryDto): { data: TAdminRelationship[]; meta: { total: number; page: number; take: number } } {
+    const term = query.search?.trim().toLowerCase();
+    const rows = this.repository
+      .findAllRows()
+      .map((relationship) => this.toAdminResponse(relationship))
+      .filter((row) => !query.status || row.status === query.status)
+      .filter((row) => !term || `${row.titularName} ${row.titularEmail} ${row.alternanteName} ${row.alternanteEmail}`.toLowerCase().includes(term));
+    const start = (query.page - 1) * query.take;
+    return { data: rows.slice(start, start + query.take), meta: { total: rows.length, page: query.page, take: query.take } };
+  }
+
+  /**
+   * Administración: revoca CUALQUIER relación activa (p. ej. ante un abuso). Igual que el titular:
+   * no borra, conserva el historial, y avisa a las DOS personas para que nadie se entere por sorpresa.
+   */
+  async revokeAsAdmin(uuid: string): Promise<void> {
+    const admin = this.me();
+    const current = await this.repository.findByUuid(uuid);
+    if (!current || current.status !== 'ACTIVE') throw new CustomBusinessException(ERROR_CODES.REL.NOT_FOUND, { uuid });
+    await this.repository.update(
+      Object.assign(new RelationshipEntity(), current, {
+        status: 'REVOKED' as const,
+        endedAt: new Date(),
+        updatedAt: new Date(),
+        updatedBy: admin.uuid,
+      }),
+    );
+    for (const recipientUuid of [current.titularUuid, current.alternanteUuid]) {
+      this.notificationsService.notify({
+        recipientUuid,
+        type: 'RELATIONSHIP_REVOKED',
+        message: 'Un administrador revocó el acceso compartido a unos tickets',
+        resourceType: 'Relationship',
+        resourceUuid: uuid,
+      });
+    }
+  }
+
   /** Visible para el usuario (titular o alternante), activa y donde ÉL es el titular. */
   private async findTitularActive(uuid: string, meUuid: string): Promise<RelationshipEntity> {
     const relationship = await this.repository.findByUuid(uuid);
@@ -159,5 +200,28 @@ export class RelationshipsService {
       createdAt: r.createdAt.toISOString(),
       myRole: r.titularUuid === meUuid ? 'TITULAR' : 'ALTERNANTE',
     });
+  }
+
+  private toAdminResponse(r: RelationshipEntity): TAdminRelationship {
+    const titular = this.usersRepository.findAdminByUuid(r.titularUuid);
+    const alternante = this.usersRepository.findAdminByUuid(r.alternanteUuid);
+    const grant = r.grants[0];
+    return {
+      uuid: r.uuid,
+      titularUuid: r.titularUuid,
+      titularName: titular?.name ?? '(cuenta desconocida)',
+      titularEmail: titular?.email ?? '',
+      alternanteUuid: r.alternanteUuid,
+      alternanteName: alternante?.name ?? '(cuenta desconocida)',
+      alternanteEmail: alternante?.email ?? '',
+      status: r.status,
+      canRead: grant?.canRead ?? false,
+      canUpdate: grant?.canUpdate ?? false,
+      notifyTitular: grant?.notifyTitular ?? false,
+      consentVersion: grant?.consentVersion ?? null,
+      consentedAt: grant?.consentedAt.toISOString() ?? null,
+      endedAt: r.endedAt?.toISOString() ?? null,
+      createdAt: r.createdAt.toISOString(),
+    };
   }
 }

@@ -37,4 +37,28 @@ export const USERS_SEED: ISessionUser[] = [
     avatarIcon: null,
     avatarColor: null,
   },
+  {
+    uuid: '0b8a5f6e-1c2d-4e3f-8a9b-000000000005',
+    name: 'Sergio Supervisor',
+    email: 'sergio@ticketit.dev',
+    role: EUserRole.SUPERVISOR,
+    avatarIcon: null,
+    avatarColor: null,
+  },
+  {
+    uuid: '0b8a5f6e-1c2d-4e3f-8a9b-000000000006',
+    name: 'Rosa Recursos Humanos',
+    email: 'rosa@ticketit.dev',
+    role: EUserRole.VIEWER,
+    avatarIcon: null,
+    avatarColor: null,
+  },
+  {
+    uuid: '0b8a5f6e-1c2d-4e3f-8a9b-000000000007',
+    name: 'Aurora Auditora',
+    email: 'aurora@ticketit.dev',
+    role: EUserRole.AUDITOR,
+    avatarIcon: null,
+    avatarColor: null,
+  },
 ];

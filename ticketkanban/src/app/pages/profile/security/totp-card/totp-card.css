@@ -1,0 +1,60 @@
+.totp-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+}
+.totp-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.totp-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.totp-lead,
+.totp-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+.totp-steps {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.9375rem;
+}
+.totp-secret {
+  margin: 0.5rem 0 0.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface-muted);
+  font-size: 1.0625rem;
+  letter-spacing: 0.05em;
+  word-break: break-word;
+}
+.totp-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.totp-actions button {
+  min-width: 11rem;
+  justify-content: center;
+}
+
+.totp-qr {
+  display: block;
+  margin: 0.75rem 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  /* El QR necesita fondo claro para leerse también en modo oscuro. */
+  background: #fff;
+}

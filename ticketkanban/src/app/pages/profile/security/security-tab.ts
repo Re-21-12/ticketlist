@@ -3,8 +3,10 @@ import { MessageService } from '@openng/optimus-ui/api';
 import { FormSplit } from '../../../layouts/form-split/form-split';
 import { DynamicForm } from '../../../shared/dynamic-form/dynamic-form';
 import { PASSWORD_FORM } from '../password-form.config';
+import { TotpCard } from './totp-card/totp-card';
 import { ProfileStore } from '../profile.store';
 import type { TChangePasswordForm } from '../profile.types';
+import { Illustration } from '../../../shared/ui/illustration/illustration';
 
 /**
  * Pestaña «Seguridad»: cambiar la contraseña. Éxito → toast + el formulario se vacía (se recrea) y las
@@ -13,7 +15,7 @@ import type { TChangePasswordForm } from '../profile.types';
  */
 @Component({
   selector: 'app-security-tab',
-  imports: [FormSplit, DynamicForm],
+  imports: [Illustration, FormSplit, DynamicForm, TotpCard],
   templateUrl: './security-tab.html',
   styleUrl: './security-tab.css',
 })

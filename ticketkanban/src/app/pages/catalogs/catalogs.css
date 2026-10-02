@@ -1,0 +1,113 @@
+:host {
+  display: block;
+}
+
+.catalogs-header {
+  margin-bottom: 1.5rem;
+}
+.catalogs-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.catalogs-header p,
+.catalogs-muted {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+
+.catalogs-layout {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+  align-items: start;
+}
+
+.catalogs-list {
+  border: 1px solid var(--app-border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: var(--app-surface);
+}
+.catalogs-list-head,
+.catalogs-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.catalogs-list-head h2,
+.catalogs-detail-head h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.catalogs-detail-head {
+  margin-bottom: 1rem;
+}
+.catalogs-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.catalogs-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalog-pick {
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  color: var(--app-text);
+  text-align: left;
+  cursor: pointer;
+}
+.catalog-pick:hover {
+  background: var(--app-surface-muted);
+}
+/* El estado activo no es solo color: borde + peso de la letra + `aria-current`. */
+.catalog-pick--active {
+  border-color: var(--app-primary);
+  background: var(--app-surface-muted);
+}
+.catalog-pick--active .catalog-pick-name {
+  font-weight: 700;
+}
+.catalog-pick-meta {
+  font-size: 0.75rem;
+  color: var(--app-text-muted);
+}
+
+.catalogs-empty {
+  margin: 0;
+  border: 1px dashed var(--app-border);
+  border-radius: 0.75rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--app-text-muted);
+}
+.catalogs-error {
+  margin: 0.5rem 0 0;
+  color: var(--app-danger);
+}
+
+@media (max-width: 48rem) {
+  .catalogs-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

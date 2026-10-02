@@ -19,10 +19,14 @@
       [loading]="$refreshing()"
       (click)="$refresh.emit()"
     >
-      Refrescar
+      <i pButtonIcon class="pi pi-refresh" aria-hidden="true"></i>
+      <span pButtonLabel>Refrescar</span>
     </button>
     @if ($canCreate()) {
-      <button type="button" pButton (click)="$create.emit()">{{ $createLabel() }}</button>
+      <button type="button" pButton (click)="$create.emit()">
+        <i pButtonIcon class="pi pi-plus" aria-hidden="true"></i>
+        <span pButtonLabel>{{ $createLabel() }}</span>
+      </button>
     }
   </div>
 </div>

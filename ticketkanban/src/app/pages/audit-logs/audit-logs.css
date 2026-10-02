@@ -1,0 +1,22 @@
+:host {
+  display: block;
+}
+
+.audit-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.audit-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 12rem;
+}
+
+.audit-filter label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}

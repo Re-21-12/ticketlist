@@ -1,0 +1,44 @@
+.mt-empty {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+.mt-scroll {
+  overflow-x: auto;
+}
+.mt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.mt-table th,
+.mt-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--app-border);
+  text-align: left;
+  vertical-align: middle;
+}
+.mt-table thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--app-text-muted);
+  white-space: nowrap;
+}
+.mt-table tbody th {
+  font-weight: 400;
+}
+.mt-code {
+  display: block;
+  font-weight: 600;
+}
+.mt-title {
+  display: block;
+  max-width: 18rem;
+  color: var(--app-text-muted);
+}
+.mt-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

@@ -6,7 +6,6 @@ export interface IRelationshipGrant {
   objectType: (typeof SHAREABLE_OBJECT_TYPES)[number];
   canRead: boolean;
   canUpdate: boolean;
-  canDelete: boolean;
   notifyTitular: boolean;
   consentVersion: string;
   consentedAt: Date;

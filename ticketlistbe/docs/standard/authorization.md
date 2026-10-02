@@ -13,7 +13,7 @@ rol se aplica al **generar** las reglas ReBAC.
 | # | Capa | Fuente | Qué concede |
 |---|---|---|---|
 | 1 | **RBAC + ABAC** | `role_permissions` (DB-first, editable por ADMIN en `/api/role-permissions`) | `(rol, subject, acción, preset)`. Preset: `NONE` (todo), `OWN` (`ownerUuid = yo`), `ASSIGNED_TO_ME` (`assigneeEmail = mi correo`) |
-| 2 | **Titular** | fija en código | Sobre SUS tickets (`ownerUuid = yo`): read/update/delete/restore. Crear relaciones y gestionar las suyas (`titularUuid = yo`) |
+| 2 | **Titular** | fija en código | Sobre SUS tickets (`ownerUuid = yo`): read/update. **No delete ni restore** (solo el administrador elimina). Crear relaciones y gestionar las suyas (`titularUuid = yo`), salvo cliente y auditor: no manipulan los accesos |
 | 3 | **ReBAC** | relaciones ACTIVAS donde soy alternante | `Ticket` con `ownerUuid ∈ [titulares que me concedieron X]`, por acción, **recortado por el techo del rol** |
 | 4 | **Autoservicio** | fija en código | Mis notificaciones (`recipientUuid = yo`: read/update). Ver las relaciones donde soy alternante |
 
@@ -26,12 +26,21 @@ titulares y nunca supera el techo del rol.
 | Rol | Subject | Acción | Preset |
 |---|---|---|---|
 | ADMIN | all | manage | NONE |
-| AGENT | Ticket | read, create | NONE |
+| AGENT (N1) | Ticket | read, create | NONE |
 | AGENT | Ticket | update | ASSIGNED_TO_ME |
-| VIEWER | Ticket | read | NONE |
+| AGENT | MyMetric | read | NONE |
+| SUPERVISOR | Ticket | read, create, update | NONE |
+| SUPERVISOR | Metric, MyMetric, User | read | NONE |
+| AUDITOR | Ticket, Metric, AuditLog, User | read | NONE |
+| VIEWER (CLIENTE) | Ticket | create | NONE |
 
-Un cambio en `role_permissions` rige desde la **siguiente request**: el Ability se recalcula por
-request y no se guarda en la sesión.
+El **auditor** (`AUDITOR`) es de solo lectura: ve tickets (y sus notas internas), métricas y auditoría; no crea, edita, mueve ni elimina.
+El **cliente** (`VIEWER`) solo tiene `create`: lo demás sale de la capa de titular (ve y sigue SUS tickets) y de lo que otra
+persona le comparta. El **supervisor** ve las métricas del equipo (`Metric`); cada **agente**, las suyas (`MyMetric`).
+Sobre un ticket, el papel de cada persona (solicitante y/o equipo) lo decide `TicketHistoryService.actorsFor`: un AGENTE es
+«equipo» solo de los tickets que tiene asignados; ADMIN y SUPERVISOR, de cualquiera. Los poderes de cada rol sobre el flujo (el
+soporte resuelve y pide información; el supervisor asigna, escala y pide información, no resuelve; solo el administrador elimina)
+están en `lifecycle/ticket-lifecycle.ts` (`TRANSITIONS`) y se prueban en `test/ticket-permissions.e2e-spec.ts`.
 
 ## 2. Dónde se evalúa
 
@@ -57,7 +66,7 @@ request y no se guarda en la sesión.
 | Campo | Default | Significado |
 |---|---|---|
 | `objectType` | — | Recurso compartido (hoy `Ticket`) |
-| `canRead` / `canUpdate` / `canDelete` | `true` / `false` / `false` | CRUD concedido (crear no aplica: lo creado es de quien lo crea) |
+| `canRead` / `canUpdate` | `true` / `false` | Lo concedido (crear no aplica: lo creado es de quien lo crea; **eliminar nunca se concede**: es solo del administrador) |
 | `notifyTitular` | `true` | Avisar al titular cuando el alternante cambie algo |
 | `consentVersion` / `consentedAt` | servidor | Texto de consentimiento aceptado y cuándo (auditoría) |
 
@@ -76,8 +85,8 @@ request y no se guarda en la sesión.
 
 | Rol del alternante | Techo | Efecto |
 |---|---|---|
-| ADMIN, AGENT | `managed` | Recibe lo concedido |
-| VIEWER | `read` | `canUpdate`/`canDelete` se ignoran: un VIEWER nunca escribe |
+| ADMIN, SUPERVISOR, AGENT | `managed` | Recibe lo concedido |
+| AUDITOR, VIEWER | `read` | `canUpdate` se ignora: ni el auditor ni el cliente escriben por una concesión |
 
 ## 4. Notificaciones (in-app)
 

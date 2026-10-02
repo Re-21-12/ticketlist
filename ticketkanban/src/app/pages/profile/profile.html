@@ -33,11 +33,15 @@
       >
         <ng-template #selectedItem let-selected>
           @if (selected) {
-            <span class="profile-tab-label"><i [class]="selected.icon" aria-hidden="true"></i>{{ selected.label }}</span>
+            <span class="profile-tab-label"
+              ><i [class]="selected.icon" aria-hidden="true"></i>{{ selected.label }}</span
+            >
           }
         </ng-template>
         <ng-template #item let-option>
-          <span class="profile-tab-label"><i [class]="option.icon" aria-hidden="true"></i>{{ option.label }}</span>
+          <span class="profile-tab-label"
+            ><i [class]="option.icon" aria-hidden="true"></i>{{ option.label }}</span
+          >
         </ng-template>
       </p-select>
     }

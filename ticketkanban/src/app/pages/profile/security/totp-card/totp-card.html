@@ -1,0 +1,117 @@
+<section class="totp-card" aria-labelledby="totp-title">
+  <header class="totp-head">
+    <app-illustration class="page-art totp-art" [$name]="'two-factor'" />
+    <div>
+      <h2 id="totp-title" class="totp-title">Autenticador (TOTP)</h2>
+      <p class="totp-lead">
+        Un código de 6 dígitos que cambia cada 30 segundos en tu app (Google Authenticator, Authy,
+        1Password…). Sirve para recuperar tu contraseña sin depender del correo.
+      </p>
+    </div>
+    @if ($loaded()) {
+      @if ($enabled()) {
+        <app-badge [$label]="'Activado'" [$icon]="'pi-shield'" [$severity]="'success'" />
+      } @else {
+        <app-badge
+          [$label]="'No configurado'"
+          [$icon]="'pi-minus-circle'"
+          [$severity]="'secondary'"
+        />
+      }
+    }
+  </header>
+
+  @switch ($step()) {
+    @case ('enrolling') {
+      <ol class="totp-steps">
+        <li>
+          Abre tu app autenticadora y escanea este código QR:
+          @if ($qr(); as qr) {
+            <img
+              class="totp-qr"
+              [src]="qr"
+              width="192"
+              height="192"
+              alt="Código QR para configurar el autenticador de tu cuenta"
+            />
+          }
+          O agrega una cuenta con esta <strong>clave</strong>
+          @if ($setup(); as setup) {
+            (o abre el
+            <a [href]="setup.otpauthUrl" class="app-link">enlace de configuración</a>
+            si tu app lo admite):
+          }
+          <p class="totp-secret" aria-label="Clave del autenticador">
+            <code>{{ $secretGroups() }}</code>
+          </p>
+          <p class="totp-hint">Guárdala en un lugar seguro: no volveremos a mostrarla.</p>
+        </li>
+        <li>Escribe aquí el código que te muestra la app para confirmar.</li>
+      </ol>
+      <app-dynamic-form
+        [$definition]="enableForm"
+        [$submitting]="$busy()"
+        [$submitLabel]="'Activar autenticador'"
+        [$showClear]="false"
+        [$singleColumn]="true"
+        ($submitted)="confirm($event)"
+      />
+      <button
+        type="button"
+        pButton
+        severity="secondary"
+        [text]="true"
+        [disabled]="$busy()"
+        (click)="cancel()"
+      >
+        <i pButtonIcon class="pi pi-times" aria-hidden="true"></i>
+        <span pButtonLabel>Cancelar</span>
+      </button>
+    }
+    @case ('disabling') {
+      <p class="totp-hint">Para desactivarlo confirma tu contraseña actual.</p>
+      <app-dynamic-form
+        [$definition]="disableForm"
+        [$submitting]="$busy()"
+        [$submitLabel]="'Desactivar autenticador'"
+        [$showClear]="false"
+        [$singleColumn]="true"
+        ($submitted)="disable($event)"
+      />
+      <button
+        type="button"
+        pButton
+        severity="secondary"
+        [text]="true"
+        [disabled]="$busy()"
+        (click)="cancel()"
+      >
+        <i pButtonIcon class="pi pi-times" aria-hidden="true"></i>
+        <span pButtonLabel>Cancelar</span>
+      </button>
+    }
+    @default {
+      @if ($loaded()) {
+        <div class="totp-actions">
+          @if ($enabled()) {
+            <button
+              type="button"
+              pButton
+              severity="danger"
+              [outlined]="true"
+              (click)="$step.set('disabling')"
+            >
+              <i pButtonIcon class="pi pi-times" aria-hidden="true"></i>
+              <span pButtonLabel>Desactivar</span>
+            </button>
+          } @else {
+            <button type="button" pButton [disabled]="$busy()" (click)="start()">
+              <i pButtonIcon class="pi pi-mobile" aria-hidden="true"></i>
+              <span pButtonLabel>Configurar autenticador</span>
+            </button>
+          }
+        </div>
+      }
+    }
+  }
+</section>

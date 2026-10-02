@@ -6,6 +6,9 @@ import type {
   NotificationSchema,
   SessionInfoSchema,
   SessionListSchema,
+  TotpDisableFormSchema,
+  TotpEnableFormSchema,
+  TotpSetupSchema,
 } from './profile.schema';
 
 export type TSessionInfo = z.output<typeof SessionInfoSchema>;
@@ -13,6 +16,9 @@ export type TSessionList = z.output<typeof SessionListSchema>;
 export type TNotification = z.output<typeof NotificationSchema>;
 export type TNotificationList = z.output<typeof NotificationListSchema>;
 export type TChangePasswordForm = z.output<typeof ChangePasswordFormSchema>;
+export type TTotpSetup = z.output<typeof TotpSetupSchema>;
+export type TTotpEnableForm = z.output<typeof TotpEnableFormSchema>;
+export type TTotpDisableForm = z.output<typeof TotpDisableFormSchema>;
 export type TAvatar = z.output<typeof AvatarSchema>;
 
 /** Body de `PATCH /api/auth/password` (sin `confirmPassword`). */

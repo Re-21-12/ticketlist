@@ -11,6 +11,8 @@ export const DEV_SIGN_IN: NonNullable<IEnvironment['devSignIn']> = {
   emailByRole: {
     [EUserRole.ADMIN]: 'marta@ticketit.dev',
     [EUserRole.AGENT]: 'ana@ticketit.dev',
+    [EUserRole.SUPERVISOR]: 'sergio@ticketit.dev',
+    [EUserRole.AUDITOR]: 'aurora@ticketit.dev',
     [EUserRole.VIEWER]: 'victor@ticketit.dev',
   },
 };

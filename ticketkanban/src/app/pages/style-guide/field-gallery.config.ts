@@ -30,6 +30,7 @@ export const FieldGallerySchema = z.object({
   phone: z.string().nullable(),
   serial: z.string().max(8, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'El serial', max: 8 }) }).default(''),
   bio: z.string().max(200, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'La biografía', max: 200 }) }).default(''),
+  notes: z.string().max(2000).default(''),
   // Números
   quantity: z
     .number({ error: msg(V.GENERIC.IS_NUMBER) })
@@ -52,6 +53,7 @@ export const FieldGallerySchema = z.object({
   tags: z.array(z.string()).max(3),
   assignee: z.string().max(40).default(''),
   plan: z.string().nullable(),
+  urgency: z.string().nullable(),
   moment: z.string().nullable(),
   // Booleanos
   terms: z.literal(true, { error: 'Debes aceptar los términos para continuar' }),
@@ -101,6 +103,13 @@ const PLAN_OPTIONS: IFieldOption[] = [
   { value: 'team', label: 'Equipo' },
 ];
 
+const URGENCY_OPTIONS: IFieldOption[] = [
+  { value: 'low', label: 'Baja' },
+  { value: 'medium', label: 'Media' },
+  { value: 'high', label: 'Alta' },
+  { value: 'critical', label: 'Crítica' },
+];
+
 const MOMENT_OPTIONS: IFieldOption[] = [
   { value: 'morning', label: 'Mañana', icon: 'pi pi-sun' },
   { value: 'afternoon', label: 'Tarde', icon: 'pi pi-cloud' },
@@ -115,14 +124,14 @@ export const FIELD_GALLERY_FORM = defineForm({
     {
       key: 'text',
       label: 'Texto',
-      fieldKeys: ['name', 'email', 'website', 'password', 'phone', 'serial', 'bio'],
+      fieldKeys: ['name', 'email', 'website', 'password', 'phone', 'serial', 'bio', 'notes'],
     },
     { key: 'numbers', label: 'Números', fieldKeys: ['quantity', 'rating', 'ratio', 'budget', 'volume'] },
     { key: 'dates', label: 'Fechas', fieldKeys: ['startDate', 'startTime', 'meeting', 'period'] },
     {
       key: 'options',
       label: 'Opciones',
-      fieldKeys: ['category', 'country', 'tags', 'assignee', 'plan', 'moment'],
+      fieldKeys: ['category', 'country', 'tags', 'assignee', 'plan', 'moment', 'urgency'],
     },
     { key: 'booleans', label: 'Sí / No', fieldKeys: ['terms', 'notify', 'compact'] },
     { key: 'files', label: 'Archivos y color', fieldKeys: ['brand', 'attachment', 'avatar'] },
@@ -147,6 +156,7 @@ export const FIELD_GALLERY_FORM = defineForm({
       hint: 'Solo dígitos; conserva los ceros a la izquierda',
     },
     { key: 'bio', label: 'Biografía', type: FieldType.TEXTAREA, rows: 3, fullWidth: true },
+    { key: 'notes', label: 'Notas (texto enriquecido)', type: FieldType.EDITOR, rows: 5, fullWidth: true, hint: 'Valor HTML; el backend lo sanea (solo formato seguro).' },
     // ── Números ───────────────────────────────────────────────────────────────────────────────
     { key: 'quantity', label: 'Cantidad', type: FieldType.INTEGER, hint: 'Entero de 1 a 50 (los límites salen del schema)' },
     { key: 'rating', label: 'Valoración (número libre)', type: FieldType.NUMBER },
@@ -165,11 +175,18 @@ export const FIELD_GALLERY_FORM = defineForm({
       label: 'País',
       type: FieldType.SELECT,
       options: COUNTRY_OPTIONS,
-      hint: 'Con más de 10 opciones se escribe para filtrar',
+      hint: 'Con más de 5 opciones se escribe para filtrar',
     },
     { key: 'tags', label: 'Etiquetas', type: FieldType.MULTISELECT, options: TAG_OPTIONS },
     { key: 'assignee', label: 'Responsable', type: FieldType.AUTOCOMPLETE, options: [{ value: 'ana', label: 'Ana' }, { value: 'luis', label: 'Luis' }] },
     { key: 'plan', label: 'Plan', type: FieldType.RADIO, options: PLAN_OPTIONS },
+    {
+      key: 'urgency',
+      label: 'Urgencia (estrellas)',
+      type: FieldType.RATING,
+      options: URGENCY_OPTIONS,
+      hint: 'La escala son las opciones: la primera es 1 estrella. El texto acompaña siempre.',
+    },
     { key: 'moment', label: 'Momento', type: FieldType.RADIO_BUTTON, options: MOMENT_OPTIONS, fullWidth: true },
     // ── Sí / No ───────────────────────────────────────────────────────────────────────────────
     {

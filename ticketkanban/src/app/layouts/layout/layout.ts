@@ -25,7 +25,7 @@ import { ThemeService } from '../../core/theme/theme.service';
 import { UserAvatar } from '../../core/ui/user-avatar/user-avatar';
 import { Breadcrumb } from '../../shared/breadcrumb/breadcrumb';
 import type { IBreadcrumbItem } from '../../shared/breadcrumb/breadcrumb.interface';
-import type { INavItem, TNavNode } from './layout.interface';
+import { NAV_GROUP_ICONS, type INavItem, type TNavNode } from './layout.interface';
 
 /** Opciones del selector de rol de prueba (solo desarrollo: `environment.devSignIn`). */
 const ROLE_OPTIONS = Object.values(EUserRole).map((value) => ({ value, label: ROLE_LABELS[value] }));
@@ -100,7 +100,7 @@ export class Layout {
       }
       let group = groups.get(item.group);
       if (!group) {
-        group = { kind: 'group', label: item.group, items: [] };
+        group = { kind: 'group', label: item.group, icon: NAV_GROUP_ICONS[item.group] ?? null, items: [] };
         groups.set(item.group, group);
         nodes.push(group);
       }

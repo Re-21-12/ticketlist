@@ -110,6 +110,75 @@ export const ERROR_CODES = {
       messageEn: 'The new password must be different from the current one',
       messageEs: 'La nueva contraseña debe ser distinta de la actual',
     },
+    EMAIL_NOT_VERIFIED: {
+      code: 'SAUT-E008',
+      httpStatus: HttpStatus.FORBIDDEN,
+      messageEn: 'Verify your email before signing in',
+      messageEs: 'Verifica tu correo antes de iniciar sesión',
+    },
+    TOKEN_INVALID: {
+      code: 'SAUT-E009',
+      httpStatus: HttpStatus.BAD_REQUEST,
+      messageEn: 'The link is invalid or has expired',
+      messageEs: 'El enlace no es válido o ya venció',
+    },
+    RECOVERY_INVALID: {
+      code: 'SAUT-E010',
+      httpStatus: HttpStatus.UNAUTHORIZED,
+      messageEn: 'The verification data is not correct',
+      messageEs: 'Los datos de verificación no son correctos',
+    },
+    TOTP_CODE_INVALID: {
+      code: 'SAUT-E011',
+      httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+      messageEn: 'The authenticator code is not correct',
+      messageEs: 'El código del autenticador no es correcto',
+    },
+    TOTP_NOT_PENDING: {
+      code: 'SAUT-E012',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'There is no authenticator setup in progress',
+      messageEs: 'No hay una configuración del autenticador en curso',
+    },
+    ACCOUNT_LOCKED: {
+      code: 'SAUT-E014',
+      httpStatus: HttpStatus.LOCKED,
+      messageEn: 'Your account is locked after too many failed attempts. Contact an administrator to unlock it',
+      messageEs: 'Tu cuenta está bloqueada por demasiados intentos fallidos. Comunícate con un administrador para desbloquearla',
+    },
+    TOTP_ALREADY_ENABLED: {
+      code: 'SAUT-E013',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'The authenticator is already enabled',
+      messageEs: 'El autenticador ya está activado',
+    },
+  },
+  // ── Usuarios (S) ──────────────────────────────────────────────────────────
+  USR: {
+    EMAIL_TAKEN: {
+      code: 'SUSR-E001',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'An account with that email already exists',
+      messageEs: 'Ya existe una cuenta con ese correo',
+    },
+    NOT_FOUND: {
+      code: 'SUSR-E002',
+      httpStatus: HttpStatus.NOT_FOUND,
+      messageEn: 'User not found',
+      messageEs: 'Usuario no encontrado',
+    },
+    CANNOT_CHANGE_SELF: {
+      code: 'SUSR-E003',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'You cannot change your own role or disable your own account',
+      messageEs: 'No puedes cambiar tu propio rol ni deshabilitar tu propia cuenta',
+    },
+    LAST_ADMIN: {
+      code: 'SUSR-E004',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'At least one active administrator must remain',
+      messageEs: 'Debe quedar al menos un administrador activo',
+    },
   },
   // ── Sesiones del usuario (R/S) ────────────────────────────────────────────
   SES: {
@@ -177,6 +246,69 @@ export const ERROR_CODES = {
       messageEs: 'Solo el titular puede cambiar las reglas de la relación',
     },
   },
+  // ── Menú administrable (R) ───────────────────────────────────────────────
+  MNU: {
+    NOT_FOUND: {
+      code: 'RMNU-E001',
+      httpStatus: HttpStatus.NOT_FOUND,
+      messageEn: 'Menu item not found',
+      messageEs: 'Ítem de menú no encontrado',
+    },
+    DUPLICATED_KEY: {
+      code: 'RMNU-E002',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'A menu item with that key already exists',
+      messageEs: 'Ya existe un ítem de menú con esa clave',
+    },
+    ALREADY_DELETED: {
+      code: 'RMNU-E003',
+      httpStatus: HttpStatus.GONE,
+      messageEn: 'Menu item already deleted',
+      messageEs: 'El ítem de menú ya fue eliminado',
+    },
+  },
+  // ── Catálogos (R) ─────────────────────────────────────────────────────────
+  CAT: {
+    NOT_FOUND: {
+      code: 'RCAT-E001',
+      httpStatus: HttpStatus.NOT_FOUND,
+      messageEn: 'Catalog not found',
+      messageEs: 'Catálogo no encontrado',
+    },
+    ITEM_NOT_FOUND: {
+      code: 'RCAT-E002',
+      httpStatus: HttpStatus.NOT_FOUND,
+      messageEn: 'Catalog item not found',
+      messageEs: 'Elemento del catálogo no encontrado',
+    },
+    DUPLICATED_CODE: {
+      code: 'RCAT-E003',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'That code already exists in this catalog',
+      messageEs: 'Ese código ya existe en este catálogo',
+    },
+    SYSTEM_ITEM: {
+      code: 'RCAT-E004',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'System items cannot be deleted or have their code changed',
+      messageEs: 'Los elementos del sistema no se eliminan ni cambian de código',
+    },
+    DUPLICATED_KEY: {
+      code: 'RCAT-E005',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'A catalog with that key already exists',
+      messageEs: 'Ya existe un catálogo con esa clave',
+    },
+  },
+  // ── Auditoría (S) ─────────────────────────────────────────────────────────
+  AUD: {
+    NOT_FOUND: {
+      code: 'SAUD-E001',
+      httpStatus: HttpStatus.NOT_FOUND,
+      messageEn: 'Audit entry not found',
+      messageEs: 'Entrada de auditoría no encontrada',
+    },
+  },
   // ── Permisos por rol (R) ─────────────────────────────────────────────────
   RPM: {
     NOT_FOUND: {
@@ -220,6 +352,96 @@ export const ERROR_CODES = {
       httpStatus: HttpStatus.CONFLICT,
       messageEn: 'Ticket is not deleted',
       messageEs: 'El ticket no está eliminado',
+    },
+    TRANSITION_NOT_ALLOWED: {
+      code: 'STCK-E001',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'The ticket cannot move to that status',
+      messageEs: 'El ticket no puede pasar a ese estado',
+    },
+    COMMENTS_IMMUTABLE: {
+      code: 'STCK-E002',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'Previous comments cannot be modified',
+      messageEs: 'Los comentarios previos no pueden modificarse',
+    },
+    CLOSED_NO_COMMENTS: {
+      code: 'STCK-E003',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'The ticket is closed: reopen it to comment',
+      messageEs: 'El ticket está cerrado: reábrelo para comentar',
+    },
+    REOPEN_WINDOW_EXPIRED: {
+      code: 'STCK-E004',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'The reopening window has expired; open a new ticket',
+      messageEs: 'Venció el plazo para reabrir el ticket; registra uno nuevo',
+    },
+    ASSIGNMENT_FORBIDDEN: {
+      code: 'STCK-E005',
+      httpStatus: HttpStatus.FORBIDDEN,
+      messageEn: 'You can only take tickets that have no assignee',
+      messageEs: 'Solo puedes tomar tickets que no tengan responsable',
+    },
+    DEPARTMENT_INVALID: {
+      code: 'STCK-E007',
+      httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+      messageEn: 'That department does not exist or is not available',
+      messageEs: 'Ese departamento no existe o no está disponible',
+    },
+    ASSIGNEE_NOT_FOUND: {
+      code: 'STCK-E006',
+      httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+      messageEn: 'That person cannot be assigned tickets',
+      messageEs: 'Esa persona no puede recibir tickets',
+    },
+  },
+  // ── Adjuntos de ticket (R/S) ──────────────────────────────────────────────
+  ATT: {
+    TOO_LARGE: {
+      code: 'SATT-E001',
+      httpStatus: HttpStatus.PAYLOAD_TOO_LARGE,
+      messageEn: 'The file is too large',
+      messageEs: 'El archivo supera el tamaño permitido',
+    },
+    TYPE_NOT_ALLOWED: {
+      code: 'SATT-E002',
+      httpStatus: HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+      messageEn: 'That file type is not allowed',
+      messageEs: 'Ese tipo de archivo no está permitido',
+    },
+    NOT_FOUND: {
+      code: 'RATT-E001',
+      httpStatus: HttpStatus.NOT_FOUND,
+      messageEn: 'Attachment not found',
+      messageEs: 'Adjunto no encontrado',
+    },
+    FILE_REQUIRED: {
+      code: 'SATT-E003',
+      httpStatus: HttpStatus.BAD_REQUEST,
+      messageEn: 'Attach a file',
+      messageEs: 'Adjunta un archivo',
+    },
+  },
+  // ── Encuesta de satisfacción (S) ──────────────────────────────────────────
+  SRV: {
+    NOT_AVAILABLE: {
+      code: 'SSRV-E001',
+      httpStatus: HttpStatus.NOT_FOUND,
+      messageEn: 'There is no survey available for this ticket',
+      messageEs: 'No hay encuesta disponible para este ticket',
+    },
+    ALREADY_ANSWERED: {
+      code: 'SSRV-E002',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'The survey was already answered',
+      messageEs: 'La encuesta ya fue respondida',
+    },
+    EXPIRED: {
+      code: 'SSRV-E003',
+      httpStatus: HttpStatus.GONE,
+      messageEn: 'The survey expired',
+      messageEs: 'La encuesta venció',
     },
   },
 } as const satisfies TCodeModuleRegistry;

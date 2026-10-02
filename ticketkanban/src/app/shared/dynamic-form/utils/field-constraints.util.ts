@@ -52,6 +52,7 @@ export const TEXTUAL_TYPES: ReadonlySet<string> = new Set<string>([
   FieldType.TEXT,
   FieldType.TEXT_NUMBER,
   FieldType.TEXTAREA,
+  FieldType.EDITOR,
   FieldType.EMAIL,
   FieldType.URL,
   FieldType.PASSWORD,

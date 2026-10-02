@@ -1,0 +1,123 @@
+<header class="catalogs-header page-header-art">
+  <div>
+    <h1>Catálogos</h1>
+    <p>
+      Listas de valores que usan los formularios. Los de sistema conservan sus códigos; su etiqueta
+      y orden sí se editan.
+    </p>
+  </div>
+  <app-illustration class="page-art" [$name]="'catalog'" />
+</header>
+
+<div class="catalogs-layout">
+  <section class="catalogs-list" aria-labelledby="catalogs-list-title">
+    <div class="catalogs-list-head">
+      <h2 id="catalogs-list-title">Catálogos</h2>
+      @if (('create' | can: 'Catalog')()) {
+        <button
+          type="button"
+          pButton
+          size="small"
+          (click)="onCreateCatalog()"
+          [disabled]="$saving()"
+        >
+          <i pButtonIcon class="pi pi-plus" aria-hidden="true"></i>
+          <span pButtonLabel>Nuevo</span>
+        </button>
+      }
+    </div>
+
+    @if ($listFailed()) {
+      <p class="catalogs-error" role="alert">No se pudo cargar la lista.</p>
+    }
+    @if ($listLoading() && $catalogs().length === 0) {
+      <p class="catalogs-muted" aria-live="polite">Cargando…</p>
+    }
+
+    <ul class="catalogs-items">
+      @for (catalog of $catalogs(); track catalog.key) {
+        <li>
+          <button
+            type="button"
+            class="catalog-pick"
+            [class.catalog-pick--active]="catalog.key === _service.$selectedKey()"
+            [attr.aria-current]="catalog.key === _service.$selectedKey() ? 'true' : null"
+            (click)="open(catalog.key)"
+          >
+            <span class="catalog-pick-name">{{ catalog.name }}</span>
+            <span class="catalog-pick-meta">
+              {{ catalog.itemCount }} elementos
+              @if (catalog.system) {
+                · Sistema
+              }
+            </span>
+          </button>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="catalogs-detail" aria-live="polite">
+    @if ($detail(); as detail) {
+      <header class="catalogs-detail-head">
+        <div>
+          <h2>{{ detail.name }}</h2>
+          <p class="catalogs-muted">
+            <code>{{ detail.key }}</code>
+            @if (detail.description) {
+              · {{ detail.description }}
+            }
+          </p>
+        </div>
+        <div class="catalogs-detail-actions">
+          @if (('update' | can: 'Catalog')()) {
+            <button
+              type="button"
+              pButton
+              size="small"
+              severity="warn"
+              [outlined]="true"
+              (click)="onEditCatalog(detail)"
+              [disabled]="$saving()"
+            >
+              <i pButtonIcon class="pi pi-pencil" aria-hidden="true"></i>
+              <span pButtonLabel>Editar catálogo</span>
+            </button>
+          }
+          @if (!detail.system && ('delete' | can: 'Catalog')()) {
+            <button
+              type="button"
+              pButton
+              size="small"
+              severity="danger"
+              [outlined]="true"
+              (click)="onDeleteCatalog(detail)"
+              [disabled]="$saving()"
+            >
+              <i pButtonIcon class="pi pi-trash" aria-hidden="true"></i>
+              <span pButtonLabel>Eliminar catálogo</span>
+            </button>
+          }
+        </div>
+      </header>
+
+      <app-dynamic-table
+        [$config]="itemTable"
+        [$rows]="$items()"
+        [$totalRecords]="$items().length"
+        [$page]="1"
+        [$take]="$take()"
+        [$loading]="$detailLoading()"
+        [$busy]="$saving()"
+        ($refresh)="_service.reload()"
+        ($create)="onCreateItem()"
+        ($edit)="onEditItem($event)"
+        ($delete)="onDeleteItem($event)"
+      />
+    } @else if ($detailLoading()) {
+      <p class="catalogs-muted">Cargando catálogo…</p>
+    } @else {
+      <p class="catalogs-empty">Elige un catálogo de la lista para ver y editar sus elementos.</p>
+    }
+  </section>
+</div>

@@ -13,5 +13,9 @@ export enum EAbility {
 export enum EUserRole {
   ADMIN = 'ADMIN',
   AGENT = 'AGENT',
+  /** Supervisor de soporte: métricas del equipo, asigna y reasigna. */
+  SUPERVISOR = 'SUPERVISOR',
+  /** Auditor: solo lectura de tickets, métricas y auditoría. */
+  AUDITOR = 'AUDITOR',
   VIEWER = 'VIEWER',
 }

@@ -1,5 +1,7 @@
 import { inject } from '@angular/core';
 import { Router, type CanActivateFn } from '@angular/router';
+import { signInTree } from '../session/auth.guard';
+import { SessionStore } from '../session/session.store';
 import { AbilityServiceSignal } from '@casl/angular';
 import type { AppAbility, TAbilityAction, TSubjects } from './casl.types';
 
@@ -17,8 +19,11 @@ export function canGuard(
   subject: TSubjects,
   redirectTo = '/access',
 ): CanActivateFn {
-  return () => {
+  return (_route, state) => {
+    const router = inject(Router);
+    // Sin SESIÓN → a iniciar sesión (y de vuelta aquí al terminar). Con sesión pero sin permiso → `redirectTo`.
+    if (!inject(SessionStore).$isAuthenticated()) return signInTree(router, state.url);
     const abilityService = inject<AbilityServiceSignal<AppAbility>>(AbilityServiceSignal);
-    return abilityService.can(action, subject) || inject(Router).createUrlTree([redirectTo]);
+    return abilityService.can(action, subject) || router.createUrlTree([redirectTo]);
   };
 }

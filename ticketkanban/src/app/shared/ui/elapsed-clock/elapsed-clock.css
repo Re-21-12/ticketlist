@@ -1,0 +1,14 @@
+:host {
+  display: inline-flex;
+}
+
+.elapsed-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--app-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  /* Dígitos del mismo ancho: el reloj no «baila» al cambiar cada segundo. */
+  font-variant-numeric: tabular-nums;
+}

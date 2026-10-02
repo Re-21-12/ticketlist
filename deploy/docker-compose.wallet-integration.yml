@@ -1,0 +1,160 @@
+# ────────────────────────────────────────────────────────────────────────────────────────────────
+# Ticketit DENTRO del compose de wallet-api (opción B).
+#
+# Cómo se usa: estos servicios se AGREGAN a `docker/docker-compose.dokploy.yml` de wallet-api (copiarlos
+# bajo su `services:` y los `secrets:` al final, o ejecutar ambos archivos juntos:
+#   docker compose -f docker-compose.dokploy.yml -f docker-compose.wallet-integration.yml up -d ).
+# Reutiliza lo que wallet-api YA tiene — la red `dokploy-network`, la red `backend`, su `redis` y su `db` —
+# y NO duplica Postgres/Redis:
+#   · Redis compartido: separado por prefijo de claves (`REDIS_KEY_PREFIX=ticketit:`), mismas credenciales.
+#   · Postgres compartido: UNA base `ticketit` con SU rol `ticketit_app` (no toca wallet_prod ni sus roles);
+#     `ticketit-db-init` la crea la primera vez (idempotente) con el superusuario de wallet (DB_PASSWORD).
+#
+# Variables nuevas (además de las de wallet-api): TICKETIT_DOMAIN, TICKETIT_DB_PASSWORD, TICKETIT_IMAGE_TAG
+# (ver .env.example). Los secretos nuevos van en `../files/secrets/` junto a los de wallet.
+# ────────────────────────────────────────────────────────────────────────────────────────────────
+
+services:
+  # Crea (una sola vez, idempotente) el rol y la base de Ticketit en el Postgres de wallet-api.
+  ticketit-db-init:
+    image: postgres:17-alpine
+    restart: 'no'
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:?DB_PASSWORD es obligatorio}
+      DB_SUPERUSER: ${DB_USER:-postgres}
+      TICKETIT_DB_PASSWORD: ${TICKETIT_DB_PASSWORD:?TICKETIT_DB_PASSWORD es obligatorio}
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        set -e
+        run() { psql -h db -U "$$DB_SUPERUSER" -d postgres -v ON_ERROR_STOP=1 "$$@"; }
+        run -tAc "SELECT 1 FROM pg_roles WHERE rolname='ticketit_app'" | grep -q 1 || run -c "CREATE ROLE ticketit_app LOGIN"
+        # La clave se pasa como variable psql (:'pw'): nunca interpolada en el texto del SQL.
+        echo "ALTER ROLE ticketit_app PASSWORD :'pw'" | run -v pw="$$TICKETIT_DB_PASSWORD"
+        run -tAc "SELECT 1 FROM pg_database WHERE datname='ticketit'" | grep -q 1 || run -c "CREATE DATABASE ticketit OWNER ticketit_app"
+        echo 'Base ticketit lista'
+    networks:
+      - backend
+
+  ticketit-web:
+    image: ghcr.io/re-21-12/ticketlist/web:${TICKETIT_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    init: true
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.ticketit-spa.rule=Host(`${TICKETIT_DOMAIN:?TICKETIT_DOMAIN es obligatorio}`)'
+      - 'traefik.http.routers.ticketit-spa.entrypoints=websecure'
+      - 'traefik.http.routers.ticketit-spa.middlewares=ticketit-headers'
+      - 'traefik.http.routers.ticketit-spa.tls=true'
+      - 'traefik.http.routers.ticketit-spa.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.ticketit-spa.loadbalancer.server.port=80'
+      - 'traefik.http.middlewares.ticketit-headers.headers.stsSeconds=31536000'
+      - 'traefik.http.middlewares.ticketit-headers.headers.stsIncludeSubdomains=true'
+      - 'traefik.http.middlewares.ticketit-headers.headers.forceSTSHeader=true'
+      - 'com.centurylinklabs.watchtower.enable=true'
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /data:uid=100,gid=101
+      - /config:uid=100,gid=101
+    cap_drop: ['ALL']
+    cap_add: ['NET_BIND_SERVICE']
+    security_opt:
+      - 'no-new-privileges:true'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:80/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+    networks:
+      - dokploy-network
+
+  ticketit-api:
+    image: ghcr.io/re-21-12/ticketlist/api:${TICKETIT_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=dokploy-network'
+      - 'traefik.http.routers.ticketit-api.rule=Host(`${TICKETIT_DOMAIN:?TICKETIT_DOMAIN es obligatorio}`) && PathPrefix(`/api`)'
+      - 'traefik.http.routers.ticketit-api.entrypoints=websecure'
+      - 'traefik.http.routers.ticketit-api.middlewares=ticketit-headers'
+      - 'traefik.http.routers.ticketit-api.tls=true'
+      - 'traefik.http.routers.ticketit-api.tls.certresolver=letsencrypt'
+      - 'traefik.http.routers.ticketit-api.priority=100'
+      - 'traefik.http.services.ticketit-api.loadbalancer.server.port=3000'
+      - 'traefik.http.services.ticketit-api.loadbalancer.healthcheck.path=/api/health'
+      - 'traefik.http.services.ticketit-api.loadbalancer.healthcheck.interval=30s'
+      - 'traefik.http.services.ticketit-api.loadbalancer.healthcheck.timeout=3s'
+      - 'com.centurylinklabs.watchtower.enable=true'
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      TRUST_PROXY: 'true'
+      APP_URL: https://${TICKETIT_DOMAIN:?TICKETIT_DOMAIN es obligatorio}
+      CORS_ORIGIN: https://${TICKETIT_DOMAIN:?TICKETIT_DOMAIN es obligatorio}
+      API_DOCS_ENABLED: ${TICKETIT_API_DOCS_ENABLED:-false}
+      DATABASE_URL: postgresql://ticketit_app:${TICKETIT_DB_PASSWORD:?TICKETIT_DB_PASSWORD es obligatorio}@db:${DB_PORT:-5432}/ticketit
+      # Redis de wallet-api, con prefijo propio para no mezclar sesiones ni contadores.
+      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD es obligatorio}@redis:${REDIS_PORT:-6379}
+      REDIS_KEY_PREFIX: 'ticketit:'
+      LOGIN_MAX_ATTEMPTS: ${TICKETIT_LOGIN_MAX_ATTEMPTS:-5}
+      SEED_DEMO_DATA: ${TICKETIT_SEED_DEMO_DATA:-false}
+      SESSION_SECRET_FILE: /run/secrets/ticketit_session_secret
+      TOTP_ENCRYPTION_KEY_FILE: /run/secrets/ticketit_totp_encryption_key
+      # Cuentas iniciales por rol (JSON con sus contraseñas; lo genera deploy/generate-secrets.mjs).
+      SEED_USERS_JSON_FILE: /run/secrets/ticketit_seed_users
+    depends_on:
+      ticketit-db-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: ['ALL']
+    security_opt:
+      - 'no-new-privileges:true'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 384M
+    secrets:
+      - ticketit_session_secret
+      - ticketit_totp_encryption_key
+      - ticketit_seed_users
+    networks:
+      - dokploy-network
+      - backend
+
+# Agregar a la sección `secrets:` del compose de wallet-api (mismo patrón `../files/secrets/`):
+secrets:
+  ticketit_session_secret:
+    file: ../files/secrets/ticketit_session_secret
+  ticketit_totp_encryption_key:
+    file: ../files/secrets/ticketit_totp_encryption_key
+  ticketit_seed_users:
+    file: ../files/secrets/ticketit_seed_users

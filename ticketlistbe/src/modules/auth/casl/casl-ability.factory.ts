@@ -13,6 +13,8 @@ import type { TAppAbility, TAppRule, TConditionPreset } from './casl.types.js';
 const ALTERNANTE_ROLE_CEILING: Record<EUserRole, 'read' | 'managed'> = {
   [EUserRole.ADMIN]: 'managed',
   [EUserRole.AGENT]: 'managed',
+  [EUserRole.SUPERVISOR]: 'managed',
+  [EUserRole.AUDITOR]: 'read',
   [EUserRole.VIEWER]: 'read',
 };
 
@@ -63,11 +65,16 @@ export class CaslAbilityFactory {
 
   private titularRules(user: ISessionUser): TAppRule[] {
     const own = { ownerUuid: user.uuid };
-    return [
+    // El titular lee y EDITA lo suyo, pero NO lo elimina ni lo restaura: eso es solo de la administración
+    // (`role_permissions`: ADMIN `manage all`).
+    const ticket: TAppRule[] = [
       { action: EAbility.READ, subject: 'Ticket', conditions: own },
       { action: EAbility.UPDATE, subject: 'Ticket', conditions: own },
-      { action: EAbility.DELETE, subject: 'Ticket', conditions: own },
-      { action: EAbility.RESTORE, subject: 'Ticket', conditions: own },
+    ];
+    // El cliente (y el auditor, que no escribe) NO manipulan los accesos a un ticket: compartir es del equipo.
+    if (user.role === EUserRole.VIEWER || user.role === EUserRole.AUDITOR) return ticket;
+    return [
+      ...ticket,
       { action: EAbility.CREATE, subject: 'Relationship' },
       { action: EAbility.READ, subject: 'Relationship', conditions: { titularUuid: user.uuid } },
       { action: EAbility.UPDATE, subject: 'Relationship', conditions: { titularUuid: user.uuid } },
@@ -77,20 +84,18 @@ export class CaslAbilityFactory {
 
   private rebacRules(user: ISessionUser): TAppRule[] {
     const canWrite = ALTERNANTE_ROLE_CEILING[user.role] === 'managed';
-    const titularesBy = { read: [] as string[], update: [] as string[], delete: [] as string[] };
+    const titularesBy = { read: [] as string[], update: [] as string[] };
     for (const relationship of this.relationshipsRepository.findActiveAsAlternante(user.uuid)) {
       const grant = relationship.grants.find((g) => g.objectType === 'Ticket');
       if (!grant) continue;
       if (grant.canRead) titularesBy.read.push(relationship.titularUuid);
       if (canWrite && grant.canUpdate) titularesBy.update.push(relationship.titularUuid);
-      if (canWrite && grant.canDelete) titularesBy.delete.push(relationship.titularUuid);
     }
     const rule = (action: EAbility, titulares: string[]): TAppRule[] =>
       titulares.length ? [{ action, subject: 'Ticket', conditions: { ownerUuid: { $in: titulares } } }] : [];
     return [
       ...rule(EAbility.READ, titularesBy.read),
       ...rule(EAbility.UPDATE, titularesBy.update),
-      ...rule(EAbility.DELETE, titularesBy.delete),
     ];
   }
 

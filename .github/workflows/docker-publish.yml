@@ -1,0 +1,109 @@
+name: Docker Publish
+
+# Publica imágenes al GitHub Container Registry (GHCR) según los proyectos afectados por el push
+# (api y/o web), taggeadas por rama — mismo flujo que wallet-api. Ver deploy/DOKPLOY.md §1.
+#
+#   rama                 tag de rama           tag inmutable
+#   main                 latest                sha-<7 chars>
+#   develop              dev                   sha-<7 chars>
+#   release/1.2          release-1.2           sha-<7 chars>
+#   feature/x · hotfix/y feature-x · hotfix-y  sha-<7 chars>
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'release/**'
+      - 'hotfix/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ghcr.io/re-21-12
+
+jobs:
+  publish:
+    name: Build & Publish images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Determina qué apps cambiaron en este push (paths reales, no texto del commit).
+      - name: Detect affected apps
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            api:
+              - 'ticketlistbe/**'
+            web:
+              # el Caddyfile se copia dentro de la imagen web (stage production) y vive en ticketkanban/docker/,
+              # así que `ticketkanban/**` ya lo cubre: un cambio solo ahí también republica la imagen.
+              - 'ticketkanban/**'
+
+      - name: Compute image tags
+        id: meta
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          case "$BRANCH" in
+            main)      TAG="latest" ;;
+            develop)   TAG="dev" ;;
+            release/*) TAG="release-${BRANCH#release/}" ;;
+            *)         TAG="${BRANCH//\//-}" ;;
+          esac
+          echo "branch_tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=sha-$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          # En un `workflow_dispatch` (a mano) se construyen las dos imágenes.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "force=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "force=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push API image
+        if: steps.changes.outputs.api == 'true' || steps.meta.outputs.force == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ticketlistbe
+          file: ticketlistbe/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAMESPACE }}/ticketlist/api:${{ steps.meta.outputs.branch_tag }}
+            ${{ env.IMAGE_NAMESPACE }}/ticketlist/api:${{ steps.meta.outputs.sha_tag }}
+          cache-from: type=gha,scope=ticketit-api
+          cache-to: type=gha,mode=max,scope=ticketit-api
+
+      - name: Build and push Web image
+        if: steps.changes.outputs.web == 'true' || steps.meta.outputs.force == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ticketkanban
+          file: ticketkanban/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAMESPACE }}/ticketlist/web:${{ steps.meta.outputs.branch_tag }}
+            ${{ env.IMAGE_NAMESPACE }}/ticketlist/web:${{ steps.meta.outputs.sha_tag }}
+          cache-from: type=gha,scope=ticketit-web
+          cache-to: type=gha,mode=max,scope=ticketit-web

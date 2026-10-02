@@ -9,6 +9,18 @@ export const NOTIFICATION_TYPES = [
   'RELATIONSHIP_GRANTED',
   /** Un titular revocó lo que te había compartido. */
   'RELATIONSHIP_REVOKED',
+  /** Cambió el estado de un ticket tuyo (asignado, en atención, resuelto, cerrado…). */
+  'TICKET_STATUS_CHANGED',
+  /** Alguien comentó en un ticket tuyo o que atiendes. */
+  'TICKET_COMMENTED',
+  /** El solicitante reabrió un ticket que atiendes. */
+  'TICKET_REOPENED',
+  /** Encuesta de satisfacción disponible para quien solicitó un ticket que se cerró (calificar 1–5). */
+  'TICKET_SURVEY',
+  /** Una calificación baja (1–2) de un ticket: aviso a los supervisores. */
+  'TICKET_SURVEY_ALERT',
+  /** Una cuenta se bloqueó por intentos fallidos: aviso a los administradores para desbloquearla. */
+  'ACCOUNT_LOCKED',
 ] as const;
 
 export const NotificationResponseSchema = z.object({

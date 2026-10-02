@@ -23,6 +23,8 @@ export class TableRowCard {
   readonly $actions = input<TTableAction[]>(['view', 'update', 'delete']);
   readonly $rowLabel = input('');
   readonly $busy = input(false);
+  readonly $deleteLabel = input('Eliminar');
+  readonly $allow = input<(action: TTableAction, row: TTableRow) => boolean>(() => true);
 
   readonly $view = output<TTableRow>();
   readonly $edit = output<TTableRow>();

@@ -9,6 +9,21 @@ import { RolePermissionCreateSchema } from '../../modules/access-control/role-pe
 import { SignInSchema } from '../../modules/auth/dtos/sign-in.dto.js';
 import { RelationshipCreateSchema } from '../../modules/relationships/schemas/relationship.schema.js';
 import { ChangePasswordSchema } from '../../modules/auth/dtos/change-password.dto.js';
+import {
+  EmailOnlySchema,
+  RecoverPasswordSchema,
+  ResetPasswordSchema,
+  TotpEnableSchema,
+  SignUpSchema,
+  VerifyEmailSchema,
+} from '../../modules/auth/dtos/account-recovery.dto.js';
+import { MetricsPeriodQuerySchema } from '../../modules/metrics/metrics.schema.js';
+import {
+  AssignSchema,
+  CommentCreateSchema,
+  SurveyAnswerSchema,
+  TransitionSchema,
+} from '../../modules/tickets/schemas/ticket-lifecycle.schema.js';
 import { UpdateAvatarSchema } from '../../modules/users/dtos/update-avatar.dto.js';
 import { CATALOG_END, CATALOG_START, renderErrorCatalog } from './error-catalog.render.js';
 import { ERROR_CODES } from './error-codes.js';
@@ -47,16 +62,17 @@ describe('docs/standard/error-catalog.md', () => {
   });
 
   /** Cada fila de §4.2 se verifica ejecutando el schema real: mismo campo, `code` y mensaje. */
-  const base = { title: 'Algo roto', description: '', category: 'bug', priority: 'low' };
+  const base = { title: 'Algo roto', description: '', type: 'incident', category: 'software', priority: 'low' };
   const cases: [string, z.ZodType, unknown][] = [
     ['title (min)', TicketCreateSchema, { ...base, title: 'ab' }],
     ['title (max)', TicketCreateSchema, { ...base, title: 'x'.repeat(121) }],
     ['description (max)', TicketCreateSchema, { ...base, description: 'x'.repeat(2001) }],
+    ['type', TicketCreateSchema, { ...base, type: 'nope' }],
     ['category', TicketCreateSchema, { ...base, category: 'nope' }],
+    ['complexity', TicketCreateSchema, { ...base, complexity: 'nope' }],
     ['otherCategoryDetail (max)', TicketCreateSchema, { ...base, category: 'other', otherCategoryDetail: 'x'.repeat(121) }],
     ['otherCategoryDetail (requerido)', TicketCreateSchema, { ...base, category: 'other' }],
     ['priority', TicketCreateSchema, { ...base, priority: 'x' }],
-    ['status', TicketCreateSchema, { ...base, status: 'x' }],
     ['assigneeEmail', TicketCreateSchema, { ...base, assigneeEmail: 'ana@' }],
     ['estimateHours (tipo)', TicketCreateSchema, { ...base, estimateHours: 'x' }],
     ['estimateHours (entero)', TicketCreateSchema, { ...base, estimateHours: 1.5 }],
@@ -76,8 +92,28 @@ describe('docs/standard/error-catalog.md', () => {
     ['change-password newPassword (min)', ChangePasswordSchema, { currentPassword: 'x', newPassword: 'Ab1!' }],
     ['change-password newPassword (max)', ChangePasswordSchema, { currentPassword: 'x', newPassword: 'Aa1!'.repeat(33) }],
     ['change-password newPassword (complejidad)', ChangePasswordSchema, { currentPassword: 'x', newPassword: 'sololetras' }],
+    ['sign-up name (min)', SignUpSchema, { name: 'ab', email: 'a@b.dev', password: 'Clave-Nueva-1!' }],
+    ['sign-up name (max)', SignUpSchema, { name: 'x'.repeat(121), email: 'a@b.dev', password: 'Clave-Nueva-1!' }],
+    ['sign-up email', SignUpSchema, { name: 'Nora', email: 'nora@', password: 'Clave-Nueva-1!' }],
+    ['sign-up password (min)', SignUpSchema, { name: 'Nora', email: 'a@b.dev', password: 'Ab1!' }],
+    ['sign-up password (max)', SignUpSchema, { name: 'Nora', email: 'a@b.dev', password: 'Aa1!'.repeat(33) }],
+    ['sign-up password (complejidad)', SignUpSchema, { name: 'Nora', email: 'a@b.dev', password: 'sololetras' }],
+    ['email-only email', EmailOnlySchema, { email: 'x' }],
+    ['verify token', VerifyEmailSchema, { token: '<script>' }],
+    ['reset token', ResetPasswordSchema, { token: 'corto', newPassword: 'Clave-Nueva-1!' }],
+    ['reset newPassword (complejidad)', ResetPasswordSchema, { token: 'a'.repeat(43), newPassword: 'sololetras' }],
+    ['recover code', RecoverPasswordSchema, { method: 'totp', email: 'a@b.dev', code: '12', newPassword: 'Clave-Nueva-1!' }],
+    ['totp-enable code', TotpEnableSchema, { code: 'abcdef' }],
     ['avatar icon', UpdateAvatarSchema, { avatarIcon: 'x', avatarColor: null }],
     ['avatar color', UpdateAvatarSchema, { avatarIcon: null, avatarColor: 'x' }],
+    ['comment body (vacío)', CommentCreateSchema, { body: '   ' }],
+    ['comment body (max)', CommentCreateSchema, { body: 'x'.repeat(2001) }],
+    ['transition to', TransitionSchema, { to: 'volando' }],
+    ['transition resolution (requerida)', TransitionSchema, { to: 'resolved' }],
+    ['survey score (tipo)', SurveyAnswerSchema, { score: 'cinco' }],
+    ['survey score (max)', SurveyAnswerSchema, { score: 6 }],
+    ['assign email', AssignSchema, { assigneeEmail: 'x' }],
+    ['metrics período (orden)', MetricsPeriodQuerySchema, { from: '2026-10-05', to: '2026-10-01' }],
     ['relationship consent', RelationshipCreateSchema, { alternanteEmail: 'a@b.dev', grants: [{ objectType: 'Ticket' }] }],
   ];
 

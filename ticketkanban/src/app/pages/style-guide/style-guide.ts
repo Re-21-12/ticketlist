@@ -3,6 +3,7 @@ import { ConfirmationService, MessageService } from '@openng/optimus-ui/api';
 import { ButtonModule } from '@openng/optimus-ui/button';
 import { MessageModule } from '@openng/optimus-ui/message';
 import { TagModule } from '@openng/optimus-ui/tag';
+import { Badge } from '../../shared/ui/badge/badge';
 import { RouterLink } from '@angular/router';
 import { MotionService } from '../../core/motion/motion.service';
 import { PrimaryColorService } from '../../core/theme/primary-color.service';
@@ -14,7 +15,7 @@ import type { IBreadcrumbItem } from '../../shared/breadcrumb/breadcrumb.interfa
 import { confirmDelete } from '../../shared/confirm/confirm-delete.util';
 import { DynamicForm } from '../../shared/dynamic-form/dynamic-form';
 import { TICKET_PRIORITY } from '../tickets/ticket.schema';
-import { TICKET_PRIORITY_LABELS, TICKET_PRIORITY_SEVERITY } from '../tickets/ticket.constants';
+import { TICKET_PRIORITY_META } from '../tickets/ticket.constants';
 import { FIELD_GALLERY_FORM } from './field-gallery.config';
 import { CONTRAST_PAIRS, GUIDE_SECTIONS } from './style-guide.constants';
 import type { IContrastResult } from './style-guide.interface';
@@ -29,7 +30,7 @@ const LOADING_DEMO_MS = 1500;
  */
 @Component({
   selector: 'app-style-guide',
-  imports: [ButtonModule, MessageModule, TagModule, RouterLink, Breadcrumb, DynamicForm],
+  imports: [ButtonModule, MessageModule, TagModule, RouterLink, Breadcrumb, DynamicForm, Badge],
   templateUrl: './style-guide.html',
   styleUrl: './style-guide.css',
 })
@@ -42,8 +43,7 @@ export class StyleGuide {
 
   protected readonly sections = GUIDE_SECTIONS;
   protected readonly priorities = TICKET_PRIORITY;
-  protected readonly priorityLabels = TICKET_PRIORITY_LABELS;
-  protected readonly prioritySeverity = TICKET_PRIORITY_SEVERITY;
+  protected readonly priorityMeta = TICKET_PRIORITY_META;
   protected readonly motionTiles = ['Por hacer', 'En progreso', 'Hecho', 'Archivado'];
   protected readonly breadcrumbDemo: IBreadcrumbItem[] = [
     { label: 'Tickets', link: '/tickets' },

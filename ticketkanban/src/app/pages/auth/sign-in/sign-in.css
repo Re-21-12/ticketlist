@@ -1,0 +1,27 @@
+.sign-in-dev {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--app-border);
+}
+.sign-in-dev-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.sign-in-dev-title span {
+  font-weight: 400;
+  color: var(--app-text-muted);
+}
+.sign-in-dev-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.locked-contacts {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+}

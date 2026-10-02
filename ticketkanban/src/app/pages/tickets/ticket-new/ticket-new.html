@@ -2,12 +2,14 @@
   [$heading]="'Alta rápida de ticket'"
   [$description]="'Solo lo esencial. Estado, responsable y fechas se completan después desde el tablero.'"
 >
+  <app-illustration formSplitArt [$name]="'new-ticket'" />
   <ul formSplitExtra class="ticket-new-notes">
     <li>El título es obligatorio (3 a 120 caracteres).</li>
     <li>Las reglas salen del schema Zod compartido con el BFF.</li>
   </ul>
   <app-dynamic-form
     [$definition]="form"
+    [$optionsByField]="_ticketsStore.formOptions()"
     [$submitting]="_ticketsStore.$saving()"
     [$singleColumn]="true"
     [$submitLabel]="'Crear ticket'"

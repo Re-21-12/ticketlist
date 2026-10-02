@@ -95,12 +95,21 @@ Acceso a datos: registro inexistente, ya eliminado, y violaciones de constraints
 | `RDB-E23514` | 422 | `ERROR_CODES.DB['23514']` | Los datos no cumplen las restricciones de la base de datos | Data does not satisfy database check constraints |
 | `RSES-E001` | 404 | `ERROR_CODES.SES.NOT_FOUND` | Sesión no encontrada | Session not found |
 | `RREL-E001` | 404 | `ERROR_CODES.REL.NOT_FOUND` | Relación no encontrada | Relationship not found |
+| `RMNU-E001` | 404 | `ERROR_CODES.MNU.NOT_FOUND` | Ítem de menú no encontrado | Menu item not found |
+| `RMNU-E002` | 409 | `ERROR_CODES.MNU.DUPLICATED_KEY` | Ya existe un ítem de menú con esa clave | A menu item with that key already exists |
+| `RMNU-E003` | 410 | `ERROR_CODES.MNU.ALREADY_DELETED` | El ítem de menú ya fue eliminado | Menu item already deleted |
+| `RCAT-E001` | 404 | `ERROR_CODES.CAT.NOT_FOUND` | Catálogo no encontrado | Catalog not found |
+| `RCAT-E002` | 404 | `ERROR_CODES.CAT.ITEM_NOT_FOUND` | Elemento del catálogo no encontrado | Catalog item not found |
+| `RCAT-E003` | 409 | `ERROR_CODES.CAT.DUPLICATED_CODE` | Ese código ya existe en este catálogo | That code already exists in this catalog |
+| `RCAT-E004` | 409 | `ERROR_CODES.CAT.SYSTEM_ITEM` | Los elementos del sistema no se eliminan ni cambian de código | System items cannot be deleted or have their code changed |
+| `RCAT-E005` | 409 | `ERROR_CODES.CAT.DUPLICATED_KEY` | Ya existe un catálogo con esa clave | A catalog with that key already exists |
 | `RRPM-E001` | 404 | `ERROR_CODES.RPM.NOT_FOUND` | Permiso de rol no encontrado | Role permission not found |
 | `RRPM-E002` | 409 | `ERROR_CODES.RPM.DUPLICATED` | Ese rol ya tiene ese permiso | That role already has that permission |
 | `RNTF-E001` | 404 | `ERROR_CODES.NTF.NOT_FOUND` | Notificación no encontrada | Notification not found |
 | `RTCK-E001` | 404 | `ERROR_CODES.TCK.NOT_FOUND` | Ticket no encontrado | Ticket not found |
 | `RTCK-E002` | 410 | `ERROR_CODES.TCK.ALREADY_DELETED` | El ticket ya fue eliminado | Ticket already deleted |
 | `RTCK-E003` | 409 | `ERROR_CODES.TCK.NOT_DELETED` | El ticket no está eliminado | Ticket is not deleted |
+| `RATT-E001` | 404 | `ERROR_CODES.ATT.NOT_FOUND` | Adjunto no encontrado | Attachment not found |
 
 ### 3.2 Servicio (S)
 
@@ -115,6 +124,17 @@ Reglas de negocio y autorización por registro (`BaseService.assertCan`) o por t
 | `SAUT-E005` | 401 | `ERROR_CODES.AUT.SESSION_EXPIRED` | Tu sesión expiró, vuelve a iniciar sesión | Your session expired, sign in again |
 | `SAUT-E006` | 422 | `ERROR_CODES.AUT.CURRENT_PASSWORD_INVALID` | La contraseña actual no es correcta | The current password is not correct |
 | `SAUT-E007` | 422 | `ERROR_CODES.AUT.PASSWORD_UNCHANGED` | La nueva contraseña debe ser distinta de la actual | The new password must be different from the current one |
+| `SAUT-E008` | 403 | `ERROR_CODES.AUT.EMAIL_NOT_VERIFIED` | Verifica tu correo antes de iniciar sesión | Verify your email before signing in |
+| `SAUT-E009` | 400 | `ERROR_CODES.AUT.TOKEN_INVALID` | El enlace no es válido o ya venció | The link is invalid or has expired |
+| `SAUT-E010` | 401 | `ERROR_CODES.AUT.RECOVERY_INVALID` | Los datos de verificación no son correctos | The verification data is not correct |
+| `SAUT-E011` | 422 | `ERROR_CODES.AUT.TOTP_CODE_INVALID` | El código del autenticador no es correcto | The authenticator code is not correct |
+| `SAUT-E012` | 409 | `ERROR_CODES.AUT.TOTP_NOT_PENDING` | No hay una configuración del autenticador en curso | There is no authenticator setup in progress |
+| `SAUT-E014` | 423 | `ERROR_CODES.AUT.ACCOUNT_LOCKED` | Tu cuenta está bloqueada por demasiados intentos fallidos. Comunícate con un administrador para desbloquearla | Your account is locked after too many failed attempts. Contact an administrator to unlock it |
+| `SAUT-E013` | 409 | `ERROR_CODES.AUT.TOTP_ALREADY_ENABLED` | El autenticador ya está activado | The authenticator is already enabled |
+| `SUSR-E001` | 409 | `ERROR_CODES.USR.EMAIL_TAKEN` | Ya existe una cuenta con ese correo | An account with that email already exists |
+| `SUSR-E002` | 404 | `ERROR_CODES.USR.NOT_FOUND` | Usuario no encontrado | User not found |
+| `SUSR-E003` | 409 | `ERROR_CODES.USR.CANNOT_CHANGE_SELF` | No puedes cambiar tu propio rol ni deshabilitar tu propia cuenta | You cannot change your own role or disable your own account |
+| `SUSR-E004` | 409 | `ERROR_CODES.USR.LAST_ADMIN` | Debe quedar al menos un administrador activo | At least one active administrator must remain |
 | `SSES-E001` | 422 | `ERROR_CODES.SES.IS_CURRENT` | Para cerrar la sesión actual usa «Cerrar sesión» | To end the current session use sign out |
 | `SRTL-E001` | 429 | `ERROR_CODES.RATE.TOO_MANY_REQUESTS` | Demasiadas solicitudes, intenta de nuevo más tarde | Too many requests, try again later |
 | `SCONC-E001` | 412 | `ERROR_CODES.CONC.VERSION_MISMATCH` | Otra persona modificó este recurso; recarga e intenta de nuevo | The resource was modified by someone else; reload and try again |
@@ -122,6 +142,20 @@ Reglas de negocio y autorización por registro (`BaseService.assertCan`) o por t
 | `SREL-E002` | 422 | `ERROR_CODES.REL.ALTERNANTE_NOT_FOUND` | La persona alternante no existe | The alternate user does not exist |
 | `SREL-E003` | 409 | `ERROR_CODES.REL.ALREADY_ACTIVE` | Ya existe una relación activa con esa persona | There is already an active relationship with that user |
 | `SREL-E004` | 403 | `ERROR_CODES.REL.NOT_TITULAR` | Solo el titular puede cambiar las reglas de la relación | Only the owner (titular) can change the relationship rules |
+| `SAUD-E001` | 404 | `ERROR_CODES.AUD.NOT_FOUND` | Entrada de auditoría no encontrada | Audit entry not found |
+| `STCK-E001` | 409 | `ERROR_CODES.TCK.TRANSITION_NOT_ALLOWED` | El ticket no puede pasar a ese estado | The ticket cannot move to that status |
+| `STCK-E002` | 409 | `ERROR_CODES.TCK.COMMENTS_IMMUTABLE` | Los comentarios previos no pueden modificarse | Previous comments cannot be modified |
+| `STCK-E003` | 409 | `ERROR_CODES.TCK.CLOSED_NO_COMMENTS` | El ticket está cerrado: reábrelo para comentar | The ticket is closed: reopen it to comment |
+| `STCK-E004` | 409 | `ERROR_CODES.TCK.REOPEN_WINDOW_EXPIRED` | Venció el plazo para reabrir el ticket; registra uno nuevo | The reopening window has expired; open a new ticket |
+| `STCK-E005` | 403 | `ERROR_CODES.TCK.ASSIGNMENT_FORBIDDEN` | Solo puedes tomar tickets que no tengan responsable | You can only take tickets that have no assignee |
+| `STCK-E007` | 422 | `ERROR_CODES.TCK.DEPARTMENT_INVALID` | Ese departamento no existe o no está disponible | That department does not exist or is not available |
+| `STCK-E006` | 422 | `ERROR_CODES.TCK.ASSIGNEE_NOT_FOUND` | Esa persona no puede recibir tickets | That person cannot be assigned tickets |
+| `SATT-E001` | 413 | `ERROR_CODES.ATT.TOO_LARGE` | El archivo supera el tamaño permitido | The file is too large |
+| `SATT-E002` | 415 | `ERROR_CODES.ATT.TYPE_NOT_ALLOWED` | Ese tipo de archivo no está permitido | That file type is not allowed |
+| `SATT-E003` | 400 | `ERROR_CODES.ATT.FILE_REQUIRED` | Adjunta un archivo | Attach a file |
+| `SSRV-E001` | 404 | `ERROR_CODES.SRV.NOT_AVAILABLE` | No hay encuesta disponible para este ticket | There is no survey available for this ticket |
+| `SSRV-E002` | 409 | `ERROR_CODES.SRV.ALREADY_ANSWERED` | La encuesta ya fue respondida | The survey was already answered |
+| `SSRV-E003` | 410 | `ERROR_CODES.SRV.EXPIRED` | La encuesta venció | The survey expired |
 
 ### 3.3 Controlador / DTO (C)
 
@@ -158,10 +192,20 @@ Errores no mapeados. `NEST-E<status>` lo genera el filtro para `HttpException` d
 | `VALIDATION_ERRORS.PAGINATION.MIN_PAGE` | `min` | La página mínima es {min} | The minimum page is {min} |
 | `VALIDATION_ERRORS.PAGINATION.MAX_TAKE` | `max` | Máximo {max} registros por página | At most {max} records per page |
 | `VALIDATION_ERRORS.TICKET.OTHER_CATEGORY_DETAIL_REQUIRED` | — | Describe la categoría | Describe the category |
+| `VALIDATION_ERRORS.TICKET.RESOLUTION_REQUIRED` | — | Documenta la solución para poder resolver el ticket | Document the solution to resolve the ticket |
+| `VALIDATION_ERRORS.TICKET.SURVEY_SCORE` | — | Elige una calificación de 1 a 5 | Choose a rating from 1 to 5 |
 | `VALIDATION_ERRORS.PASSWORD.CURRENT_REQUIRED` | — | Ingresa tu contraseña actual | Enter your current password |
 | `VALIDATION_ERRORS.PASSWORD.MISSING` | `missing` | Agrega: {missing} | Add: {missing} |
+| `VALIDATION_ERRORS.ACCOUNT.TOKEN_REQUIRED` | — | El enlace no es válido | The link is not valid |
+| `VALIDATION_ERRORS.ACCOUNT.CODE_INVALID` | — | Escribe el código de 6 dígitos de tu autenticador | Enter the 6-digit code from your authenticator |
 | `VALIDATION_ERRORS.RELATIONSHIP.GRANTS_REQUIRED` | — | Indica al menos un recurso a compartir | Specify at least one resource to share |
 | `VALIDATION_ERRORS.RELATIONSHIP.CONSENT_REQUIRED` | — | Debes aceptar el consentimiento para compartir tus datos | You must accept the consent to share your data |
+| `VALIDATION_ERRORS.ADMIN.INVALID_KEY` | — | Usa solo minúsculas, números y guiones (empieza con una letra) | Use only lowercase letters, numbers and hyphens (start with a letter) |
+| `VALIDATION_ERRORS.ADMIN.INVALID_ROUTE` | — | Escribe una ruta interna que empiece con una sola barra, por ejemplo /tickets | Enter an internal path that starts with a single slash, for example /tickets |
+| `VALIDATION_ERRORS.ADMIN.INVALID_ICON` | — | El ícono debe tener la forma pi-nombre | The icon must look like pi-name |
+| `VALIDATION_ERRORS.ADMIN.INVALID_CODE` | — | Usa solo mayúsculas, números y guion bajo (empieza con una letra) | Use only uppercase letters, numbers and underscores (start with a letter) |
+| `VALIDATION_ERRORS.METRICS.PERIOD_ORDER` | — | La fecha final no puede ser anterior a la inicial | The end date cannot be before the start date |
+| `VALIDATION_ERRORS.METRICS.PERIOD_TOO_LONG` | `max` | El período no puede superar {max} días | The period cannot exceed {max} days |
 <!-- error-catalog:generated:end -->
 
 ### 4.2 Mapeo por DTO: campo → regla → mensaje
@@ -177,17 +221,39 @@ Schema: `src/modules/tickets/schemas/ticket.schema.ts` (`TicketCreateSchema` / `
 | `title` | `.min(3)` (tras `trim`) | `too_small` | `GENERIC.MIN_LENGTH` `{field: 'El título', min: 3}` | El título debe tener al menos 3 caracteres |
 | `title` | `.max(120)` | `too_big` | `GENERIC.MAX_LENGTH` `{field: 'El título', max: 120}` | El título no debe superar 120 caracteres |
 | `description` | `.max(2000)` | `too_big` | `GENERIC.MAX_LENGTH` `{field: 'La descripción', max: 2000}` | La descripción no debe superar 2000 caracteres |
+| `type` | `enum(TICKET_TYPE)` | `invalid_value` | `GENERIC.REQUIRED_SELECTION` `{field: 'un tipo'}` | Selecciona un tipo |
 | `category` | `enum(TICKET_CATEGORY)` | `invalid_value` | `GENERIC.REQUIRED_SELECTION` `{field: 'una categoría'}` | Selecciona una categoría |
+| `complexity` | `enum(TICKET_COMPLEXITY)` (opcional, solo el equipo) | `invalid_value` | `GENERIC.REQUIRED_SELECTION` `{field: 'una complejidad'}` | Selecciona una complejidad |
 | `otherCategoryDetail` | `.max(120)` | `too_big` | `GENERIC.MAX_LENGTH` `{field: 'El detalle', max: 120}` | El detalle no debe superar 120 caracteres |
 | `otherCategoryDetail` | refine: obligatorio si `category = 'other'` | `custom` | `TICKET.OTHER_CATEGORY_DETAIL_REQUIRED` | Describe la categoría |
 | `priority` | `enum(TICKET_PRIORITY)` | `invalid_value` | `GENERIC.REQUIRED_SELECTION` `{field: 'una prioridad'}` | Selecciona una prioridad |
-| `status` | `enum(TICKET_STATUS)` (POST: default `todo`) | `invalid_value` | `GENERIC.REQUIRED_SELECTION` `{field: 'un estado'}` | Selecciona un estado |
 | `assigneeEmail` | `email()` o `''` (POST: default `''`) | `invalid_format` | `GENERIC.IS_EMAIL` | Ingresa un correo válido (ej. ana@empresa.com) |
 | `estimateHours` | `number()` | `invalid_type` | `GENERIC.IS_NUMBER` | Ingresa un número |
 | `estimateHours` | `.int()` | `invalid_type` | `GENERIC.IS_INTEGER` | Solo números enteros |
 | `estimateHours` | `.min(1)` / `.max(200)` | `too_small` / `too_big` | `GENERIC.MIN_VALUE` `{min: 1}` / `GENERIC.MAX_VALUE` `{max: 200}` | El valor mínimo es 1 / El valor máximo es 200 |
 | `dueDate` | `Date` o `'YYYY-MM-DD'` (nullable) | `invalid_union` | `GENERIC.IS_DATE` | Fecha inválida |
 | `notifyReporter` | `boolean()` (POST: default `false`) | `invalid_type` | — (mensaje por defecto de Zod) | — |
+
+> `status` ya NO se envía al crear ni al editar: el estado solo cambia por una transición (`POST /api/tickets/:uuid/transitions`).
+
+#### Seguimiento del ticket (`/api/tickets/:uuid/comments`, `/transitions`, `/assign`, `/survey`)
+
+| Campo | Regla (Zod) | `code` | Clave del catálogo | Mensaje resultante |
+|---|---|---|---|---|
+| `body` | `.min(1)` (tras `trim`) | `too_small` | `GENERIC.MIN_LENGTH` `{field: 'El comentario', min: 1}` | El comentario debe tener al menos 1 caracteres |
+| `body` | `.max(2000)` | `too_big` | `GENERIC.MAX_LENGTH` `{field: 'El comentario', max: 2000}` | El comentario no debe superar 2000 caracteres |
+| `to` | `enum(TICKET_STATUS)` | `invalid_value` | `GENERIC.REQUIRED_SELECTION` `{field: 'un estado'}` | Selecciona un estado |
+| `resolution` | refine: obligatoria (≥ 3 caracteres) si `to = 'resolved'` | `custom` | `TICKET.RESOLUTION_REQUIRED` | Documenta la solución para poder resolver el ticket |
+| `score` | `number().int().min(1).max(5)` (tipo) | `invalid_type` | `TICKET.SURVEY_SCORE` | Elige una calificación de 1 a 5 |
+| `score` | `number().int().min(1).max(5)` (límite) | `too_big` | `TICKET.SURVEY_SCORE` | Elige una calificación de 1 a 5 |
+| `assigneeEmail` | `email()` | `invalid_format` | `GENERIC.IS_EMAIL` | Ingresa un correo válido (ej. ana@empresa.com) |
+
+#### Métricas (`/api/metrics/*`)
+
+| Campo | Regla (Zod) | `code` | Clave del catálogo | Mensaje resultante |
+|---|---|---|---|---|
+| `to` | refine: no anterior a `from` | `custom` | `METRICS.PERIOD_ORDER` | La fecha final no puede ser anterior a la inicial |
+| `to` | refine: período ≤ 366 días | `custom` | `METRICS.PERIOD_TOO_LONG` `{max: 366}` | El período no puede superar 366 días |
 
 #### `TicketQueryDto` (GET `/api/tickets`) — extiende `BasePaginationDto`
 
@@ -250,6 +316,55 @@ El mensaje de complejidad dice QUÉ falta (lista las clases que la contraseña n
 | `avatarIcon` | `enum(AVATAR_ICONS).nullable()` | `invalid_value` | `GENERIC.REQUIRED_SELECTION` `{field: 'un ícono'}` | Selecciona un ícono |
 | `avatarColor` | `enum(AVATAR_COLORS).nullable()` | `invalid_value` | `GENERIC.REQUIRED_SELECTION` `{field: 'un color'}` | Selecciona un color |
 
+#### `SignUpDto` (POST `/api/auth/sign-up`)
+
+| Campo | Regla (Zod) | `code` | Clave del catálogo | Mensaje resultante |
+|---|---|---|---|---|
+| `name` | `trim().min(3)` | `too_small` | `GENERIC.MIN_LENGTH` `{field: 'El nombre', min: 3}` | El nombre debe tener al menos 3 caracteres |
+| `name` | `max(120)` | `too_big` | `GENERIC.MAX_LENGTH` `{field: 'El nombre', max: 120}` | El nombre no debe superar 120 caracteres |
+| `email` | `email()` | `invalid_format` | `GENERIC.IS_EMAIL` | Ingresa un correo válido (ej. ana@empresa.com) |
+| `password` | `min(8)` | `too_small` | `GENERIC.MIN_LENGTH` `{field: 'La contraseña', min: 8}` | La contraseña debe tener al menos 8 caracteres |
+| `password` | `max(128)` | `too_big` | `GENERIC.MAX_LENGTH` `{field: 'La contraseña', max: 128}` | La contraseña no debe superar 128 caracteres |
+| `password` | complejidad (`superRefine`) | `custom` | `PASSWORD.MISSING` `{missing}` | Agrega: mayúscula, número, símbolo (!@#$%) |
+| (claves extra, p. ej. `role`) | `strictObject` | `unrecognized_keys` | — (mensaje de Zod) | — |
+
+El registro público **no admite `role`**: `strictObject` rechaza cualquier clave extra (asignación masiva) y la cuenta nace siempre como `VIEWER`.
+
+#### `EmailOnlyDto` (POST `/api/auth/forgot-password` y `/api/auth/resend-verification`)
+
+| Campo | Regla (Zod) | `code` | Clave del catálogo | Mensaje resultante |
+|---|---|---|---|---|
+| `email` | `email()` | `invalid_format` | `GENERIC.IS_EMAIL` | Ingresa un correo válido (ej. ana@empresa.com) |
+
+#### `VerifyEmailDto` (POST `/api/auth/verify-email`)
+
+| Campo | Regla (Zod) | `code` | Clave del catálogo | Mensaje resultante |
+|---|---|---|---|---|
+| `token` | `regex(/^[A-Za-z0-9_-]{20,128}$/)` | `invalid_format` | `ACCOUNT.TOKEN_REQUIRED` | El enlace no es válido |
+
+#### `ResetPasswordDto` (POST `/api/auth/reset-password`)
+
+| Campo | Regla (Zod) | `code` | Clave del catálogo | Mensaje resultante |
+|---|---|---|---|---|
+| `token` | `regex(…)` (igual que arriba) | `invalid_format` | `ACCOUNT.TOKEN_REQUIRED` | El enlace no es válido |
+| `newPassword` | `min(8)` · `max(128)` · complejidad | `too_small` · `too_big` · `custom` | las mismas tres claves de `SignUpDto.password` | (ver `SignUpDto`) |
+
+La validación del DTO corre ANTES del servicio: una contraseña débil devuelve 400 **sin consumir** el token, y se puede corregir y reintentar con el mismo enlace.
+
+#### `RecoverPasswordDto` (POST `/api/auth/recover-password`)
+
+| Campo | Regla (Zod) | `code` | Clave del catálogo | Mensaje resultante |
+|---|---|---|---|---|
+| `code` | `regex(/^\d{6}$/)` (solo `method = totp`) | `invalid_format` | `ACCOUNT.CODE_INVALID` | Escribe el código de 6 dígitos de tu autenticador |
+| `currentPassword` | `min(1)` (solo `method = current_password`) | `too_small` | `PASSWORD.CURRENT_REQUIRED` | Ingresa tu contraseña actual |
+| `newPassword` | `min(8)` · `max(128)` · complejidad | `too_small` · `too_big` · `custom` | las mismas tres claves de `SignUpDto.password` | (ver `SignUpDto`) |
+
+#### `TotpEnableDto` (POST `/api/auth/totp/enable`)
+
+| Campo | Regla (Zod) | `code` | Clave del catálogo | Mensaje resultante |
+|---|---|---|---|---|
+| `code` | `regex(/^\d{6}$/)` | `invalid_format` | `ACCOUNT.CODE_INVALID` | Escribe el código de 6 dígitos de tu autenticador |
+
 ## 5. Dónde se lanza cada código de negocio
 
 | Código | Lanzado en | Cuándo |
@@ -267,6 +382,40 @@ El mensaje de complejidad dice QUÉ falta (lista las clases que la contraseña n
 | `SAUT-E007` | `AccountSecurityService.changePassword` | La nueva contraseña es igual a la actual |
 | `RSES-E001` | `SessionIndexService.revoke` | El id de sesión no existe o no es del usuario (mismo 404: no se revela que existe) |
 | `SSES-E001` | `SessionIndexService.revoke` | Se intentó cerrar la sesión ACTUAL desde «Mis sesiones» (se usa «Cerrar sesión») |
+| `SAUT-E008` | `AuthSessionService.signIn` | La contraseña es correcta pero el correo no se verificó (solo se dice DESPUÉS de acertar la contraseña: quien no la sabe no aprende nada) |
+| `STCK-E007` | `TicketsService.toEntity` · `mergeEntity` | El `department` no es un elemento ACTIVO del catálogo `ticket-department` (se revalida solo si cambia) |
+| `SAUT-E009` | `AccountRecoveryService.verifyEmail` · `resetPassword` | El token no existe, ya se usó o venció (24 h verificación, 45 min restablecer) |
+| `SAUT-E010` | `AccountRecoveryService.recoverPassword` | Código TOTP o contraseña actual incorrectos, cuenta inexistente o sin autenticador: MISMA respuesta en todos (anti-enumeración) |
+| `SAUT-E014` | `AuthSessionService.signIn` | Cuenta bloqueada tras `LOGIN_MAX_ATTEMPTS` (5) intentos fallidos seguidos: 423 con `context.contacts` (nombre y correo de los administradores). Solo un administrador la desbloquea |
+| `SAUT-E011` | `AccountSecurityService.enableTotp` | El código con que se confirma el alta del autenticador no coincide |
+| `SAUT-E012` | `AccountSecurityService.enableTotp` | Se confirma sin haber pedido antes `totp/setup` |
+| `SAUT-E013` | `AccountSecurityService.setupTotp` | El autenticador ya está activado |
+| `SUSR-E001` | `AccountRecoveryService.signUp` | Ya existe una cuenta con ese correo (se normaliza a minúsculas) |
+| `SUSR-E002` | `UsersAdminController` (`findOne`, `changeRole`, `changeStatus`) | El `uuid` no corresponde a ningún usuario |
+| `SUSR-E003` | `UsersAdminController.assertNotSelf` | Intento de cambiarse el propio rol o deshabilitar la propia cuenta |
+| `STCK-E001` | `TicketLifecycleService.transition` · `assign` | La transición no está permitida desde el estado actual para ese papel (p. ej. el equipo no cierra por el solicitante, nada vuelve a «Nuevo») |
+| `STCK-E002` | `TicketLifecycleController` (PATCH/PUT/DELETE de un comentario) | Intento de modificar o borrar un comentario previo: el historial es inmutable |
+| `STCK-E003` | `TicketLifecycleService.comment` | Comentar un ticket «Cerrado»: hay que reabrirlo |
+| `STCK-E004` | `TicketLifecycleService.transition` | Reabrir un cerrado fuera de los 7 días de reincidencia |
+| `STCK-E005` | `TicketLifecycleService.assign` | Un agente intenta asignar a otra persona o tomar un ticket que ya tiene responsable |
+| `STCK-E006` | `TicketLifecycleService.assign` | La persona indicada no puede recibir tickets (cliente, deshabilitada, inexistente) |
+| `SATT-E001` | `TicketLifecycleController.upload` · filtro de excepciones (multer) | El archivo supera 5 MB |
+| `SATT-E002` | `TicketLifecycleController.upload` | El contenido no es un tipo permitido (imagen, PDF o texto): se detecta por firma, no por el nombre |
+| `SATT-E003` | `TicketLifecycleController.upload` | Falta el archivo |
+| `RATT-E001` | `TicketLifecycleController.download` · `TicketLifecycleService.comment` | Adjunto inexistente, de otro ticket o ya usado en otro comentario |
+| `SSRV-E001` | `TicketLifecycleService.loadSurvey` | No hay encuesta: el ticket no está cerrado o quien consulta no es el solicitante |
+| `SSRV-E002` | `TicketLifecycleService.answerSurvey` | La encuesta ya fue respondida |
+| `SSRV-E003` | `TicketLifecycleService.answerSurvey` | La encuesta venció (7 días) |
+| `SUSR-E004` | `UsersAdminController.assertNotLastAdmin` | Quitar el rol o deshabilitar al único administrador activo |
+| `RMNU-E001` | `BaseService.findOrFail` (vía `MenuItemsService`) | `uuid` de ítem de menú inexistente |
+| `RMNU-E002` | `MenuItemsService.create` · `update` | La `key` ya la usa otro ítem vigente |
+| `RMNU-E003` | `BaseService.findOneByUuid` | GET de un ítem de menú con borrado lógico (410) |
+| `RCAT-E001` | `CatalogsService.mustFind` | La clave del catálogo no existe |
+| `RCAT-E002` | `CatalogsService.mustFindItem` | El `uuid` del elemento no existe en ese catálogo |
+| `RCAT-E003` | `CatalogsService.createItem` · `updateItem` | El código ya existe en el catálogo (sin distinguir mayúsculas) |
+| `RCAT-E004` | `CatalogsService.updateItem` · `removeItem` · `remove` | Cambiar el código o desactivar un elemento de sistema, o eliminar un elemento/catálogo de sistema |
+| `RCAT-E005` | `CatalogsService.create` | Ya existe un catálogo con esa clave |
+| `SAUD-E001` | `AuditLogController.findOne` | La entrada de auditoría no existe |
 | `SCONC-E001` | `BaseService.assertIfMatch` | PATCH/DELETE con `If-Match` distinto del ETag vigente |
 | `RREL-E001` | `RelationshipsService` | Relación inexistente, ajena o ya revocada |
 | `SREL-E001` | `RelationshipsService.create` | El titular intenta compartir consigo mismo |

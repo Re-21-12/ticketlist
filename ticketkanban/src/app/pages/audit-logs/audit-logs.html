@@ -1,0 +1,38 @@
+<app-crud-page
+  [$illustration]="'audit'"
+  [$heading]="'Auditoría'"
+  [$description]="'Registro inmutable de cada cambio, inicio de sesión y acceso denegado. Solo se guardan los nombres de los campos, nunca sus valores.'"
+  [$service]="_service"
+  [$config]="config"
+>
+  <div class="audit-filters" role="group" aria-label="Filtros de auditoría">
+    <div class="audit-filter">
+      <label for="audit-action">Acción</label>
+      <p-select
+        inputId="audit-action"
+        [options]="actionOptions"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Todas"
+        [showClear]="true"
+        [ngModel]="$action() || null"
+        (ngModelChange)="setAction($event)"
+        size="small"
+      />
+    </div>
+    <div class="audit-filter">
+      <label for="audit-outcome">Resultado</label>
+      <p-select
+        inputId="audit-outcome"
+        [options]="outcomeOptions"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Todos"
+        [showClear]="true"
+        [ngModel]="$outcome() || null"
+        (ngModelChange)="setOutcome($event)"
+        size="small"
+      />
+    </div>
+  </div>
+</app-crud-page>

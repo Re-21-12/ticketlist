@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { ButtonModule } from '@openng/optimus-ui/button';
 import { CanPipe } from '../../core/casl/can.pipe';
 import { SessionStore } from '../../core/session/session.store';
+import { Illustration } from '../../shared/ui/illustration/illustration';
 
 /**
  * Destino de `canGuard` cuando la ruta no está permitida. Distingue «sin sesión» (401: la sesión
@@ -10,7 +11,7 @@ import { SessionStore } from '../../core/session/session.store';
  */
 @Component({
   selector: 'app-access',
-  imports: [RouterLink, ButtonModule, CanPipe],
+  imports: [Illustration, RouterLink, ButtonModule, CanPipe],
   templateUrl: './access.html',
   styleUrl: './access.css',
 })

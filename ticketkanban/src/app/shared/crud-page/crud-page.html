@@ -1,0 +1,35 @@
+<header class="crud-page-header page-header-art">
+  <div>
+    <h1>{{ $heading() }}</h1>
+    @if ($description()) {
+      <p>{{ $description() }}</p>
+    }
+  </div>
+  @if ($illustration(); as name) {
+    <app-illustration class="page-art" [$name]="name" />
+  }
+</header>
+
+<!-- Filtros propios de la pantalla (p. ej. resultado y acción en auditoría). -->
+<ng-content />
+
+@if ($failed()) {
+  <p class="crud-page-error" role="alert">No se pudo cargar el listado.</p>
+}
+
+<app-dynamic-table
+  [$config]="$config().table"
+  [$rows]="$rows()"
+  [$totalRecords]="$total()"
+  [$page]="$service().$pagination().page"
+  [$take]="$service().$pagination().take"
+  [$loading]="$loading()"
+  [$busy]="$saving()"
+  ($pageChange)="onPage($event)"
+  ($searchChange)="$service().setSearch($event)"
+  ($refresh)="$service().reload()"
+  ($create)="onCreate()"
+  ($view)="onView($event)"
+  ($edit)="onEdit($event)"
+  ($delete)="onDelete($event)"
+/>

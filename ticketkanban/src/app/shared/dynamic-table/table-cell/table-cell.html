@@ -1,5 +1,12 @@
 @if ($isEmpty()) {
   <span class="table-cell-empty" aria-label="Sin dato">—</span>
+} @else if ($badge(); as option) {
+  <app-badge [$label]="option.label" [$icon]="option.icon" [$severity]="option.severity" />
+} @else if ($iconClass(); as iconClass) {
+  <span class="table-cell-value table-cell-value--nowrap">
+    <i [class]="iconClass" aria-hidden="true"></i>
+    {{ $text() }}
+  </span>
 } @else {
   <span class="table-cell-value" [class.table-cell-value--nowrap]="$nowrap()">{{ $text() }}</span>
 }

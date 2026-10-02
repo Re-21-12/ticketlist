@@ -5,3 +5,9 @@
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+/* Mismo ancho para todas las acciones: «Editar» y «Eliminar» no se ven desiguales (ruido visual). */
+.row-actions button {
+  min-width: 7.5rem;
+  justify-content: center;
+}

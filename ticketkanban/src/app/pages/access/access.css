@@ -15,3 +15,13 @@
 .access-text {
   color: var(--app-text-muted);
 }
+
+.access-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.access-art {
+  --illustration-width: 10rem;
+}

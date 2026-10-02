@@ -45,7 +45,8 @@
                         [disabled]="!$dirty() || $busy()"
                         (click)="onClear()"
                       >
-                        Limpiar
+                        <i pButtonIcon class="pi pi-eraser" aria-hidden="true"></i>
+                        <span pButtonLabel>Limpiar</span>
                       </button>
                     }
                     @if (!isLast) {
@@ -60,7 +61,8 @@
                       </button>
                     } @else if (!$readonlyMode()) {
                       <button type="submit" pButton [disabled]="$busy()" [loading]="$busy()">
-                        {{ $submitLabel() }}
+                        <i pButtonIcon class="pi pi-check" aria-hidden="true"></i>
+                        <span pButtonLabel>{{ $submitLabel() }}</span>
                       </button>
                     }
                   </div>
@@ -73,9 +75,13 @@
     } @else {
       @for (section of $sections(); track section.key) {
         <section class="flex flex-col gap-3" [attr.aria-labelledby]="'section-' + section.key">
-          <h3 class="dynamic-form-section-title" [id]="'section-' + section.key">{{ section.label }}</h3>
+          <h3 class="dynamic-form-section-title" [id]="'section-' + section.key">
+            {{ section.label }}
+          </h3>
           <div [class]="$gridClass()">
-            <ng-container *ngTemplateOutlet="fieldGrid; context: { $implicit: fieldsFor(section) }" />
+            <ng-container
+              *ngTemplateOutlet="fieldGrid; context: { $implicit: fieldsFor(section) }"
+            />
           </div>
         </section>
       }
@@ -92,11 +98,13 @@
             [disabled]="!$dirty() || $busy()"
             (click)="onClear()"
           >
-            Limpiar
+            <i pButtonIcon class="pi pi-eraser" aria-hidden="true"></i>
+            <span pButtonLabel>Limpiar</span>
           </button>
         }
         <button type="submit" pButton class="flex-1" [disabled]="$busy()" [loading]="$busy()">
-          {{ $submitLabel() }}
+          <i pButtonIcon class="pi pi-check" aria-hidden="true"></i>
+          <span pButtonLabel>{{ $submitLabel() }}</span>
         </button>
       </div>
     }
@@ -110,6 +118,7 @@
         [$field]="field"
         [$node]="nodeFor(field.key)"
         [$constraints]="$constraints().get(field.key)!"
+        [$optionsOverride]="$optionsByField()[field.key]"
         [class.md:col-span-2]="field.fullWidth"
       />
     }

@@ -10,6 +10,8 @@ bun run test        # unit (vitest)
 bun run test:e2e    # e2e (supertest)
 docker compose up -d  # Postgres :5433 + Redis :6380 (puertos propios)
 bun run test:redis  # unit + e2e contra Redis real (REDIS_URL=redis://localhost:6380)
+bun run test:pg     # unit + e2e con Postgres real (DATABASE_URL=postgres://ticketit:ticketit-dev@localhost:5433/ticketit), incluida la persistencia
+bun run migration:run | migration:show | migration:revert | migration:generate <ruta> | migration:create <ruta>   # TypeORM
 ```
 
 ## Arquitectura en capas (heredada de wallet-api)
@@ -92,15 +94,39 @@ src/
 
 ## Permisos (CASL) — detalle en [authorization.md](docs/standard/authorization.md)
 
-- `CaslAbilityFactory.rulesFor(user)` es la ÚNICA fuente de reglas: RBAC (`role_permissions`, editable por ADMIN) + titular (`ownerUuid`) + ReBAC (concesiones del titular al alternante, con techo por rol) + autoservicio. El front las recibe por `GET /api/bff/shell` y no las recalcula.
+- `CaslAbilityFactory.rulesFor(user)` es la ÚNICA fuente de reglas: RBAC (`role_permissions`, editable por ADMIN) + titular (`ownerUuid`: lee y edita lo suyo, NUNCA elimina) + ReBAC (concesiones del titular al alternante, con techo por rol) + autoservicio. El front las recibe por `GET /api/bff/shell` y no las recalcula.
 - Nivel TIPO: `@CheckAbility(EAbility.CREATE, 'Ticket')` en el handler (lo evalúa `CaslGuard`).
 - Nivel FILA (lectura): `BaseService.readableRowFilter()`. Lo no legible no se lista y su GET responde 404. **Nunca** confiar solo en el guard para leer.
 - Nivel REGISTRO (escritura): `BaseService.assertCan()` en update/delete/restore.
 - Notificaciones: `NotificationsService.notify()` desde los hooks `onCreated` / `onUpdated` del servicio; nunca lanza.
 
-## Persistencia
+## Ciclo de vida del ticket y métricas
 
-`InMemoryRepository` implementa `IBaseRepository` (mismo contrato que wallet-api). Pasar a TypeORM/Drizzle = reemplazar el repositorio y poner decoradores de columna en `BaseEntity`; servicio y controlador no cambian.
+- Los tickets recorren `new → assigned → in_progress ⇄ pending_customer → resolved → closed` (+ `escalated`, `reopened`). El estado SOLO cambia por `POST /api/tickets/:uuid/transitions` (quién puede cada paso: `lifecycle/ticket-lifecycle.ts`); `PATCH` ya no recibe `status`.
+- Todo cambio deja un evento INMUTABLE (`TicketHistoryService.record`); las métricas (FCR, SLA, CSAT) salen SOLO de esos eventos (`sla/ticket-analysis.ts` → `metrics/metrics-engine.ts`). Módulos puros y probados: no leer «el estado de ahora» para calcular un indicador.
+- Comentarios solo se agregan (409 `STCK-E002` al intentar editar). Adjuntos: tipo por firma de contenido, ≤ 5 MB. Encuesta CSAT una por ticket al cerrar. Cierre automático a las 48 h (`TicketAutoCloseJob`; en tests se llama `closeStaleResolved(now)`).
+- Los estados son variaciones de 3 grupos (`STATUS_GROUPS`: Nuevo · En atención · Cerrado): el tablero BFF devuelve 3 columnas y cada tarjeta trae su estado exacto, `type`, `complexity` (solo la fija el equipo) y `attendedSince` (reloj de la tarjeta).
+- Roles: ADMIN (todo; **único que elimina**), SUPERVISOR (asigna, escala y pide información al cliente; no resuelve), AGENT (N1: atiende y resuelve lo asignado, pide información), AUDITOR (solo lectura), VIEWER = CLIENTE (crea y edita lo suyo; no elimina, no asigna ni maneja accesos). Quién mueve qué: `TRANSITIONS` en `lifecycle/ticket-lifecycle.ts`. Definiciones y metas: [docs/standard/metrics.md](docs/standard/metrics.md).
+- Fuera de las pruebas el repositorio arranca con tickets de DEMOSTRACIÓN (`buildTicketsSeed`) para que las métricas muestren algo.
+
+- **Recuperar contraseña** (3 formas, ver `docs/data-dictionary/users.md`): enlace por correo (`forgot`/`reset-password`), código del autenticador TOTP o contraseña actual (`POST /api/auth/recover-password`, anti-enumeración `SAUT-E010`, la persona elige la nueva). TOTP en `auth/session/totp.util.ts` (sin dependencias); el secreto se guarda CIFRADO en reposo (AES-256-GCM, `core/crypto/secret-box.ts`, clave `TOTP_ENCRYPTION_KEY`, obligatoria propia en production).
+- **Bloqueo de cuenta** (CU07 A3): `LOGIN_MAX_ATTEMPTS` (5) fallos seguidos bloquean la cuenta → 423 `SAUT-E014` con `context.contacts` (administradores); solo `PATCH /api/users/:uuid/status {disabled, locked:false}` (ADMIN) desbloquea. Avisa a administradores (`ACCOUNT_LOCKED`). Detalle y compromisos en `docs/data-dictionary/users.md`.
+- **Departamento de origen**: `ticket.department` = código del catálogo editable `ticket-department` (`it` = «TI (interno)»); lo valida el servicio (`STCK-E007`), no un enum. `GET /api/tickets` filtra por `status`, `priority`, `type`, `category` y `department`.
+- **Encuesta**: al cerrarse un ticket el solicitante recibe `TICKET_SURVEY`; la calificación baja avisa a supervisores con `TICKET_SURVEY_ALERT`.
+- **Descripción del ticket = HTML del editor**: `sanitizeRichText` (`core/sanitize/rich-text.ts`, `sanitize-html`) en `toEntity`/`mergeEntity`; solo formato seguro, enlaces `http(s)`/`mailto`. Nunca guardar ni mostrar la descripción sin pasar por él.
+
+## Despliegue (Dokploy)
+
+`ticketlistbe/Dockerfile` (bun → node 24, `entrypoint.sh` lee `*_FILE` de Docker secrets) y `ticketkanban/Dockerfile` (Angular → Caddy con CSP por hash). Compose, secretos, integración con el compose de wallet-api y checklist en [`deploy/DOKPLOY.md`](../deploy/DOKPLOY.md). En `production`: `SEED_DEMO_DATA` es `false` por defecto (sin usuarios de prueba; las cuentas iniciales salen de `SEED_USERS_JSON` — un arreglo `[{name,email,role,password}]`, una por rol, generado por `deploy/generate-secrets.mjs` — y/o de `BOOTSTRAP_ADMIN_*`) y `loadEnv` exige `SESSION_SECRET`, `TOTP_ENCRYPTION_KEY` y `REDIS_URL` propios.
+
+## Persistencia (TypeORM + Postgres) — detalle en [persistence.md](docs/standard/persistence.md)
+
+- El dominio se guarda en Postgres con **TypeORM** (`src/database/`: `entity-schemas.ts`, `migrations/`, `PersistenceService`). Modelo: las **lecturas** siguen saliendo de la copia en memoria de cada repositorio (el código es síncrono) y cada **escritura** va a una cola ordenada hacia la base; al arrancar cada repositorio se **hidrata** de ella. **Una sola instancia de la API** (dos réplicas divergirían). Sin `DATABASE_URL` (o `DB_PERSISTENCE=false`) todo es en memoria: así corren las pruebas.
+- Repositorio nuevo o campo nuevo → actualiza su `EntitySchema` y genera una migración (`bun run migration:generate src/database/migrations/Nombre`, y agrégala a `MIGRATIONS`). **Nunca** `synchronize`, **nunca** editar una migración ya publicada.
+- Cada mutación de un repositorio persistente llama a `persist(...)` / `persistence.save(...)`: si agregas un método que cambia datos y no lo haces, el cambio se pierde al reiniciar.
+- Semillas idempotentes en cada arranque: permisos, menú y catálogos por clave natural (`ensure`, sin pisar ediciones); usuarios solo si el correo no existe; demostración solo con la tabla vacía.
+- `bun run test:pg` (Postgres real) incluye `test/persistence.e2e-spec.ts`: escribe, apaga, arranca otra instancia y verifica que todo se recuperó.
+- **Auditoría**: `IAuditLogStore` (memoria o `PostgresAuditLogStore` con `DATABASE_URL`); su tabla `audit_logs` también la crea una migración. Append-only A NIVEL DE API (sin trigger); en producción conviene quitarle UPDATE/DELETE al rol de la app.
 
 ## Comandos (`.claude/commands/`)
 

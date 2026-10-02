@@ -1,18 +1,35 @@
 <section class="access" aria-labelledby="access-title">
+  <app-illustration
+    class="access-art"
+    [$name]="_sessionStore.$isAuthenticated() ? 'access' : 'lock'"
+  />
   @if (_sessionStore.$isAuthenticated()) {
     <h1 id="access-title" class="access-title">No tienes acceso a esta sección</h1>
-    <p class="access-text">Tu rol no incluye este permiso. Si lo necesitas, pídelo a un administrador.</p>
+    <p class="access-text">
+      Tu rol no incluye este permiso. Si lo necesitas, pídelo a un administrador.
+    </p>
     @if (('read' | can: 'Ticket')()) {
-      <a pButton routerLink="/tickets">Ir al tablero</a>
+      <a pButton routerLink="/tickets">
+        <i pButtonIcon class="pi pi-th-large" aria-hidden="true"></i>
+        <span pButtonLabel>Ir al tablero</span>
+      </a>
     }
   } @else {
     <h1 id="access-title" class="access-title">No hay una sesión activa</h1>
-    <p class="access-text">
-      Tu sesión terminó por inactividad o se cerró.
-      @if (_sessionStore.canSwitchRole) {
-        Elige un rol en «Rol de prueba» para iniciar sesión.
-      }
-    </p>
+    <p class="access-text">Tu sesión terminó por inactividad o se cerró.</p>
+    <div class="access-actions">
+      <a pButton routerLink="/sign-in">
+        <i pButtonIcon class="pi pi-sign-in" aria-hidden="true"></i>
+        <span pButtonLabel>Iniciar sesión</span>
+      </a>
+      <a pButton routerLink="/sign-up" severity="secondary" [outlined]="true">
+        <i pButtonIcon class="pi pi-user-plus" aria-hidden="true"></i>
+        <span pButtonLabel>Crear cuenta</span>
+      </a>
+    </div>
   }
-  <a pButton severity="secondary" [outlined]="true" routerLink="/style-guide">Ver la guía de estilos</a>
+  <a pButton severity="secondary" [outlined]="true" routerLink="/style-guide">
+    <i pButtonIcon class="pi pi-book" aria-hidden="true"></i>
+    <span pButtonLabel>Ver la guía de estilos</span>
+  </a>
 </section>

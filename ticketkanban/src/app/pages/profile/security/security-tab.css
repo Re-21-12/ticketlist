@@ -14,3 +14,8 @@
   font-size: 0.875rem;
   color: var(--app-text-muted);
 }
+
+:host {
+  display: grid;
+  gap: 1.5rem;
+}

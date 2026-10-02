@@ -48,6 +48,8 @@ export const appConfig: ApplicationConfig = {
     // quedaba pisado por provideOptimus).
     provideOptimus({
       theme: { preset: initialThemePreset(), options: { darkModeSelector: '.app-dark' } },
+      // Nombres accesibles de las estrellas de «Urgencia» en español (por defecto salen en inglés).
+      translation: { aria: { star: '1 estrella', stars: '{star} estrellas' } },
     }),
     // Overlays globales de app.html: `<p-toast>` y `<p-confirmdialog>`.
     MessageService,

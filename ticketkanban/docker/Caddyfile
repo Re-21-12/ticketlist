@@ -1,0 +1,37 @@
+# ────────────────────────────────────────────────────────────────────────────────────────────────
+# Caddy — sirve el build estático de ticketkanban con encabezados de seguridad.
+# Traefik (borde de Dokploy) termina TLS y enruta `/api` al BFF; HSTS lo pone Traefik (Caddy habla http).
+# ────────────────────────────────────────────────────────────────────────────────────────────────
+{
+	admin off
+}
+
+:80 {
+	root * /srv
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		X-Permitted-Cross-Domain-Policies "none"
+		X-XSS-Protection "0"
+		-Server
+		# script-src: solo el propio origen + el script de tema en línea (hash calculado en el build).
+		# style-src 'unsafe-inline': PrimeNG/optimus-ui inyectan estilos en <style> en tiempo de ejecución.
+		# img-src data: → el código QR del autenticador se genera en el navegador como data URL.
+		Content-Security-Policy "default-src 'self'; script-src 'self' __INLINE_SCRIPT_HASHES__; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+	}
+
+	# Los archivos con hash en el nombre nunca cambian; el index sí (siempre revalidar).
+	@assets path /chunk-* /main-* /polyfills-* /styles-* /media/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	@index path / /index.html
+	header @index Cache-Control "no-cache"
+
+	encode gzip zstd
+
+	# Fallback SPA: cualquier ruta sin archivo real → index.html (el router de Angular decide).
+	try_files {path} /index.html
+	file_server
+}

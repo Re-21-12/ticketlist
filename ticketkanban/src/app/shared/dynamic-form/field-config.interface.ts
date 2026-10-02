@@ -1,3 +1,5 @@
+import type { TBadgeSeverity } from '../ui/badge/badge.types';
+
 /**
  * Tipos de control que sabe pintar `app-dynamic-field`. Mismo catálogo que `HtmlTypes` de
  * wallet-api (excepto `BULK_IMPORT`, la carga masiva por CSV, que ninguna pantalla de Ticketit
@@ -8,6 +10,8 @@ export const FieldType = {
   /** Texto que solo admite dígitos (serial, código) pero conserva ceros a la izquierda. */
   TEXT_NUMBER: 'text_number',
   TEXTAREA: 'textarea',
+  /** Texto enriquecido (negrita, listas, enlaces): el valor es HTML y el backend lo sanea. */
+  EDITOR: 'editor',
   EMAIL: 'email',
   URL: 'url',
   PASSWORD: 'password',
@@ -17,6 +21,8 @@ export const FieldType = {
   DECIMAL: 'decimal',
   CURRENCY: 'currency',
   SLIDER: 'range',
+  /** Escala de estrellas: cada opción es un nivel (la primera = 1 estrella). El valor guardado es el de la opción. */
+  RATING: 'rating',
   DATE: 'date',
   TIME: 'time',
   DATETIME: 'datetime-local',
@@ -38,8 +44,10 @@ export type TFieldType = (typeof FieldType)[keyof typeof FieldType];
 export interface IFieldOption {
   value: string | number;
   label: string;
-  /** Clase de ícono junto a la opción (solo `RADIO_BUTTON`). */
-  icon?: string;
+  /** Clase de ícono junto a la opción (`RADIO_BUTTON`, insignias de tabla y tarjetas). */
+  icon?: string | null;
+  /** Color de la insignia de esta opción (severidad del tema). */
+  severity?: TBadgeSeverity | null;
 }
 
 /**
@@ -72,6 +80,14 @@ export interface IRevealRule<TKey extends string = string> {
  */
 export interface IFieldTableConfig {
   show?: boolean;
+  /** Pinta la columna como insignia (usa el ícono y color de cada opción). */
+  badge?: boolean;
+  /** Insignia con ícono/color tomados de otros campos de la fila (catálogos). */
+  badgeFrom?: { icon?: string; severity?: string };
+  /** Booleano donde `true` es lo malo: «Sí» en rojo (bloqueada, deshabilitada). */
+  dangerWhenTrue?: boolean;
+  /** El valor es una clase de PrimeIcons: se muestra el ícono junto al texto. */
+  iconValue?: boolean;
   header?: string;
   dataType?: 'string' | 'number' | 'boolean' | 'date';
 }

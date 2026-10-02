@@ -1,0 +1,18 @@
+.crud-page-header {
+  margin-bottom: 1.5rem;
+}
+.crud-page-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.crud-page-header p {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+
+.crud-page-error {
+  margin: 0 0 1rem;
+  color: var(--app-danger);
+}

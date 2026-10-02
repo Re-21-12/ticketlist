@@ -30,8 +30,14 @@
     @case ('error') {
       <div role="alert" class="tab-error">
         <p>No se pudieron cargar tus notificaciones.</p>
-        <button type="button" pButton severity="secondary" (click)="_profileStore.reloadNotifications()">
-          Reintentar
+        <button
+          type="button"
+          pButton
+          severity="secondary"
+          (click)="_profileStore.reloadNotifications()"
+        >
+          <i pButtonIcon class="pi pi-refresh" aria-hidden="true"></i>
+          <span pButtonLabel>Reintentar</span>
         </button>
       </div>
     }
@@ -50,6 +56,29 @@
               </p>
               <p class="notification-date">{{ item.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
             </div>
+            @if (item.type === 'TICKET_SURVEY' && item.resourceUuid) {
+              <button
+                type="button"
+                pButton
+                size="small"
+                [attr.aria-label]="'Calificar: ' + item.message"
+                (click)="rate(item)"
+              >
+                <i pButtonIcon class="pi pi-star" aria-hidden="true"></i>
+                <span pButtonLabel>Calificar</span>
+              </button>
+            }
+            @if (item.type === 'ACCOUNT_LOCKED') {
+              <a
+                pButton
+                size="small"
+                routerLink="/users"
+                [attr.aria-label]="'Ir a Usuarios para desbloquear'"
+              >
+                <i pButtonIcon class="pi pi-lock-open" aria-hidden="true"></i>
+                <span pButtonLabel>Ir a Usuarios</span>
+              </a>
+            }
             @if (!item.readAt) {
               <button
                 type="button"
@@ -66,7 +95,10 @@
             }
           </li>
         } @empty {
-          <li class="tab-muted">No tienes notificaciones.</li>
+          <li class="tab-empty">
+            <app-illustration [$name]="'empty'" />
+            <span class="tab-muted">No tienes notificaciones.</span>
+          </li>
         }
       </ul>
     }

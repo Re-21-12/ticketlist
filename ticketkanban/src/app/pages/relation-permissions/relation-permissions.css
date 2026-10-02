@@ -1,0 +1,22 @@
+:host {
+  display: block;
+}
+
+.relations-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.relations-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 12rem;
+}
+
+.relations-filter label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}

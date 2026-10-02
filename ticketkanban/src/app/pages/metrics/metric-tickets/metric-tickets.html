@@ -1,0 +1,40 @@
+@if ($rows().length === 0) {
+  <p class="mt-empty" role="status">Esta persona no tiene tickets asignados ni resueltos en el período.</p>
+} @else {
+  <div class="mt-scroll" role="region" aria-label="Tickets gestionados" tabindex="0">
+    <table class="mt-table">
+      <caption class="sr-only">
+        Tickets gestionados, con el estado de la primera respuesta y del plazo de resolución
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Ticket</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Urgencia</th>
+          <th scope="col">Primera respuesta</th>
+          <th scope="col">SLA de resolución</th>
+          <th scope="col">Vence</th>
+          <th scope="col">1.er contacto</th>
+          <th scope="col">CSAT</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of $rows(); track row.uuid) {
+          <tr>
+            <th scope="row">
+              <span class="mt-code">{{ row.code }}</span>
+              <span class="mt-title">{{ row.title }}</span>
+            </th>
+            <td><app-badge [$label]="row.statusMeta.label" [$icon]="row.statusMeta.icon" [$severity]="row.statusMeta.severity" /></td>
+            <td><app-badge [$label]="row.priorityMeta.label" [$icon]="row.priorityMeta.icon" [$severity]="row.priorityMeta.severity" /></td>
+            <td><app-badge [$label]="row.responseMeta.label" [$icon]="row.responseMeta.icon" [$severity]="row.responseMeta.severity" /></td>
+            <td><app-badge [$label]="row.resolutionMeta.label" [$icon]="row.resolutionMeta.icon" [$severity]="row.resolutionMeta.severity" /></td>
+            <td class="mt-num">{{ row.resolutionDueAt ? (row.resolutionDueAt | date: 'dd/MM HH:mm') : '—' }}</td>
+            <td>{{ row.firstContact === null ? '—' : row.firstContact ? 'Sí' : 'No' }}</td>
+            <td class="mt-num">{{ row.csat === null ? '—' : row.csat + ' / 5' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

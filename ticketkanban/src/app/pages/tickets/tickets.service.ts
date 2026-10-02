@@ -1,8 +1,9 @@
 import { httpResource } from '@angular/common/http';
 import { Service, signal } from '@angular/core';
-import type { Observable } from 'rxjs';
+import { map, type Observable } from 'rxjs';
 import { BaseApiAbstract } from '../../core/interfaces/base-api-abstract';
-import { TicketBoardSchema, TicketSchema, toLocalIsoDate } from './ticket.schema';
+import { AssigneeListSchema, SurveyStateSchema, TicketBoardSchema, TicketSchema, toLocalIsoDate } from './ticket.schema';
+import type { TSurveyForm, TSurveyState, TTicketTransition } from './ticket.types';
 import type { TTicket, TTicketQuickCreate, TTicketUpsert } from './ticket.types';
 
 type TTicketRequest = TTicketUpsert | TTicketQuickCreate;
@@ -24,6 +25,11 @@ export class TicketsService extends BaseApiAbstract<TTicket, TTicketRequest, TTi
     parse: (raw) => TicketBoardSchema.parse(raw),
   });
 
+  /** Personal al que se le puede asignar un ticket (el backend filtra: verificado y ADMIN/AGENT). */
+  readonly assignees = httpResource(() => '/api/users/assignable', {
+    parse: (raw) => AssigneeListSchema.parse(raw),
+  });
+
   protected override parseItem(raw: unknown): TTicket {
     return TicketSchema.parse(raw);
   }
@@ -34,6 +40,22 @@ export class TicketsService extends BaseApiAbstract<TTicket, TTicketRequest, TTi
 
   override update(uuid: string, dto: TTicketUpsert): Observable<TTicket> {
     return super.update(uuid, toRequest(dto) as TTicketUpsert);
+  }
+
+  /** Cambia el estado (`POST /:uuid/transitions`): el único camino para mover un ticket de estado. */
+  /** Estado de la encuesta del ticket (solo quien lo solicitó): `pending` se puede responder. */
+  survey(uuid: string): Observable<TSurveyState> {
+    return this._http.get<unknown>(`${this.endpoint}/${uuid}/survey`).pipe(map((raw) => SurveyStateSchema.parse(raw)));
+  }
+
+  answerSurvey(uuid: string, form: TSurveyForm): Observable<TSurveyState> {
+    // El comentario vacío viaja como `null` (el contrato lo exige así).
+    const body = { score: form.score, comment: form.comment || null };
+    return this._http.post<unknown>(`${this.endpoint}/${uuid}/survey`, body).pipe(map((raw) => SurveyStateSchema.parse(raw)));
+  }
+
+  transition(uuid: string, dto: TTicketTransition): Observable<TTicket> {
+    return this._http.post<unknown>(`${this.endpoint}/${uuid}/transitions`, dto).pipe(map((raw) => TicketSchema.parse(raw)));
   }
 
   selectTicket(uuid: string | undefined): void {

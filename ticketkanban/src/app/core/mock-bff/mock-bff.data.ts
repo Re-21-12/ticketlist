@@ -1,25 +1,62 @@
 import type { z } from 'zod';
 import { EAbility, EUserRole } from '../casl/ability.enum';
 import type { ShellSchema } from '../session/session.schema';
-import type { TicketSchema } from '../../pages/tickets/ticket.schema';
+import type { TTicketCategory, TTicketComplexity, TTicketStatus, TTicketType } from '../../pages/tickets/ticket.types';
 
 type TShellInput = z.input<typeof ShellSchema>;
 
-/** Tickets "persistidos" del mock (JSON crudo, fechas como string ISO como llegan por HTTP). */
-export const MOCK_TICKETS: z.input<typeof TicketSchema>[] = [
+/** Ticket "persistido" del mock: lo que guarda el servidor; la respuesta (`present`) le suma lo derivado. */
+export interface IMockTicket {
+  uuid: string;
+  code: string;
+  ownerUuid: string;
+  title: string;
+  description: string;
+  type: TTicketType;
+  category: TTicketCategory;
+  /** Departamento de origen (código del catálogo `ticket-department`; `it` = interno de TI). */
+  department: string;
+  /** Solo el equipo la fija. */
+  complexity: TTicketComplexity | null;
+  /** Desde cuándo está asignado o en curso (arranca el reloj de la tarjeta). */
+  attendedSince: string | null;
+  otherCategoryDetail?: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  status: TTicketStatus;
+  assigneeEmail: string;
+  estimateHours: number | null;
+  dueDate: string | null;
+  notifyReporter: boolean;
+  resolution: string | null;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  reopenCount: number;
+  createdAt: string;
+}
+
+/** Los tres tickets de siempre (mismos que `tickets.seed.ts` del backend). */
+export const MOCK_TICKETS: IMockTicket[] = [
   {
     uuid: '6f1d7c2a-8b1e-4c7a-9f0e-1a2b3c4d5e01',
     code: 'TCK-001',
     ownerUuid: '0b8a5f6e-1c2d-4e3f-8a9b-000000000002',
     title: 'El login con Google devuelve 500',
     description: 'Ocurre solo con cuentas de Workspace.',
-    category: 'bug',
+    department: 'hr',
+    type: 'incident',
+    category: 'access',
+    complexity: 'moderate',
+    attendedSince: '2026-09-20T16:00:00Z',
     priority: 'critical',
     status: 'in_progress',
     assigneeEmail: 'ana@ticketit.dev',
     estimateHours: 6,
     dueDate: '2026-10-02',
     notifyReporter: true,
+    resolution: null,
+    resolvedAt: null,
+    closedAt: null,
+    reopenCount: 0,
     createdAt: '2026-09-20T15:00:00Z',
   },
   {
@@ -28,13 +65,21 @@ export const MOCK_TICKETS: z.input<typeof TicketSchema>[] = [
     ownerUuid: '0b8a5f6e-1c2d-4e3f-8a9b-000000000001',
     title: 'Exportar tablero a CSV',
     description: '',
-    category: 'feature',
+    department: 'it',
+    type: 'improvement',
+    category: 'software',
+    complexity: null,
+    attendedSince: null,
     priority: 'medium',
-    status: 'todo',
+    status: 'new',
     assigneeEmail: '',
     estimateHours: null,
     dueDate: null,
     notifyReporter: false,
+    resolution: null,
+    resolvedAt: null,
+    closedAt: null,
+    reopenCount: 0,
     createdAt: '2026-09-22T10:30:00Z',
   },
   {
@@ -43,15 +88,24 @@ export const MOCK_TICKETS: z.input<typeof TicketSchema>[] = [
     ownerUuid: '0b8a5f6e-1c2d-4e3f-8a9b-000000000004',
     title: 'Migrar dominio del correo de soporte',
     description: 'Cambio de proveedor SMTP.',
+    department: 'finance',
+    type: 'service_request',
     category: 'other',
+    complexity: 'simple',
+    attendedSince: null,
     otherCategoryDetail: 'Infraestructura',
     priority: 'low',
-    status: 'done',
+    status: 'closed',
     assigneeEmail: 'luis@ticketit.dev',
     estimateHours: 3,
     dueDate: '2026-09-25',
     notifyReporter: true,
-    createdAt: '2026-09-18T08:00:00Z',
+    resolution: 'Se migró el dominio y se verificaron SPF y DKIM.',
+    // Cerrado AYER (relativo a hoy): así la encuesta de satisfacción sigue vigente (7 días) en la demostración.
+    resolvedAt: new Date(Date.now() - 30 * 3_600_000).toISOString(),
+    closedAt: new Date(Date.now() - 24 * 3_600_000).toISOString(),
+    reopenCount: 0,
+    createdAt: '2026-09-18T14:00:00Z',
   },
 ];
 
@@ -71,10 +125,10 @@ const MENU: TShellInput['menu'] = [
   { key: 'style-guide', label: 'Guía de estilos', route: '/style-guide', group: 'Preferencias' },
 ];
 
-/** Reglas de TITULAR (igual que `CaslAbilityFactory.titularRules`): sobre lo suyo siempre puede. */
+/** Reglas de TITULAR (igual que `CaslAbilityFactory.titularRules`): lo suyo lo ve y lo edita; eliminar es solo del administrador. */
 function titularRules(userUuid: string): TShellInput['abilityRules'] {
   const conditions = { ownerUuid: userUuid };
-  return [EAbility.READ, EAbility.UPDATE, EAbility.DELETE, EAbility.RESTORE].map((action) => ({
+  return [EAbility.READ, EAbility.UPDATE].map((action) => ({
     action,
     subject: 'Ticket' as const,
     conditions,
@@ -120,6 +174,30 @@ export const MOCK_SHELLS: Record<EUserRole, TShellInput> = {
     ],
     menu: MENU,
   },
+  [EUserRole.SUPERVISOR]: {
+    user: {
+      uuid: '0b8a5f6e-1c2d-4e3f-8a9b-000000000005',
+      name: 'Sergio Supervisor',
+      email: 'sergio@ticketit.dev',
+      role: EUserRole.SUPERVISOR,
+      avatarIcon: null,
+      avatarColor: null,
+    },
+    abilityRules: [],
+    menu: MENU,
+  },
+  [EUserRole.AUDITOR]: {
+    user: {
+      uuid: '0b8a5f6e-1c2d-4e3f-8a9b-000000000007',
+      name: 'Aurora Auditora',
+      email: 'aurora@ticketit.dev',
+      role: EUserRole.AUDITOR,
+      avatarIcon: null,
+      avatarColor: null,
+    },
+    abilityRules: [],
+    menu: MENU,
+  },
   [EUserRole.VIEWER]: {
     user: {
       uuid: '0b8a5f6e-1c2d-4e3f-8a9b-000000000003',
@@ -130,9 +208,23 @@ export const MOCK_SHELLS: Record<EUserRole, TShellInput> = {
       avatarColor: null,
     },
     abilityRules: [
-      { action: EAbility.READ, subject: 'Ticket' },
+      { action: EAbility.CREATE, subject: 'Ticket' },
       ...titularRules('0b8a5f6e-1c2d-4e3f-8a9b-000000000003'),
     ],
     menu: MENU,
   },
 };
+
+/**
+ * Sesión de una cuenta recién registrada: siempre `VIEWER` = cliente (el registro público nunca decide su rol,
+ * igual que el backend) → crear tickets + las reglas de titular sobre lo suyo.
+ */
+export function buildViewerShell(name: string, email: string): TShellInput {
+  const uuid = crypto.randomUUID();
+  const base = structuredClone(MOCK_SHELLS[EUserRole.VIEWER]);
+  return {
+    ...base,
+    user: { uuid, name, email, role: EUserRole.VIEWER, avatarIcon: null, avatarColor: null },
+    abilityRules: [{ action: EAbility.CREATE, subject: 'Ticket' }, ...titularRules(uuid)],
+  };
+}

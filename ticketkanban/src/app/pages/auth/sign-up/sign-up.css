@@ -1,0 +1,4 @@
+/* Estilos compartidos de las pantallas de acceso: `.auth-*` en styles.css. */
+:host {
+  display: block;
+}
