@@ -179,6 +179,31 @@ services:
     networks:
       - backend
 
+  # ── Auto-update de imágenes (GHCR) ───────────────────────────────────────────────────────────
+  # Vigila SOLO los contenedores con `com.centurylinklabs.watchtower.enable=true` (--label-enable): web y
+  # api lo llevan; db, redis y el stack de Dokploy (traefik, dokploy…) NUNCA, así que jamás los toca.
+  # Cada 5 min compara el digest de `:latest` y recrea web/api si hay imagen nueva (publicada por el
+  # workflow Docker Publish al fusionar a main). Con tags fijos (`sha-abc1234`) no hay nada que actualizar.
+  # `nickfedor/watchtower` es el fork vivo de `containrrr/watchtower` (archivado: su cliente Docker viejo
+  # falla con daemons modernos, igual que en wallet-api).
+  # ⚠ Si wallet-api YA corre su propio Watchtower en este VPS, NO agregues este: el suyo vigila todo el host
+  #   por label y ya cubre a Ticketit. Dos Watchtower se pisan al recrear. (Quita el servicio si es tu caso.)
+  # Las imágenes de GHCR son públicas: no hace falta montar un login. Si las vuelves privadas, monta el
+  # `config.json` del host (`/root/.docker/config.json:/config.json:ro`) como hace wallet-api.
+  watchtower:
+    image: nickfedor/watchtower:latest
+    restart: unless-stopped
+    command: ['--label-enable', '--interval', '300', '--cleanup']
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+    networks:
+      - backend
+
 # ── Docker Secrets: ruta RELATIVA a `../files/secrets/` (Dokploy conserva `files/` entre redeploys) ──
 secrets:
   ticketit_session_secret:

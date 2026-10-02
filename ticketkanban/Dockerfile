@@ -12,7 +12,7 @@ WORKDIR /app
 ENV NG_CLI_ANALYTICS=false CI=true
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
-COPY angular.json tsconfig.json tsconfig.app.json ./
+COPY angular.json tsconfig.json tsconfig.app.json .postcssrc.json ./
 COPY public ./public
 COPY src ./src
 # Configuración `production` (por defecto): `environment.prod.ts` → BFF real en `/api`, sin usuarios de prueba.
