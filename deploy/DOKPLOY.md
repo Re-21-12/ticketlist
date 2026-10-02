@@ -62,8 +62,10 @@ Cópialos al VPS, junto al compose de Dokploy (la carpeta `files/` es la que se 
 
 ```bash
 scp -r deploy/secrets/* root@TU_VPS:/etc/dokploy/compose/<proyecto>/files/secrets/
-ssh root@TU_VPS 'chmod 600 /etc/dokploy/compose/<proyecto>/files/secrets/*'
+ssh root@TU_VPS 'chown 1000:1000 /etc/dokploy/compose/<proyecto>/files/secrets/* && chmod 400 /etc/dokploy/compose/<proyecto>/files/secrets/*'
 ```
+
+> **Dueño `1000:1000` (no root):** la API corre como el usuario `node` (uid 1000) y un secreto de archivo se monta con el dueño y permisos del host. Con `root:root` y `600` el contenedor responde «SESSION_SECRET_FILE … no se puede leer» y no arranca.
 
 > Respalda `ticketit_totp_encryption_key` por separado.
 

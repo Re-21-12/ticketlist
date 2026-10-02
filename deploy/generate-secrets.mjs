@@ -106,5 +106,5 @@ if (printEnv) {
 console.log(`
 Siguiente paso: copia la carpeta al VPS, junto al compose de Dokploy (la carpeta «files» sobrevive a los redeploys):
   scp -r deploy/secrets/* root@TU_VPS:/etc/dokploy/compose/<proyecto>/files/secrets/
-  ssh root@TU_VPS 'chmod 600 /etc/dokploy/compose/<proyecto>/files/secrets/*'
+  ssh root@TU_VPS 'chown 1000:1000 /etc/dokploy/compose/<proyecto>/files/secrets/* && chmod 400 /etc/dokploy/compose/<proyecto>/files/secrets/*'
 Respalda ticketit_totp_encryption_key por separado: si se pierde, los autenticadores ya configurados dejan de servir.`);
