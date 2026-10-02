@@ -9,7 +9,10 @@
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <!-- Aplica el tema guardado ANTES de que Angular arranque (sin destello del tema equivocado).
        Misma clave y clase que core/theme/theme.constants.ts (THEME_STORAGE_KEY / DARK_MODE_CLASS). -->
+  <!-- Zod prueba `new Function` al cargar; el CSP de producción (sin 'unsafe-eval') lo bloquea y la consola avisa aunque
+       siga funcionando. `jitless` evita la prueba. Zod lee esta clave global; va antes de que cargue la app (sin importar zod aquí). -->
   <script>
+    globalThis.__zod_globalConfig = { jitless: true };
     (function () {
       try {
         var stored = localStorage.getItem('ticketit_theme');
