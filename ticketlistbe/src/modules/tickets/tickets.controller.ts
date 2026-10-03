@@ -19,6 +19,7 @@ import {
   ApiZodQuery,
   ApiZodResponse,
 } from '../../core/decorators/api-zod.decorator.js';
+import { RequestContext } from '../../core/context/request-context.js';
 import { UuidParamDto } from '../../core/dtos/uuid-param.dto.js';
 import type { IPaginatedResult } from '../../core/interfaces/Ipaginated-result.interface.js';
 import { EAbility } from '../auth/casl/ability.enum.js';
@@ -65,8 +66,10 @@ export class TicketsController extends BaseController<
   @ApiProblemResponse(...E401)
   @ApiProblemResponse(...E403)
   override findAll(@Query() query: TicketQueryDto): Promise<IPaginatedResult<TTicketResponse>> {
-    const { status, priority, type, category, department, ...pagination } = query;
+    const { status, priority, type, category, department, mine, ...pagination } = query;
+    const me = RequestContext.currentUser();
     return this.service.findAll(pagination, {
+      ...(mine && me ? { ownerUuid: me.uuid } : {}),
       ...(status ? { status } : {}),
       ...(priority ? { priority } : {}),
       ...(type ? { type } : {}),

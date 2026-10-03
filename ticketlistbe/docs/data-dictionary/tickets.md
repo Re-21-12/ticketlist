@@ -59,7 +59,7 @@ Reglas de métricas y SLA: [metrics.md](../standard/metrics.md).
 
 | Recurso | Qué es | Endpoints |
 |---|---|---|
-| `ticket_events` | Historial **inmutable**: creación, asignaciones, cambios de estado, comentarios, encuesta. Solo se agrega | `GET /api/tickets/:uuid/events` |
+| `ticket_events` | Historial **inmutable**: creación, asignaciones, cambios de estado, comentarios, encuesta y los avisos enviados al solicitante (`NOTIFIED`, CU01). Solo se agrega | `GET /api/tickets/:uuid/events` |
 | Comentarios | Evento `COMMENT_PUBLIC` (lo ve el solicitante) o `COMMENT_INTERNAL` (nota del equipo). **No se editan ni se borran** (409 `STCK-E002`); la corrección es otro comentario. Un ticket cerrado no admite comentarios | `POST /:uuid/comments` |
 | Adjuntos | Evidencia: imagen (PNG/JPEG/GIF/WebP), PDF o texto, ≤ 5 MB, ≤ 5 por comentario. El tipo se detecta por la FIRMA del contenido, no por el nombre; se descarga siempre como adjunto con `nosniff` y `no-store` | `POST /:uuid/attachments`, `GET /:uuid/attachments/:id` |
 | `ticket_surveys` | Encuesta CSAT: una por ticket, enviada al cerrar (correo + aviso), vigente 7 días, sin recordatorios; 1–5 y comentario opcional | `GET`/`POST /:uuid/survey` (solo el solicitante) |

@@ -14,6 +14,7 @@ quede desactualizado.
 | [standard/http-caching.md](standard/http-caching.md) | `Cache-Control`, ETag, 304 y concurrencia optimista (412) | A mano; e2e «Caché y concurrencia» |
 | [standard/metrics.md](standard/metrics.md) | FCR, SLA (primera respuesta y resolución por criticidad) y CSAT: metas, fórmulas exactas, eventos de origen, supuestos y plan | A mano; las pruebas del módulo `metrics` (pendiente) fijarán cada fórmula |
 | [standard/persistence.md](standard/persistence.md) | Persistencia con TypeORM + Postgres: modelo (lecturas en memoria, escritura en cola), tablas, migraciones, semillas idempotentes, comandos | A mano; `persistence.e2e-spec.ts` (`bun run test:pg`) |
+| [standard/notifications.md](standard/notifications.md) | CU01: «Mis tickets», aviso automático al solicitante en cada cambio de estado, evento `NOTIFIED` en el historial y tiempo real por SSE (`/api/notifications/stream`) | A mano; `ticket-notifications.e2e-spec.ts` |
 | [standard/authorization.md](standard/authorization.md) | RBAC + ABAC + ReBAC (titular / alternante), techo por rol, notificaciones | A mano; e2e «RBAC» y «Titular / Alternante» |
 | [design/auth-flows.md](design/auth-flows.md) | Verificación de correo, recuperación, TOTP, códigos de respaldo, WebAuthn, sesiones y rate limiting, con diagramas | A mano; se actualiza con cada flujo implementado |
 | [design/web-push-pwa.md](design/web-push-pwa.md) | SSE, Web Push y PWA: cómo funciona cada pieza y qué se agrega | A mano |

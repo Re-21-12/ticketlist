@@ -1,0 +1,187 @@
+<header class="mt-header page-header-art">
+  <div>
+    <h1 class="mt-title">Mis tickets</h1>
+    <p class="mt-subtitle">
+      Tus solicitudes con su estado actual. Cuando el equipo cambia algo, te avisamos aquí y en la campana.
+    </p>
+  </div>
+  <app-illustration class="page-art" [$name]="'tickets'" />
+</header>
+
+<div class="mt-toolbar">
+  @let sync = syncMeta[_store.$syncState()];
+  <app-badge [$label]="sync.label" [$icon]="sync.icon" [$severity]="sync.severity" />
+  <button type="button" pButton severity="secondary" [outlined]="true" size="small" (click)="_store.reload()">
+    <i pButtonIcon class="pi pi-refresh" aria-hidden="true"></i>
+    <span pButtonLabel>Actualizar</span>
+  </button>
+</div>
+
+<!-- A2: sin conexión en vivo (o la lista falló): se avisa y se permite actualizar a mano. -->
+@if (_store.$syncAlert()) {
+  <div class="mt-alert" role="alert">
+    <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+    <p>
+      No se pudo sincronizar en tiempo real. Los estados que ves pueden estar desactualizados hasta que vuelvas a conectar.
+    </p>
+    <button type="button" pButton size="small" (click)="_store.retryConnection()">
+      <i pButtonIcon class="pi pi-refresh" aria-hidden="true"></i>
+      <span pButtonLabel>Actualizar ahora</span>
+    </button>
+  </div>
+}
+
+@let list = _store.$listState();
+@switch (list.kind) {
+  @case ('loading') {
+    <p class="mt-muted" role="status" aria-live="polite">Cargando tus tickets…</p>
+  }
+  @case ('error') {
+    <p class="mt-muted" role="status">No se pudieron cargar tus tickets. Usa «Actualizar ahora» para reintentar.</p>
+  }
+  @case ('success') {
+    @if (list.data.data.length === 0) {
+      <!-- A1: sin solicitudes. -->
+      <section class="mt-empty" aria-labelledby="mt-empty-title">
+        <app-illustration class="mt-empty-art" [$name]="'empty'" />
+        <h2 id="mt-empty-title" class="mt-empty-title">No tienes solicitudes activas</h2>
+        <p class="mt-muted">Cuando registres un ticket lo verás aquí con su estado y su historial.</p>
+        @if (('create' | can: 'Ticket')()) {
+          <a pButton routerLink="/tickets/new">
+            <i pButtonIcon class="pi pi-plus" aria-hidden="true"></i>
+            <span pButtonLabel>Crear un ticket</span>
+          </a>
+        }
+      </section>
+    } @else {
+      <div class="mt-layout">
+        <nav class="mt-list-wrap" aria-label="Mis tickets">
+          <ul class="mt-list">
+            @for (ticket of list.data.data; track ticket.uuid) {
+              <li>
+                <a
+                  class="mt-item"
+                  [class.mt-item--active]="_store.$selectedUuid() === ticket.uuid"
+                  [routerLink]="[]"
+                  [queryParams]="{ ticket: ticket.uuid }"
+                  [attr.aria-current]="_store.$selectedUuid() === ticket.uuid ? 'true' : null"
+                >
+                  <span class="mt-item-top">
+                    <span class="mt-item-code">{{ ticket.code }}</span>
+                    @if (_store.$statusByCode()[ticket.status]; as status) {
+                      <app-badge [$label]="status.label" [$icon]="status.icon" [$severity]="status.severity" />
+                    }
+                  </span>
+                  <span class="mt-item-title">{{ ticket.title }}</span>
+                  <span class="mt-item-meta">
+                    {{ ticket.assigneeName ? 'Atiende: ' + ticket.assigneeName : 'Sin responsable todavía' }}
+                  </span>
+                </a>
+              </li>
+            }
+          </ul>
+        </nav>
+
+        <section class="mt-detail" aria-labelledby="mt-detail-title" aria-live="polite">
+          @if (_store.$selected(); as ticket) {
+            <header class="mt-detail-head">
+              <div>
+                <p class="mt-item-code">{{ ticket.code }}</p>
+                <h2 id="mt-detail-title" class="mt-detail-title">{{ ticket.title }}</h2>
+              </div>
+              <div class="mt-detail-badges">
+                @if (_store.$statusByCode()[ticket.status]; as status) {
+                  <app-badge [$label]="status.label" [$icon]="status.icon" [$severity]="status.severity" />
+                }
+                @if (_store.$priorityByCode()[ticket.priority]; as priority) {
+                  <app-badge [$label]="'Urgencia: ' + priority.label" [$icon]="priority.icon" [$severity]="priority.severity" />
+                }
+                @if (ticket.status !== 'closed' && ticket.status !== 'resolved') {
+                  @let sla = slaMeta[ticket.sla.resolutionStatus];
+                  @if (sla) {
+                    <app-badge [$label]="sla.label" [$icon]="sla.icon" [$severity]="sla.severity" />
+                  }
+                }
+              </div>
+            </header>
+
+            <dl class="mt-facts">
+              <div><dt>Registrado</dt><dd>{{ ticket.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+              <div><dt>Atiende</dt><dd>{{ ticket.assigneeName ?? 'Sin responsable todavía' }}</dd></div>
+              @if (ticket.sla.resolutionDueAt && ticket.status !== 'closed' && ticket.status !== 'resolved') {
+                <div><dt>Resolver antes de</dt><dd>{{ ticket.sla.resolutionDueAt | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+              }
+            </dl>
+
+            @if (ticket.resolution) {
+              <p class="mt-resolution"><strong>Solución:</strong> {{ ticket.resolution }}</p>
+            }
+
+            <h3 class="mt-h3">Historial de interacciones</h3>
+            @let events = _store.$eventsState();
+            @switch (events.kind) {
+              @case ('loading') {
+                <p class="mt-muted" role="status" aria-live="polite">Cargando el historial…</p>
+              }
+              @case ('error') {
+                <p class="mt-muted" role="status">No se pudo cargar el historial. Usa «Actualizar».</p>
+              }
+              @case ('success') {
+                <ol class="mt-timeline">
+                  @for (event of $timeline(); track event.uuid) {
+                    <li class="mt-event" [class.mt-event--notice]="event.type === 'NOTIFIED'">
+                      <i [class]="'pi ' + event.meta.icon + ' mt-event-icon'" aria-hidden="true"></i>
+                      <div class="mt-event-body">
+                        <p class="mt-event-title">
+                          {{ event.meta.title }}
+                          <span class="mt-event-actor">· {{ event.actorName }}</span>
+                        </p>
+                        @if (event.type === 'STATUS_CHANGED' && event.toLabel) {
+                          <p class="mt-event-text">
+                            @if (event.fromLabel) { {{ event.fromLabel }} → }{{ event.toLabel }}
+                          </p>
+                        }
+                        @if (event.type === 'ASSIGNED' && event.assignee) {
+                          <p class="mt-event-text">{{ event.assignee }}</p>
+                        }
+                        @if (event.body) {
+                          <p class="mt-event-text">{{ event.body }}</p>
+                        }
+                        <time class="mt-event-date" [attr.datetime]="event.at.toISOString()">{{ event.at | date: 'dd/MM/yyyy HH:mm' }}</time>
+                      </div>
+                    </li>
+                  }
+                </ol>
+              }
+            }
+
+            @if ($canComment()) {
+              <form class="mt-comment" (submit)="$event.preventDefault(); send()">
+                <label class="mt-comment-label" for="mt-comment">Agregar un comentario</label>
+                <textarea
+                  id="mt-comment"
+                  class="mt-comment-input"
+                  rows="3"
+                  [attr.maxlength]="commentMax"
+                  [value]="$draft()"
+                  [attr.aria-invalid]="$draftError() ? 'true' : null"
+                  [attr.aria-describedby]="$draftError() ? 'mt-comment-error' : null"
+                  (input)="setDraft($event)"
+                ></textarea>
+                <p id="mt-comment-error" class="mt-comment-error" role="alert">{{ $draftError() }}</p>
+                <button type="submit" pButton size="small" [disabled]="_store.$sending()">
+                  <i pButtonIcon class="pi pi-send" aria-hidden="true"></i>
+                  <span pButtonLabel>{{ _store.$sending() ? 'Enviando…' : 'Enviar comentario' }}</span>
+                </button>
+              </form>
+            } @else {
+              <p class="mt-muted">Este ticket está cerrado: ya no admite comentarios.</p>
+            }
+          } @else {
+            <p class="mt-muted" role="status">Elige un ticket de la lista para ver su detalle y su historial.</p>
+          }
+        </section>
+      </div>
+    }
+  }
+}

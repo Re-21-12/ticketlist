@@ -162,13 +162,7 @@ export class TicketLifecycleService {
       resourceType: 'Ticket',
       resourceUuid: ticket.uuid,
     });
-    this.notifications.notify({
-      recipientUuid: ticket.ownerUuid,
-      type: 'TICKET_STATUS_CHANGED',
-      message: `${assignee.name} atenderá tu solicitud ${ticket.code}`,
-      resourceType: 'Ticket',
-      resourceUuid: ticket.uuid,
-    });
+    this.notifyRequester(updated, `${assignee.name} atenderá tu solicitud ${ticket.code}`);
     return this.ticketsService.findOneByUuid(uuid);
   }
 
@@ -253,8 +247,7 @@ export class TicketLifecycleService {
   private notifyAboutStatus(ticket: TicketEntity, from: TTicketStatus, to: TTicketStatus, actor: TTransitionActor, user: ISessionUser | null): void {
     const assignee = ticket.assigneeEmail ? this.usersRepository.findByEmail(ticket.assigneeEmail) : null;
     const base = { resourceType: 'Ticket' as const, resourceUuid: ticket.uuid };
-    const toRequester = (message: string): void =>
-      this.notifications.notify({ recipientUuid: ticket.ownerUuid, type: 'TICKET_STATUS_CHANGED', message, ...base });
+    const toRequester = (message: string): void => this.notifyRequester(ticket, message);
 
     switch (to) {
       case 'in_progress':
@@ -293,6 +286,33 @@ export class TicketLifecycleService {
         break;
     }
     void from;
+  }
+
+  /**
+   * Avisa al SOLICITANTE de un cambio de estado (CU01): bandeja + tiempo real (SSE) y correo, y deja constancia en el
+   * historial del ticket (evento `NOTIFIED`, postcondición del caso de uso). Si quien hace el cambio es el propio
+   * solicitante nadie se notifica a sí mismo y no se registra nada. El correo es de mejor esfuerzo (sin SMTP solo se loguea).
+   */
+  private notifyRequester(ticket: TicketEntity, message: string): void {
+    const sent = this.notifications.notify({
+      recipientUuid: ticket.ownerUuid,
+      type: 'TICKET_STATUS_CHANGED',
+      message,
+      resourceType: 'Ticket',
+      resourceUuid: ticket.uuid,
+    });
+    if (!sent) return;
+    this.history.record({ ticket, type: 'NOTIFIED', actor: 'system', actorUser: null, body: message });
+    const requester = this.usersRepository.findAdminByUuid(ticket.ownerUuid);
+    if (!requester) return;
+    void this.mail
+      .send({
+        to: requester.email,
+        subject: `${ticket.code} · cambió el estado de tu solicitud`,
+        text: `${message}. Puedes ver el detalle y el historial en «Mis tickets».`,
+        link: `${this.env.APP_URL}/my-tickets?ticket=${ticket.uuid}`,
+      })
+      .catch(() => undefined);
   }
 
   private notifyAboutComment(ticket: TicketEntity, user: ISessionUser, actor: TTransitionActor): void {

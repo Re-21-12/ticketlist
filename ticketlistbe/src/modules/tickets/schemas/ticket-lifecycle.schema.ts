@@ -55,7 +55,7 @@ export const AttachmentRefSchema = z.object({
 /** Un renglón del historial tal como lo ve quien consulta (las notas internas ya vienen filtradas). */
 export const TicketEventResponseSchema = z.object({
   uuid: z.uuid(),
-  type: z.enum(['CREATED', 'ASSIGNED', 'STATUS_CHANGED', 'COMMENT_PUBLIC', 'COMMENT_INTERNAL', 'SURVEY_SENT', 'SURVEY_ANSWERED']),
+  type: z.enum(['CREATED', 'ASSIGNED', 'STATUS_CHANGED', 'COMMENT_PUBLIC', 'COMMENT_INTERNAL', 'SURVEY_SENT', 'SURVEY_ANSWERED', 'NOTIFIED']),
   at: z.iso.datetime(),
   visibility: z.enum(['public', 'internal']),
   actor: z.enum(['customer', 'staff', 'system']),

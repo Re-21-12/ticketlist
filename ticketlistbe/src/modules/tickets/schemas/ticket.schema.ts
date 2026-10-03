@@ -139,4 +139,6 @@ export const TicketFilterSchema = z.object({
   type: z.enum(TICKET_TYPE).optional(),
   category: z.enum(TICKET_CATEGORY).optional(),
   department: z.string().trim().min(1).max(40).optional(),
+  /** `true`: solo los tickets que registró quien consulta («Mis tickets», CU01). */
+  mine: z.enum(['true']).optional(),
 });

@@ -35,3 +35,7 @@ omite al propio actor). El destinatario solo puede listarlos y marcarlos como le
 ## Tipos
 
 Ver [authorization.md §4](../standard/authorization.md#4-notificaciones-in-app).
+
+## Tiempo real (SSE)
+
+`GET /api/notifications/stream` entrega cada notificación NUEVA del usuario de la sesión como evento `notification` (más un `ping` cada 25 s). Detalle, límites (una sola réplica) y reconexión en [standard/notifications.md](../standard/notifications.md).

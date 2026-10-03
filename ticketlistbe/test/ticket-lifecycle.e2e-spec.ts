@@ -89,7 +89,8 @@ describe('Ciclo de vida del ticket (e2e)', () => {
       expect((await move(ana, uuid, 'in_progress').expect(403)).body.code).toBe('SAUT-E001');
       const assigned = await post(sergio, `/api/tickets/${uuid}/assign`, { assigneeEmail: 'ana@ticketit.dev' }).expect(200);
       expect(assigned.body).toMatchObject({ status: 'assigned', assigneeName: 'Ana Agente' });
-      expect((await events(sergio, uuid)).map((e) => e.type)).toEqual(['CREATED', 'STATUS_CHANGED', 'ASSIGNED']);
+      // Además queda constancia del aviso al solicitante (CU01): evento NOTIFIED.
+      expect((await events(sergio, uuid)).map((e) => e.type)).toEqual(['CREATED', 'STATUS_CHANGED', 'ASSIGNED', 'NOTIFIED']);
       expect((await notificationsOf(ana)).some((n) => n.type === 'TICKET_ASSIGNED')).toBe(true);
       expect((await notificationsOf(victor)).some((n) => n.type === 'TICKET_STATUS_CHANGED' && n.message.includes('Ana Agente'))).toBe(true);
       await move(ana, uuid, 'in_progress').expect(200);
@@ -124,7 +125,8 @@ describe('Ciclo de vida del ticket (e2e)', () => {
       await post(victor, `/api/tickets/${uuid}/comments`, { body: 'Gracias, quedo atento.' }).expect(201);
 
       const asCustomer = await events(victor, uuid);
-      expect(asCustomer.map((e) => e.body).filter(Boolean)).toEqual(['Ya lo reviso.', 'Gracias, quedo atento.']);
+      // Los avisos al solicitante (NOTIFIED) también llevan texto: aquí solo importan los comentarios.
+      expect(asCustomer.filter((e) => e.type.startsWith('COMMENT')).map((e) => e.body)).toEqual(['Ya lo reviso.', 'Gracias, quedo atento.']);
       expect(asCustomer.some((e) => e.visibility === 'internal')).toBe(false);
       const asAgent = await events(ana, uuid);
       expect(asAgent.some((e) => e.body === 'Parece el certificado.')).toBe(true);
@@ -201,7 +203,10 @@ describe('Ciclo de vida del ticket (e2e)', () => {
       const closed = await move(victor, uuid, 'closed').expect(200);
       expect(closed.body.status).toBe('closed');
       expect(closed.body.closedAt).not.toBeNull();
-      expect((await events(victor, uuid)).map((e) => e.type)).toEqual(['CREATED', 'STATUS_CHANGED', 'ASSIGNED', 'COMMENT_PUBLIC', 'STATUS_CHANGED', 'STATUS_CHANGED', 'SURVEY_SENT']);
+      // Los avisos al solicitante (NOTIFIED, CU01) se intercalan; el resto del rastro es el de siempre.
+      const trail = (await events(victor, uuid)).map((e) => e.type);
+      expect(trail.filter((type) => type !== 'NOTIFIED')).toEqual(['CREATED', 'STATUS_CHANGED', 'ASSIGNED', 'COMMENT_PUBLIC', 'STATUS_CHANGED', 'STATUS_CHANGED', 'SURVEY_SENT']);
+      expect(trail).toContain('NOTIFIED');
       expect((await victor.agent.get(`/api/tickets/${uuid}/survey`).expect(200)).body.state).toBe('pending');
       // Quien cierra está en pantalla: nadie se notifica a sí mismo (la encuesta le llega por correo y en la propia vista).
       expect((await notificationsOf(ana)).some((n) => n.message.includes('confirmó el cierre'))).toBe(true);

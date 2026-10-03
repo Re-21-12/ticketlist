@@ -14,7 +14,9 @@ export type TTicketEventType =
   | 'COMMENT_PUBLIC'
   | 'COMMENT_INTERNAL'
   | 'SURVEY_SENT'
-  | 'SURVEY_ANSWERED';
+  | 'SURVEY_ANSWERED'
+  /** Se avisó al solicitante de un cambio (CU01: las notificaciones quedan en el historial del ticket). */
+  | 'NOTIFIED';
 
 export interface ITicketEventFact {
   readonly type: TTicketEventType;

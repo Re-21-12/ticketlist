@@ -8,6 +8,8 @@ type TSeed = Pick<MenuItemEntity, 'key' | 'label' | 'route' | 'group' | 'icon' |
  * el front (`subject` + `requiredAction`); aquí solo se describe el catálogo.
  */
 const SEED: TSeed[] = [
+  // «Mis tickets» (CU01): lo que registraste, con su estado actual, historial y avisos en tiempo real.
+  { key: 'my-tickets', label: 'Mis tickets', route: '/my-tickets', group: 'Tickets', icon: 'pi-inbox', subject: 'Ticket', requiredAction: null, order: 5 },
   { key: 'board', label: 'Tablero', route: '/tickets', group: 'Tickets', icon: 'pi-th-large', subject: 'Ticket', requiredAction: null, order: 10 },
   { key: 'list', label: 'Listado', route: '/tickets/list', group: 'Tickets', icon: 'pi-list', subject: 'Ticket', requiredAction: null, order: 20 },
   { key: 'new-ticket', label: 'Nuevo ticket', route: '/tickets/new', group: 'Tickets', icon: 'pi-plus', subject: 'Ticket', requiredAction: EAbility.CREATE, order: 30 },

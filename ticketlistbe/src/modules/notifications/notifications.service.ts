@@ -5,6 +5,7 @@ import { ERROR_CODES } from '../../common/codes/error-codes.js';
 import { RequestContext } from '../../core/context/request-context.js';
 import { CustomBusinessException } from '../../core/exceptions/app.exception.js';
 import { NotificationEntity } from './notification.entity.js';
+import { NotificationStreamService } from './notification-stream.service.js';
 import { NotificationsRepository } from './notifications.repository.js';
 import {
   NotificationResponseSchema,
@@ -27,12 +28,18 @@ type TNewNotification = Pick<
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private readonly repository: NotificationsRepository) {}
+  constructor(
+    private readonly repository: NotificationsRepository,
+    private readonly stream: NotificationStreamService,
+  ) {}
 
-  /** Nunca lanza: una falla al notificar no debe revertir la operación de negocio. */
-  notify(notification: TNewNotification): void {
+  /**
+   * Nunca lanza: una falla al notificar no debe revertir la operación de negocio. Devuelve si SE ENVIÓ (nadie se
+   * notifica a sí mismo): quien la llama la deja también en el historial del ticket (CU01, postcondición).
+   */
+  notify(notification: TNewNotification): boolean {
     const actor = RequestContext.currentUser()?.uuid ?? 'system';
-    if (notification.recipientUuid === actor) return; // nadie se notifica a sí mismo
+    if (notification.recipientUuid === actor) return false; // nadie se notifica a sí mismo
     const entity = Object.assign(new NotificationEntity(), notification, {
       uuid: randomUUID(),
       readAt: null,
@@ -48,7 +55,10 @@ export class NotificationsService {
     });
     this.repository
       .create(entity)
+      // Ya guardada: se empuja en tiempo real a quien tenga el stream abierto.
+      .then((saved) => this.stream.publish(saved.recipientUuid, this.toResponse(saved)))
       .catch((error: unknown) => this.logger.error('No se pudo crear la notificación', error));
+    return true;
   }
 
   listMine(): z.output<typeof NotificationListSchema> {

@@ -7,8 +7,8 @@ import type { TNotification } from '../../../pages/profile/profile.types';
 export const NOTIFICATION_ROUTES: Record<TNotification['type'], { path: string; query?: Record<string, string> }> = {
   TICKET_ASSIGNED: { path: '/tickets' },
   TICKET_CHANGED_BY_ALTERNANTE: { path: '/tickets' },
-  TICKET_STATUS_CHANGED: { path: '/tickets' },
-  TICKET_COMMENTED: { path: '/tickets' },
+  TICKET_STATUS_CHANGED: { path: '/my-tickets' },
+  TICKET_COMMENTED: { path: '/my-tickets' },
   TICKET_REOPENED: { path: '/tickets' },
   TICKET_SURVEY_ALERT: { path: '/tickets' },
   TICKET_SURVEY: { path: '/profile', query: { tab: 'notifications' } },
@@ -22,3 +22,9 @@ export const INBOX_LIMIT = 5;
 
 /** Cada cuánto se consulta si hay notificaciones nuevas (el backend no tiene tiempo real). */
 export const INBOX_POLL_MS = 60_000;
+
+/**
+ * Avisos que le llegan al SOLICITANTE (CU01): abren «Mis tickets» con ese ticket elegido (`?ticket=<uuid>`). Quien
+ * es del equipo recibe los mismos tipos como responsable, y para él el ticket vive en el tablero.
+ */
+export const REQUESTER_TICKET_TYPES: ReadonlySet<TNotification['type']> = new Set(['TICKET_STATUS_CHANGED', 'TICKET_COMMENTED']);

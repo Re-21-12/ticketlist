@@ -10,6 +10,7 @@ import { Reflector } from '@nestjs/core';
 import type { Request, Response } from 'express';
 import { map, type Observable } from 'rxjs';
 import { CACHE_TTL_KEY } from '../decorators/cache-ttl.decorator.js';
+import { NO_HTTP_CACHE_KEY } from '../decorators/no-http-cache.decorator.js';
 import { buildEtag, etagMatches } from '../utils/etag.util.js';
 
 /**
@@ -35,6 +36,13 @@ export class HttpCacheInterceptor implements NestInterceptor {
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       response.setHeader('Cache-Control', 'no-store');
+      return next.handle();
+    }
+
+    // Un stream (SSE) no se cachea ni se valida: solo `no-store` y sin buffering del proxy.
+    if (this.reflector.getAllAndOverride<boolean | undefined>(NO_HTTP_CACHE_KEY, [context.getHandler(), context.getClass()])) {
+      response.setHeader('Cache-Control', 'no-store');
+      response.setHeader('X-Accel-Buffering', 'no');
       return next.handle();
     }
 

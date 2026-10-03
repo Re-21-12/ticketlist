@@ -20,6 +20,8 @@ import { AVATAR_COLORS, AVATAR_ICONS } from '../ui/user-avatar/avatar.const';
 import { buildShell, handleAdmin, isActiveCatalogCode, recordAudit, resetAdminState, type IMockHelpers } from './mock-bff.admin';
 import { buildViewerShell, MOCK_SHELLS, MOCK_TICKETS, type IMockTicket } from './mock-bff.data';
 import { mockAgentDetail, mockAgentsResponse, mockProblems, mockSummaryResponse, type IMockMetricsInput } from './mock-metrics';
+import { mockRealtime$ } from './mock-realtime';
+import { requesterMessage, type IMockEvent } from './mock-ticket-events';
 import { MOCK_TRANSITIONS, mockActorsFor, mockIsTeamFor, mockNextStatuses, REOPEN_WINDOW_MS, type IMockViewer, type TMockActor } from './mock-ticket-lifecycle';
 
 const LATENCY_MS = 500;
@@ -33,6 +35,8 @@ const STATUS_GROUPS = {
 const TICKET_ITEM = /^\/api\/tickets\/([\w-]+)(\/restore)?$/;
 const TICKET_TRANSITION = /^\/api\/tickets\/([\w-]+)\/transitions$/;
 const TICKET_SURVEY = /^\/api\/tickets\/([\w-]+)\/survey$/;
+const TICKET_EVENTS = /^\/api\/tickets\/([\w-]+)\/events$/;
+const TICKET_COMMENTS = /^\/api\/tickets\/([\w-]+)\/comments$/;
 
 /** Estado en memoria del mock (se reinicia al recargar la página). */
 type TStoredTicket = IMockTicket;
@@ -98,6 +102,8 @@ const db: {
   notifications: IMockNotification[];
   /** Encuestas respondidas por ticket. */
   surveys: Map<string, { score: number; comment: string | null }>;
+  /** Historial de cada ticket (CU01): se siembra al consultarlo y crece con cada cambio. */
+  events: IMockEvent[];
 } = {
   tickets: [...MOCK_TICKETS],
   session: null,
@@ -106,6 +112,7 @@ const db: {
   sessions: [],
   notifications: [],
   surveys: new Map(),
+  events: [],
 };
 
 /** Vuelve el mock a su estado inicial. Lo usan los tests: el estado es del módulo y persistiría entre ellos. */
@@ -117,6 +124,7 @@ export function resetMockBff(): void {
   db.sessions = [];
   db.notifications = [];
   db.surveys = new Map();
+  db.events = [];
   resetAdminState();
 }
 
@@ -131,12 +139,17 @@ interface IMockSession {
 }
 interface IMockNotification {
   uuid: string;
+  /** Quién la recibe; sin él, la ve cualquier sesión (las de demostración). */
+  recipientUuid?: string;
   type:
     | 'TICKET_ASSIGNED'
     | 'TICKET_CHANGED_BY_ALTERNANTE'
     | 'RELATIONSHIP_GRANTED'
     | 'RELATIONSHIP_REVOKED'
     | 'TICKET_SURVEY'
+    | 'TICKET_STATUS_CHANGED'
+    | 'TICKET_COMMENTED'
+    | 'TICKET_REOPENED'
     | 'ACCOUNT_LOCKED';
   message: string;
   resourceType: 'Ticket' | 'Relationship' | null;
@@ -219,6 +232,10 @@ function dispatch(req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> 
   if (transition && req.method === 'POST') return transitionTicket(req, transition[1] as string);
   const survey = TICKET_SURVEY.exec(url.pathname);
   if (survey) return handleSurvey(req, survey[1] as string);
+  const eventsMatch = TICKET_EVENTS.exec(url.pathname);
+  if (eventsMatch && req.method === 'GET') return listTicketEvents(req, eventsMatch[1] as string);
+  const commentsMatch = TICKET_COMMENTS.exec(url.pathname);
+  if (commentsMatch && req.method === 'POST') return postComment(req, commentsMatch[1] as string);
   const match = TICKET_ITEM.exec(url.pathname);
   if (match) return ticketItem(req, match[1], !!match[2]);
 
@@ -246,7 +263,8 @@ function signIn(req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> {
   if (!user.verified) return fail(req, 403, 'SAUT-E008', 'Verifica tu correo antes de iniciar sesión');
   db.session = buildShell(user.shell.user);
   db.sessions = seedSessions();
-  db.notifications = seedNotifications();
+  // Los avisos de demostración se reinician; los generados por cambios de tickets (con destinatario) se conservan.
+  db.notifications = [...seedNotifications(), ...db.notifications.filter((n) => n.recipientUuid)];
   return ok(db.session);
 }
 
@@ -446,7 +464,8 @@ function handleProfile(req: HttpRequest<unknown>, url: URL): Observable<HttpResp
   if (req.method === 'GET' && pathname === '/api/users/assignable') return ok({ data: MOCK_ASSIGNABLE });
 
   if (req.method === 'GET' && pathname === '/api/notifications') {
-    const data = [...db.notifications, ...derivedNotifications(session.user.uuid)];
+    const mine = db.notifications.filter((n) => !n.recipientUuid || n.recipientUuid === session.user.uuid);
+    const data = [...mine, ...derivedNotifications(session.user.uuid)].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return ok({ data, unread: data.filter((n) => !n.readAt).length });
   }
   const readMatch = NOTIFICATION_READ.exec(pathname);
@@ -690,8 +709,11 @@ function listTickets(url: URL): Observable<HttpResponse<unknown>> {
   const search = (url.searchParams.get('search') ?? '').toLowerCase();
   // Mismos filtros que `GET /api/tickets` del backend.
   const only = (key: 'status' | 'priority' | 'type' | 'category' | 'department') => url.searchParams.get(key);
+  // «Mis tickets» (CU01): solo los que registró quien consulta.
+  const mine = url.searchParams.get('mine') === 'true' ? db.session?.user.uuid : null;
   const matches = visibleTickets().filter(
     (t) =>
+      (!mine || t.ownerUuid === mine) &&
       (!search || [t.code, t.title, t.assigneeEmail].some((v) => String(v ?? '').toLowerCase().includes(search))) &&
       (['status', 'priority', 'type', 'category', 'department'] as const).every((key) => !only(key) || t[key] === only(key)),
   );
@@ -732,6 +754,7 @@ function createTicket(req: HttpRequest<unknown>): Observable<HttpResponse<unknow
     createdAt: new Date().toISOString(),
   };
   db.tickets = [...db.tickets, ticket];
+  recordEvent(ticket, { type: 'CREATED', actor: 'customer' });
   return ok(present(ticket), 201);
 }
 
@@ -779,6 +802,7 @@ function ticketItem(
       attendedSince: status === 'assigned' && current.status !== 'assigned' ? new Date().toISOString() : current.attendedSince,
     };
     db.tickets = db.tickets.map((t) => (t.uuid === uuid ? updated : t));
+    if (updated.assigneeEmail && updated.assigneeEmail !== current.assigneeEmail) onAssigned(current, updated);
     return ok(present(updated));
   }
   if (req.method === 'DELETE') {
@@ -816,7 +840,107 @@ function transitionTicket(req: HttpRequest<unknown>, uuid: string): Observable<H
     ...(to === 'assigned' || to === 'in_progress' ? { attendedSince: now } : {}),
   };
   db.tickets = db.tickets.map((t) => (t.uuid === uuid ? updated : t));
+  recordEvent(updated, { type: 'STATUS_CHANGED', actor: actor === 'customer' ? 'customer' : actor === 'system' ? 'system' : 'staff', from: current.status, to, body: parsed.data.note ?? parsed.data.resolution ?? null });
+  const message = requesterMessage(updated.code, to, { teamActor: actor === 'agent' || actor === 'supervisor' || actor === 'admin', system: actor === 'system' });
+  if (message) notifyRequester(updated, message);
   return ok(present(updated));
+}
+
+// ── Historial y avisos del ticket (CU01) ──────────────────────────────────────────────────────────
+// Los eventos se siembran al consultarlos (los tres tickets de siempre no traen historial) y crecen con cada cambio.
+type TEventInput = { type: IMockEvent['type']; actor: IMockEvent['actor']; from?: IMockEvent['from']; to?: IMockEvent['to']; body?: string | null; assignee?: string | null; visibility?: IMockEvent['visibility']; at?: string };
+
+function recordEvent(ticket: TStoredTicket, input: TEventInput): IMockEvent {
+  const sessionUser = db.session?.user;
+  const event: IMockEvent = {
+    uuid: crypto.randomUUID(),
+    ticketUuid: ticket.uuid,
+    type: input.type,
+    at: input.at ?? new Date().toISOString(),
+    visibility: input.visibility ?? 'public',
+    actor: input.actor,
+    actorName: input.actor === 'system' ? 'Sistema' : (sessionUser?.name ?? 'Sistema'),
+    from: input.from ?? null,
+    to: input.to ?? null,
+    body: input.body ?? null,
+    attachments: [],
+    assignee: input.assignee ?? null,
+  };
+  db.events = [...db.events, event];
+  return event;
+}
+
+function eventsOfTicket(ticket: TStoredTicket): IMockEvent[] {
+  if (!db.events.some((e) => e.ticketUuid === ticket.uuid)) {
+    const owner = db.users.find((u) => u.shell.user.uuid === ticket.ownerUuid)?.name ?? 'Cuenta desconocida';
+    const seed = (e: Omit<IMockEvent, 'uuid' | 'ticketUuid' | 'attachments' | 'visibility' | 'from' | 'to' | 'body' | 'assignee'> & Partial<IMockEvent>): IMockEvent => ({ uuid: crypto.randomUUID(), ticketUuid: ticket.uuid, attachments: [], visibility: 'public', from: null, to: null, body: null, assignee: null, ...e });
+    const seeded: IMockEvent[] = [seed({ type: 'CREATED', actor: 'customer', actorName: owner, at: ticket.createdAt })];
+    if (ticket.assigneeEmail) seeded.push(seed({ type: 'ASSIGNED', actor: 'staff', actorName: 'Supervisor', at: ticket.attendedSince ?? ticket.createdAt, assignee: ticket.assigneeEmail }));
+    if (ticket.status === 'in_progress') seeded.push(seed({ type: 'STATUS_CHANGED', actor: 'staff', actorName: accountName(ticket.assigneeEmail) ?? 'Equipo', at: ticket.attendedSince ?? ticket.createdAt, from: 'assigned', to: 'in_progress' }));
+    if (ticket.resolvedAt) seeded.push(seed({ type: 'STATUS_CHANGED', actor: 'staff', actorName: accountName(ticket.assigneeEmail) ?? 'Equipo', at: ticket.resolvedAt, from: 'in_progress', to: 'resolved', body: ticket.resolution }));
+    if (ticket.closedAt) seeded.push(seed({ type: 'STATUS_CHANGED', actor: 'customer', actorName: owner, at: ticket.closedAt, from: 'resolved', to: 'closed' }));
+    db.events = [...db.events, ...seeded];
+  }
+  return db.events.filter((e) => e.ticketUuid === ticket.uuid).sort((a, b) => a.at.localeCompare(b.at));
+}
+
+/** Crea la notificación, la publica en tiempo real y la deja en el historial del ticket. Quien la provoca no se avisa a sí mismo. */
+function notifyUser(recipientUuid: string, type: IMockNotification['type'], message: string, ticket: TStoredTicket): IMockNotification | null {
+  if (db.session?.user.uuid === recipientUuid) return null;
+  const notification: IMockNotification = { uuid: crypto.randomUUID(), recipientUuid, type, message, resourceType: 'Ticket', resourceUuid: ticket.uuid, readAt: null, createdAt: new Date().toISOString() };
+  db.notifications = [notification, ...db.notifications];
+  mockRealtime$.next({ recipientUuid, notification: structuredClone(notification) });
+  return notification;
+}
+
+/** Avisa al SOLICITANTE de un cambio y deja constancia en el historial (evento `NOTIFIED`): postcondición de CU01. */
+function notifyRequester(ticket: TStoredTicket, message: string): void {
+  if (!notifyUser(ticket.ownerUuid, 'TICKET_STATUS_CHANGED', message, ticket)) return;
+  recordEvent(ticket, { type: 'NOTIFIED', actor: 'system', body: message });
+}
+
+function onAssigned(before: TStoredTicket, after: TStoredTicket): void {
+  const assignee = findUser(after.assigneeEmail);
+  recordEvent(after, { type: 'ASSIGNED', actor: 'staff', assignee: after.assigneeEmail, body: before.assigneeEmail ? `Antes: ${before.assigneeEmail}` : null });
+  if (assignee) notifyUser(assignee.shell.user.uuid, 'TICKET_ASSIGNED', `Te asignaron ${after.code} «${after.title}»`, after);
+  notifyRequester(after, `${assignee?.name ?? after.assigneeEmail} atenderá tu solicitud ${after.code}`);
+}
+
+function listTicketEvents(req: HttpRequest<unknown>, uuid: string): Observable<HttpResponse<unknown>> {
+  const ticket = visibleTickets().find((t) => t.uuid === uuid);
+  if (!ticket) return fail(req, 404, 'RTCK-E001', 'Ticket no encontrado');
+  const team = viewerIsTeam() || db.session?.user.role === EUserRole.AUDITOR;
+  return ok({ data: eventsOfTicket(ticket).filter((e) => team || e.visibility === 'public') });
+}
+
+/** `POST /api/tickets/:uuid/comments`: el solicitante comenta en público; el equipo también puede dejar notas internas. */
+function postComment(req: HttpRequest<unknown>, uuid: string): Observable<HttpResponse<unknown>> {
+  const ticket = visibleTickets().find((t) => t.uuid === uuid);
+  if (!ticket) return fail(req, 404, 'RTCK-E001', 'Ticket no encontrado');
+  const actors = mockActorsFor(ticket, viewer());
+  if (actors.size === 0) return forbidden(req);
+  if (ticket.status === 'closed') return fail(req, 409, 'STCK-E003', 'El ticket está cerrado: ya no admite comentarios');
+  const body = String(((req.body ?? {}) as { body?: unknown }).body ?? '').trim();
+  const internal = !!((req.body ?? {}) as { internal?: unknown }).internal;
+  if (body.length < 1 || body.length > 2000) return fail(req, 400, 'CVAL-E001', 'Datos inválidos', [fieldError('body', 'El comentario debe tener entre 1 y 2000 caracteres')]);
+  const team = mockIsTeamFor(ticket, viewer());
+  if (internal && !team) return forbidden(req);
+  const event = recordEvent(ticket, { type: internal ? 'COMMENT_INTERNAL' : 'COMMENT_PUBLIC', actor: team ? 'staff' : 'customer', visibility: internal ? 'internal' : 'public', body });
+  // El solicitante que responde a «Pendiente del cliente» devuelve el ticket a «En atención».
+  if (!team && ticket.status === 'pending_customer') {
+    const resumed: TStoredTicket = { ...ticket, status: 'in_progress' };
+    db.tickets = db.tickets.map((t) => (t.uuid === uuid ? resumed : t));
+    recordEvent(resumed, { type: 'STATUS_CHANGED', actor: 'system', from: 'pending_customer', to: 'in_progress', body: 'El solicitante respondió' });
+  }
+  if (!internal) {
+    const name = db.session?.user.name ?? 'Alguien';
+    if (team) notifyUser(ticket.ownerUuid, 'TICKET_COMMENTED', `${name} respondió en ${ticket.code}`, ticket);
+    else {
+      const assignee = ticket.assigneeEmail ? findUser(ticket.assigneeEmail) : null;
+      if (assignee) notifyUser(assignee.shell.user.uuid, 'TICKET_COMMENTED', `${name} comentó en ${ticket.code}`, ticket);
+    }
+  }
+  return ok(event, 201);
 }
 
 function ability() {

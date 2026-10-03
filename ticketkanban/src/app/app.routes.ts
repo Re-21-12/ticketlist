@@ -17,6 +17,10 @@ export const routes: Routes = [
     loadComponent: () => import('./layouts/layout/layout').then((m) => m.Layout),
     children: [
       {
+        path: 'my-tickets',
+        loadChildren: () => import('./pages/my-tickets/my-tickets.routes').then((m) => m.MY_TICKETS_ROUTES),
+      },
+      {
         path: 'tickets',
         loadChildren: () => import('./pages/tickets/tickets.routes').then((m) => m.TICKETS_ROUTES),
       },

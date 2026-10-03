@@ -6,7 +6,7 @@
 > confirmarlo (ver §9). Estado de la implementación (backend): **hecho** — ciclo de vida, historial inmutable, comentarios, adjuntos, encuesta CSAT,
 > cierre automático, rol Supervisor y el motor de métricas con `GET /api/metrics/*`. Las decisiones del §9 quedaron así:
 > horario hábil configurable (L–V 8:00–17:00, UTC−6, `sla/business-calendar.ts`) y SLA que se **pausa** en «Pendiente del cliente».
-> Pantallas del front: **hecho** el tablero del supervisor (`/metrics`) y «Mis métricas» (`/my-metrics`); **pendiente** «Mis tickets» (cliente), plazos/feriados editables desde «Catálogos», el campo
+> Pantallas del front: **hecho** el tablero del supervisor (`/metrics`) y «Mis métricas» (`/my-metrics`); **hecho** «Mis tickets» (`/my-tickets`, CU01: ver [notifications.md](notifications.md)); **pendiente** plazos/feriados editables desde «Catálogos», el campo
 > departamento del solicitante (áreas críticas) y las mejoras para comparar antes/después (§5).
 
 ## 1. Metas
@@ -45,7 +45,7 @@ partir de eventos y marcas de tiempo del ticket, nunca de «el estado de ahora»
 
 Eventos que registran las métricas: `CREATED`, `ASSIGNED`, `REASSIGNED`, `STATUS_CHANGED`, `COMMENT_PUBLIC`
 (visible al cliente), `COMMENT_INTERNAL` (nota del equipo, no cuenta como contacto), `RESOLVED`, `CLOSED_BY_USER`,
-`CLOSED_AUTO`, `REOPENED`, `ESCALATED`, `SURVEY_SENT`, `SURVEY_ANSWERED`. Los comentarios previos **no se editan**
+`CLOSED_AUTO`, `REOPENED`, `ESCALATED`, `SURVEY_SENT`, `SURVEY_ANSWERED`, `NOTIFIED` (aviso enviado al solicitante; no cuenta para ninguna métrica). Los comentarios previos **no se editan**
 (la corrección es otro comentario), lo que además es lo que hace confiable el historial.
 
 ## 3. Definiciones exactas
@@ -168,7 +168,7 @@ Pasos 1–3 hechos en el backend (`modules/tickets`, `modules/metrics`); falta e
 1. **Modelo y eventos**: estados nuevos, `ticket_events`, comentarios inmutables, adjuntos, cierre automático.
 2. **Motor de métricas** (`metrics`): funciones puras + pruebas de cada fórmula de §3 + endpoint solo lectura (`/api/metrics/*`) para Supervisor.
 3. **Encuesta CSAT** automática al cerrar (una vez, opcional).
-4. **Pantallas**: tablero del supervisor (SLA, FCR, CSAT, por colaborador y problemas frecuentes → `/metrics`) y «Mis métricas» (`/my-metrics`) **hechas**; falta «Mis tickets» (cliente, con historial y quién atiende).
+4. **Pantallas**: tablero del supervisor (SLA, FCR, CSAT, por colaborador y problemas frecuentes → `/metrics`) y «Mis métricas» (`/my-metrics`) **hechas**, y «Mis tickets» (cliente, con historial, quién atiende y avisos en tiempo real → `/my-tickets`, [notifications.md](notifications.md)).
 5. **Mejoras y comparación antes/después** (ROI).
 
 ## 11. Dónde está cada cosa
