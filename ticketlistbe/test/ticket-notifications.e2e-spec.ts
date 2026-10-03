@@ -93,7 +93,7 @@ describe('Notificaciones por ticket · CU01 (e2e)', () => {
 
   it('SSE: el solicitante recibe en tiempo real el aviso del cambio, y solo el suyo', async () => {
     await app.listen(0);
-    const port = (app.getHttpServer().address() as AddressInfo).port;
+    const port = ((app.getHttpServer() as unknown as { address(): AddressInfo }).address()).port;
     const victor = await login('victor@ticketit.dev');
     const uuid = await createAssigned(victor);
 

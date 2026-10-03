@@ -204,7 +204,7 @@ export class TicketsStore {
    * tickets pueden estar en vuelo a la vez, pero NO el mismo dos veces (un segundo arrastre del mismo
    * ticket mientras se guarda el primero se ignora).
    */
-  async move(ticket: TTicket, status: TTicketStatus, extra: { resolution?: string; note?: string } = {}): Promise<boolean> {
+  async move(ticket: TTicket, status: TTicketStatus, extra: { resolution?: string; note?: string; attachmentIds?: string[] } = {}): Promise<boolean> {
     // Solo a los estados que el backend le ofreció a ESTA persona (`nextStatuses`): lo demás es 409.
     if (ticket.status === status || !ticket.nextStatuses.includes(status) || this.$_pendingMoves().has(ticket.uuid)) return false;
     this.setPending(ticket.uuid, status);

@@ -1,0 +1,27 @@
+@if ($attachments().length > 0) {
+  <ul class="al" aria-label="Evidencia adjunta">
+    @for (attachment of $attachments(); track attachment.id) {
+      <li class="al-item">
+        @switch (attachment.kind) {
+          @case ('image') {
+            <a class="al-thumb" [href]="url(attachment)" target="_blank" rel="noopener" [attr.aria-label]="'Abrir imagen ' + attachment.name">
+              <img [src]="url(attachment)" [alt]="'Evidencia: ' + attachment.name" loading="lazy" />
+            </a>
+          }
+          @case ('video') {
+            <video class="al-video" controls preload="metadata" [src]="url(attachment)" [attr.aria-label]="'Video: ' + attachment.name"></video>
+          }
+        }
+        <a class="al-link" [href]="url(attachment)" [attr.download]="attachment.name">
+          <i [class]="'pi ' + kindMeta[attachment.kind].icon" aria-hidden="true"></i>
+          <span class="al-name">{{ attachment.name }}</span>
+          <span class="al-meta">
+            {{ format.bytes(attachment.size) }}
+            @if (attachment.durationSeconds !== null) { · {{ format.duration(attachment.durationSeconds) }} }
+          </span>
+          <span class="sr-only">(descargar)</span>
+        </a>
+      </li>
+    }
+  </ul>
+}

@@ -1,0 +1,53 @@
+.al {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.al-item {
+  display: grid;
+  gap: 0.375rem;
+  max-width: 18rem;
+}
+.al-thumb {
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface-muted);
+}
+.al-thumb img {
+  display: block;
+  width: 100%;
+  max-height: 11rem;
+  object-fit: cover;
+}
+.al-video {
+  width: 100%;
+  max-height: 12rem;
+  border-radius: var(--app-radius);
+  background: #000;
+}
+.al-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  color: var(--app-primary);
+  font-size: 0.8125rem;
+  text-decoration: none;
+}
+.al-link:hover .al-name {
+  text-decoration: underline;
+}
+.al-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.al-meta {
+  color: var(--app-text-muted);
+}

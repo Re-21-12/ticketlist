@@ -5,7 +5,6 @@ import { seedDemoData, type TEnv } from '../../config/env.schema.js';
 import { TicketAttachmentsRepository } from './attachments/ticket-attachments.repository.js';
 import { TicketEventsRepository } from './events/ticket-events.repository.js';
 import { TicketSurveysRepository } from './surveys/ticket-surveys.repository.js';
-import { TicketAutoCloseJob } from './ticket-auto-close.job.js';
 import { TicketHistoryService } from './ticket-history.service.js';
 import { TicketLifecycleService } from './ticket-lifecycle.service.js';
 import { TicketsRepository } from './tickets.repository.js';
@@ -29,7 +28,6 @@ import { TicketsService } from './tickets.service.js';
     TicketHistoryService,
     TicketsService,
     TicketLifecycleService,
-    TicketAutoCloseJob,
   ],
   exports: [
     TicketsService,

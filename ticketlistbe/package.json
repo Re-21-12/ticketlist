@@ -28,12 +28,6 @@
     "migration:revert": "bun node_modules/typeorm/cli.js migration:revert -d src/database/data-source.ts",
     "migration:show": "bun node_modules/typeorm/cli.js migration:show -d src/database/data-source.ts",
     "migration:generate": "bun node_modules/typeorm/cli.js migration:generate -d src/database/data-source.ts",
-    "migration:create": "bun node_modules/typeorm/cli.js migration:create",
-    "typeorm": "bun node_modules/typeorm/cli.js -d src/database/data-source.ts",
-    "migration:run": "bun node_modules/typeorm/cli.js migration:run -d src/database/data-source.ts",
-    "migration:revert": "bun node_modules/typeorm/cli.js migration:revert -d src/database/data-source.ts",
-    "migration:show": "bun node_modules/typeorm/cli.js migration:show -d src/database/data-source.ts",
-    "migration:generate": "bun node_modules/typeorm/cli.js migration:generate -d src/database/data-source.ts",
     "migration:create": "bun node_modules/typeorm/cli.js migration:create"
   },
   "dependencies": {
@@ -47,6 +41,7 @@
     "connect-redis": "^10.0.0",
     "cookie-parser": "^1.4.7",
     "express-session": "^1.19.0",
+    "minio": "^8.0.7",
     "pg": "^8.23.1",
     "redis": "^6.3.0",
     "reflect-metadata": "^0.2.2",

@@ -1,7 +1,7 @@
 # Servicios de DESARROLLO de ticketlistbe. Puertos propios (5433 / 6380) para no chocar con otros
 # proyectos locales (p. ej. wallet-api usa 5432 / 6379). Credenciales de desarrollo: no son secretos.
 #
-#   docker compose up -d        # levanta Postgres + Redis
+#   docker compose up -d        # levanta Postgres + Redis + MinIO (bucket de evidencia)
 #   docker compose down         # los apaga (los datos persisten en los volúmenes)
 #   docker compose down -v      # + borra los datos
 services:
@@ -34,5 +34,27 @@ services:
       timeout: 3s
       retries: 10
 
+  # Bucket de EVIDENCIA de los tickets (imágenes, PDF, Excel, CSV, videos cortos). API en :9100 y consola web en :9101
+  # (puertos propios: wallet-api usa 9000/9001). Credenciales de desarrollo: no son secretos. La API crea el bucket sola.
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772
+    container_name: ticketit-minio
+    ports:
+      - '9100:9000'
+      - '9101:9001'
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ticketit
+      MINIO_ROOT_PASSWORD: ticketit-dev-minio
+      MC_HOST_local: http://ticketit:ticketit-dev-minio@localhost:9000
+    volumes:
+      - ticketit-miniodata:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
   ticketit-pgdata:
+  ticketit-miniodata:

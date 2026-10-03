@@ -1,3 +1,4 @@
+import type { TAttachmentRef } from '../../shared/evidence/evidence.types';
 import type { TTicketStatus } from '../../pages/tickets/ticket.types';
 
 /** Un renglón del historial del ticket (espejo de `ITicketEvent` del backend, ya en forma de respuesta). */
@@ -12,7 +13,7 @@ export interface IMockEvent {
   from: TTicketStatus | null;
   to: TTicketStatus | null;
   body: string | null;
-  attachments: never[];
+  attachments: TAttachmentRef[];
   assignee: string | null;
 }
 
@@ -31,7 +32,7 @@ export function requesterMessage(code: string, to: TTicketStatus, options: { tea
     case 'resolved':
       return `${code} fue resuelto: revisa la solución y confirma el cierre`;
     case 'closed':
-      return options.system ? `${code} se cerró automáticamente tras 48 h sin respuesta` : null;
+      return options.system ? `${code} se cerró automáticamente por falta de respuesta` : null;
     case 'reopened':
       return options.teamActor ? `${code} se reabrió` : null;
     default:

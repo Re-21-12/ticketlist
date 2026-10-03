@@ -17,6 +17,7 @@ import {
   SignUpSchema,
   VerifyEmailSchema,
 } from '../../modules/auth/dtos/account-recovery.dto.js';
+import { JobUpdateSchema } from '../../modules/jobs/jobs.schema.js';
 import { MetricsPeriodQuerySchema } from '../../modules/metrics/metrics.schema.js';
 import {
   AssignSchema,
@@ -110,8 +111,11 @@ describe('docs/standard/error-catalog.md', () => {
     ['comment body (max)', CommentCreateSchema, { body: 'x'.repeat(2001) }],
     ['transition to', TransitionSchema, { to: 'volando' }],
     ['transition resolution (requerida)', TransitionSchema, { to: 'resolved' }],
-    ['survey score (tipo)', SurveyAnswerSchema, { score: 'cinco' }],
-    ['survey score (max)', SurveyAnswerSchema, { score: 6 }],
+    ['survey resolved (requerido)', SurveyAnswerSchema, { score: 3 }],
+    ['survey score (tipo)', SurveyAnswerSchema, { resolved: true, score: 'cinco' }],
+    ['survey score (max)', SurveyAnswerSchema, { resolved: true, score: 6 }],
+    ['job cron', JobUpdateSchema, { enabled: true, cron: 'cada rato' }],
+    ['job afterHours (min)', JobUpdateSchema, { enabled: true, cron: '* * * * *', params: { afterHours: 0 } }],
     ['assign email', AssignSchema, { assigneeEmail: 'x' }],
     ['metrics período (orden)', MetricsPeriodQuerySchema, { from: '2026-10-05', to: '2026-10-01' }],
     ['relationship consent', RelationshipCreateSchema, { alternanteEmail: 'a@b.dev', grants: [{ objectType: 'Ticket' }] }],

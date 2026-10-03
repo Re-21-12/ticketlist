@@ -100,6 +100,8 @@ if (printEnv) {
   console.log('\nVariables para la pestaña «Environment» de Dokploy (claves nuevas; no las reutilices):');
   console.log(`DB_PASSWORD=${hex()}`);
   console.log(`REDIS_PASSWORD=${hex()}`);
+  console.log('MINIO_ROOT_USER=ticketit');
+  console.log(`MINIO_ROOT_PASSWORD=${hex()}   # bucket de evidencia; en la integración se reutiliza el MinIO de wallet-api (sus MINIO_ROOT_*)`);
   console.log(`TICKETIT_DB_PASSWORD=${hex()}   # solo para la integración con wallet-api`);
 }
 

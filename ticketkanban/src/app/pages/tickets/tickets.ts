@@ -10,7 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MessageService } from '@openng/optimus-ui/api';
 import { ButtonModule } from '@openng/optimus-ui/button';
-import { DialogService } from '@openng/optimus-ui/dynamicdialog';
+import { DialogService, type DynamicDialogRef } from '@openng/optimus-ui/dynamicdialog';
 import { MessageModule } from '@openng/optimus-ui/message';
 import { SelectModule } from '@openng/optimus-ui/select';
 import { CanPipe } from '../../core/casl/can.pipe';
@@ -22,7 +22,7 @@ import { ElapsedClock } from '../../shared/ui/elapsed-clock/elapsed-clock';
 import { SlaRanges } from './sla-ranges/sla-ranges';
 import { TicketFilters } from './ticket-filters/ticket-filters';
 import { SLA_STATE_META } from './ticket.constants';
-import { TICKET_RESOLVE_FORM } from './ticket-form.config';
+import type { IResolveDialogData } from './resolve-dialog/resolve-dialog';
 import { TICKET_STATUS_GROUPS } from './ticket.schema';
 import type { TTicket, TTicketStatus, TTicketStatusGroup, TTicketUpsert } from './ticket.types';
 import { TicketsStore } from './tickets.store';
@@ -58,6 +58,8 @@ import { Illustration } from '../../shared/ui/illustration/illustration';
 export class Tickets {
   protected readonly _ticketsStore = inject(TicketsStore);
   private readonly _formDialogService = inject(FormDialogService);
+  private readonly _dialogService = inject(DialogService);
+  private _resolveRef: DynamicDialogRef | null = null;
   private readonly _messageService = inject(MessageService);
 
   /** Etiquetas, íconos y colores vienen de los catálogos (editables); los códigos son los del contrato. */
@@ -175,21 +177,50 @@ export class Tickets {
       void this.moveTicket(ticket, status);
       return;
     }
-    void this._formDialogService.open({
-      header: `Resolver ${ticket.code}`,
-      definition: TICKET_RESOLVE_FORM,
-      submitLabel: 'Marcar como resuelto',
-      submitting: this._ticketsStore.$saving,
-      onSubmit: ({ resolution }) => {
-        void this.moveTicket(ticket, status, resolution).then(() => this._formDialogService.close());
-      },
-    });
+    void this.openResolve(ticket);
   }
 
-  private async moveTicket(ticket: TTicket, status: TTicketStatus, resolution?: string): Promise<void> {
+  /**
+   * Modal «Resolver»: la solución (obligatoria) y la evidencia (fotos, informes, videos cortos) que el solicitante verá en su
+   * historial. Es un componente propio (no el formulario dinámico) porque lleva el selector de evidencia.
+   */
+  private async openResolve(ticket: TTicket): Promise<void> {
+    if (this._resolveRef) return;
+    const { ResolveDialog } = await import('./resolve-dialog/resolve-dialog');
+    const submitting = this._ticketsStore.$saving;
+    const data: IResolveDialogData = {
+      ticketUuid: ticket.uuid,
+      code: ticket.code,
+      submitting,
+      onSubmit: ({ resolution, attachmentIds }) => {
+        void this.moveTicket(ticket, 'resolved', { resolution, attachmentIds }).then(() => this.closeResolve());
+      },
+    };
+    this._resolveRef = this._dialogService.open(ResolveDialog, {
+      header: `Resolver ${ticket.code}`,
+      modal: true,
+      // Getter vivo: la X se deshabilita mientras hay un request en vuelo.
+      get closable(): boolean {
+        return !submitting();
+      },
+      dismissableMask: false,
+      closeOnEscape: false,
+      style: { width: '95vw', maxWidth: '40rem' },
+      contentStyle: { 'max-height': '75vh', 'overflow-y': 'auto' },
+      data,
+    });
+    this._resolveRef?.onClose.subscribe(() => (this._resolveRef = null));
+  }
+
+  private closeResolve(): void {
+    this._resolveRef?.close();
+    this._resolveRef = null;
+  }
+
+  private async moveTicket(ticket: TTicket, status: TTicketStatus, extra: { resolution?: string; attachmentIds?: string[] } = {}): Promise<void> {
     const label = this._ticketsStore.$statusLabels()[status] ?? status;
     try {
-      if (!(await this._ticketsStore.move(ticket, status, resolution ? { resolution } : {}))) return;
+      if (!(await this._ticketsStore.move(ticket, status, extra))) return;
       const message = `${ticket.code} movido a ${label}`;
       this.$_announcement.set(message);
       this._messageService.add({ severity: 'success', summary: message, life: 2500 });

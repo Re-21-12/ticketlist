@@ -30,7 +30,7 @@ Código: `src/database/` · Tests: `test/persistence.e2e-spec.ts` (`bun run test
 
 ## 3. Tablas
 
-`users` · `role_permissions` · `menu_items` · `notifications` · `relationships` (concesiones en `jsonb`) · `tickets` · `ticket_events` (historial inmutable, solo inserts) · `ticket_attachments` (contenido `bytea`) · `ticket_surveys` · `catalogs` · `catalog_items` · `audit_logs`.
+`users` · `role_permissions` · `menu_items` · `notifications` · `relationships` (concesiones en `jsonb`) · `tickets` · `ticket_events` (historial inmutable, solo inserts) · `ticket_attachments` (**metadata**: el contenido vive en el bucket, ver [storage.md](storage.md); `content` solo en adjuntos antiguos) · `ticket_surveys` · `scheduled_jobs` (tareas programadas, ver [scheduled-jobs.md](scheduled-jobs.md)) · `catalogs` · `catalog_items` · `audit_logs`.
 
 - Columnas en `snake_case` (`SnakeNamingStrategy`), `timestamptz`, clave primaria `uuid` (las filas con `BaseEntity` conservan `id` como contador propio).
 - Las claves foráneas **no** se declaran: la integridad la mantiene la capa de servicio (como antes) y las semillas entran en el orden del arranque. Los índices sí (dueño, estado, responsable, departamento, historial por ticket…).

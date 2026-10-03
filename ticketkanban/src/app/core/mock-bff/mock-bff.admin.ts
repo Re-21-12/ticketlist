@@ -177,6 +177,7 @@ function seedMenu(): IMenuItem[] {
     ['audit-logs', 'Auditoría', '/audit-logs', 'Administración', 'pi-history', 'AuditLog', EAbility.READ, 70],
     // Va al final de la lista (los uuid del mock salen del índice) pero se ordena primero en su grupo.
     ['my-tickets', 'Mis tickets', '/my-tickets', 'Tickets', 'pi-inbox', 'Ticket', null, 5],
+    ['jobs', 'Tareas programadas', '/jobs', 'Administración', 'pi-clock', 'ScheduledJob', EAbility.READ, 80],
   ];
   return rows.map(([key, label, route, group, icon, subject, requiredAction, order], index) => ({
     uuid: `3e000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,

@@ -2,7 +2,7 @@ import { Ability, type AbilityClass, type ForcedSubject, type MongoAbility } fro
 import type { EAbility } from './ability.enum';
 
 // Espejo de ticketlistbe/src/modules/auth/casl/casl.types.ts.
-export const SUBJECTS = ['Ticket', 'User', 'RolePermission', 'Relationship', 'Notification', 'AuditLog', 'MenuItem', 'Catalog', 'Metric', 'MyMetric', 'all'] as const;
+export const SUBJECTS = ['Ticket', 'User', 'RolePermission', 'Relationship', 'Notification', 'AuditLog', 'MenuItem', 'Catalog', 'Metric', 'MyMetric', 'ScheduledJob', 'all'] as const;
 export type TSubjects = (typeof SUBJECTS)[number];
 
 /** Acción como literal (`'create'`) — permite escribirla en templates sin exponer el enum. */

@@ -91,10 +91,12 @@ describe('mock BFF · bloqueo de cuenta y encuesta de satisfacción', () => {
       expect(survey?.resourceUuid).toBe(TCK_003);
 
       expect(((await firstValueFrom(http.get(`/api/tickets/${TCK_003}/survey`))) as { state: string }).state).toBe('pending');
-      expect((await codeOf(firstValueFrom(http.post(`/api/tickets/${TCK_003}/survey`, { score: 6 }))))?.code).toBe('CVAL-E001');
-      const answered = (await firstValueFrom(http.post(`/api/tickets/${TCK_003}/survey`, { score: 5, comment: 'Excelente' }))) as { state: string; score: number };
-      expect(answered).toMatchObject({ state: 'answered', score: 5 });
-      expect((await codeOf(firstValueFrom(http.post(`/api/tickets/${TCK_003}/survey`, { score: 3 }))))?.code).toBe('SSRV-E002');
+      expect((await codeOf(firstValueFrom(http.post(`/api/tickets/${TCK_003}/survey`, { resolved: true, score: 6 }))))?.code).toBe('CVAL-E001');
+      // Decir si se resolvió el problema es obligatorio (CU02).
+      expect((await codeOf(firstValueFrom(http.post(`/api/tickets/${TCK_003}/survey`, { score: 5 }))))?.code).toBe('CVAL-E001');
+      const answered = (await firstValueFrom(http.post(`/api/tickets/${TCK_003}/survey`, { resolved: true, score: 5, comment: 'Excelente' }))) as { state: string; score: number };
+      expect(answered).toMatchObject({ state: 'answered', score: 5, resolved: true });
+      expect((await codeOf(firstValueFrom(http.post(`/api/tickets/${TCK_003}/survey`, { resolved: false, score: 3 }))))?.code).toBe('SSRV-E002');
 
       const after = (await firstValueFrom(http.get<{ data: INotice[] }>('/api/notifications'))).data;
       expect(after.some((n) => n.type === 'TICKET_SURVEY')).toBe(false); // ya calificó: deja de aparecer

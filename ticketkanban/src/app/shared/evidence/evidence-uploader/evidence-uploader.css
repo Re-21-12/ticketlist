@@ -1,0 +1,111 @@
+.ev {
+  display: grid;
+  gap: 0.5rem;
+}
+.ev-head {
+  display: grid;
+  gap: 0.125rem;
+}
+.ev-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.ev-optional {
+  font-weight: 400;
+  color: var(--app-text-muted);
+}
+.ev-hint {
+  font-size: 0.8125rem;
+  color: var(--app-text-muted);
+}
+.ev-list,
+.ev-errors {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ev-chip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem 0.375rem 0.75rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface-muted);
+  font-size: 0.875rem;
+}
+.ev-chip > i {
+  color: var(--app-primary);
+}
+.ev-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.ev-meta {
+  font-size: 0.8125rem;
+  color: var(--app-text-muted);
+}
+.ev-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  margin-left: auto;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--app-text-muted);
+  cursor: pointer;
+}
+.ev-remove:hover {
+  background: var(--app-surface);
+  color: var(--app-danger);
+}
+.ev-pick {
+  position: relative;
+}
+.ev-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.ev-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+  color: var(--app-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ev-add:hover {
+  border-color: var(--app-primary);
+}
+/* El foco está en el input oculto: se dibuja en la etiqueta que hace de botón. */
+.ev-input:focus-visible + .ev-add {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 2px;
+}
+.ev-pick--disabled .ev-add {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.ev-errors {
+  font-size: 0.8125rem;
+  color: var(--app-danger);
+}
+.ev-errors:empty {
+  display: none;
+}

@@ -1,17 +1,17 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { subject as asSubject } from '@casl/ability';
 import type * as z from 'zod';
 import { ERROR_CODES } from '../../common/codes/error-codes.js';
-import { APP_ENV } from '../../config/config.module.js';
-import type { TEnv } from '../../config/env.schema.js';
 import { RequestContext } from '../../core/context/request-context.js';
 import { CustomBusinessException } from '../../core/exceptions/app.exception.js';
-import { MAIL_SERVICE, type IMailService } from '../../core/mail/mail.service.js';
 import { EAbility, EUserRole } from '../auth/casl/ability.enum.js';
 import { CaslAbilityFactory } from '../auth/casl/casl-ability.factory.js';
 import type { ISessionUser } from '../auth/session/session-user.interface.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { UsersRepository } from '../users/users.repository.js';
+import { kindOfMime } from './attachments/attachment-limits.js';
+import type { TAllowedMime } from './attachments/detect-mime.js';
+import type { ITicketAttachment } from './attachments/ticket-attachment.entity.js';
 import { TicketAttachmentsRepository } from './attachments/ticket-attachments.repository.js';
 import type { IAttachmentRef, ITicketEvent } from './events/ticket-event.entity.js';
 import {
@@ -60,8 +60,6 @@ export class TicketLifecycleService {
     private readonly usersRepository: UsersRepository,
     private readonly notifications: NotificationsService,
     private readonly abilityFactory: CaslAbilityFactory,
-    @Inject(MAIL_SERVICE) private readonly mail: IMailService,
-    @Inject(APP_ENV) private readonly env: TEnv,
   ) {}
 
   // ── Historial ──────────────────────────────────────────────────────────────────────────────
@@ -88,7 +86,7 @@ export class TicketLifecycleService {
 
     const free = this.attachments.findFree(dto.attachmentIds, ticket.uuid, user.uuid);
     if (free.length !== dto.attachmentIds.length) throw new CustomBusinessException(ERROR_CODES.ATT.NOT_FOUND);
-    const refs: IAttachmentRef[] = free.map(({ id, name, mimeType, size }) => ({ id, name, mimeType, size }));
+    const refs = free.map(toRef);
     const commentActor: TTransitionActor = team ? ([...actors].find(isTeamActor) ?? 'agent') : 'customer';
 
     this.history.record({
@@ -124,7 +122,14 @@ export class TicketLifecycleService {
       throw new CustomBusinessException(ERROR_CODES.TCK.REOPEN_WINDOW_EXPIRED, { uuid });
     }
 
-    this.apply(ticket, dto.to, actor, user, { note: dto.note ?? dto.resolution ?? null, resolution: dto.resolution ?? null, now });
+    // Evidencia que acompaña al cambio (p. ej. las fotos de la solución al resolver): ya subida, de esta persona y sin usar.
+    const free = this.attachments.findFree(dto.attachmentIds, ticket.uuid, user.uuid);
+    if (free.length !== dto.attachmentIds.length) throw new CustomBusinessException(ERROR_CODES.ATT.NOT_FOUND);
+    this.apply(ticket, dto.to, actor, user, { note: dto.note ?? dto.resolution ?? null, resolution: dto.resolution ?? null, now, attachments: free.map(toRef) });
+    if (free.length > 0) {
+      const written = this.history.eventsOf(ticket.uuid).filter((event) => event.type === 'STATUS_CHANGED').at(-1);
+      if (written) this.attachments.attachTo(dto.attachmentIds, written.uuid);
+    }
     return this.ticketsService.findOneByUuid(uuid);
   }
 
@@ -178,16 +183,18 @@ export class TicketLifecycleService {
     const now = new Date();
     if (survey.answeredAt) throw new CustomBusinessException(ERROR_CODES.SRV.ALREADY_ANSWERED);
     if (now > survey.expiresAt) throw new CustomBusinessException(ERROR_CODES.SRV.EXPIRED);
-    const answered: ITicketSurvey = { ...survey, answeredAt: now, score: dto.score, comment: dto.comment };
+    const answered: ITicketSurvey = { ...survey, answeredAt: now, score: dto.score, comment: dto.comment, resolved: dto.resolved };
     this.surveys.save(answered);
     this.history.record({ ticket, type: 'SURVEY_ANSWERED', actor: 'customer', actorUser: user, body: dto.comment });
-    // Una calificación baja (1–2) llega al supervisor: es la señal de «escalamiento por insatisfacción».
-    if (dto.score <= 2) {
+    // Una calificación baja (1–2), o un «no se resolvió», llega al supervisor: es la señal de «escalamiento por insatisfacción».
+    if (dto.score <= 2 || !dto.resolved) {
       for (const supervisor of this.usersRepository.listByRole(EUserRole.SUPERVISOR)) {
         this.notifications.notify({
           recipientUuid: supervisor.uuid,
           type: 'TICKET_SURVEY_ALERT',
-          message: `Calificación baja (${dto.score}/5) en ${ticket.code} «${ticket.title}»`,
+          message: dto.resolved
+            ? `Calificación baja (${dto.score}/5) en ${ticket.code} «${ticket.title}»`
+            : `El solicitante dice que NO se resolvió ${ticket.code} «${ticket.title}» (${dto.score}/5)`,
           resourceType: 'Ticket',
           resourceUuid: ticket.uuid,
         });
@@ -197,13 +204,16 @@ export class TicketLifecycleService {
   }
 
   // ── Cierre automático (historia A4) ────────────────────────────────────────────────────────
-  /** Cierra los «Resuelto» sin respuesta del solicitante tras 48 h. Devuelve cuántos cerró. */
-  closeStaleResolved(now = new Date()): number {
+  /**
+   * Cierra los «Resuelto» sin respuesta del solicitante pasado el plazo (48 h por defecto; lo configura el administrador en
+   * «Tareas programadas»). Cada cierre deja el evento, avisa al solicitante Y le deja la encuesta en su buzón. Devuelve cuántos cerró.
+   */
+  closeStaleResolved(now = new Date(), afterHours = AUTO_CLOSE_AFTER_HOURS): number {
     let closed = 0;
     for (const ticket of this.tickets.findAllRows()) {
       if (ticket.status !== 'resolved' || !ticket.resolvedAt) continue;
-      if (now.getTime() - ticket.resolvedAt.getTime() < AUTO_CLOSE_AFTER_HOURS * HOUR_MS) continue;
-      this.apply(ticket, 'closed', 'system', null, { note: `Cierre automático: ${AUTO_CLOSE_AFTER_HOURS} h sin respuesta`, now });
+      if (now.getTime() - ticket.resolvedAt.getTime() < afterHours * HOUR_MS) continue;
+      this.apply(ticket, 'closed', 'system', null, { note: `Cierre automático: ${afterHours} h sin respuesta`, now });
       closed += 1;
     }
     return closed;
@@ -216,7 +226,7 @@ export class TicketLifecycleService {
     to: TTicketStatus,
     actor: TTransitionActor,
     user: ISessionUser | null,
-    options: { note?: string | null; resolution?: string | null; now?: Date },
+    options: { note?: string | null; resolution?: string | null; now?: Date; attachments?: IAttachmentRef[] },
   ): void {
     const now = options.now ?? new Date();
     const from = ticket.status;
@@ -238,6 +248,7 @@ export class TicketLifecycleService {
       to,
       ...(to === 'closed' ? { by: actor === 'customer' ? ('customer' as const) : ('system' as const) } : {}),
       body: options.note ?? null,
+      attachments: options.attachments ?? [],
       at: now,
     });
     this.notifyAboutStatus(updated, from, to, actor, user);
@@ -265,7 +276,7 @@ export class TicketLifecycleService {
       case 'closed':
         // Cierre automático: se avisa al solicitante y al responsable; el manual ya lo sabe quien lo hizo.
         if (actor === 'system') {
-          toRequester(`${ticket.code} se cerró automáticamente tras 48 h sin respuesta`);
+          toRequester(`${ticket.code} se cerró automáticamente por falta de respuesta`);
           if (assignee) this.notifications.notify({ recipientUuid: assignee.uuid, type: 'TICKET_STATUS_CHANGED', message: `${ticket.code} se cerró automáticamente`, ...base });
         } else if (assignee) {
           this.notifications.notify({ recipientUuid: assignee.uuid, type: 'TICKET_STATUS_CHANGED', message: `${user?.name ?? 'El solicitante'} confirmó el cierre de ${ticket.code}`, ...base });
@@ -289,9 +300,9 @@ export class TicketLifecycleService {
   }
 
   /**
-   * Avisa al SOLICITANTE de un cambio de estado (CU01): bandeja + tiempo real (SSE) y correo, y deja constancia en el
+   * Avisa al SOLICITANTE de un cambio de estado (CU01): buzón de notificaciones + tiempo real (SSE), y deja constancia en el
    * historial del ticket (evento `NOTIFIED`, postcondición del caso de uso). Si quien hace el cambio es el propio
-   * solicitante nadie se notifica a sí mismo y no se registra nada. El correo es de mejor esfuerzo (sin SMTP solo se loguea).
+   * solicitante nadie se notifica a sí mismo y no se registra nada. No hay correo: el buzón es el único canal.
    */
   private notifyRequester(ticket: TicketEntity, message: string): void {
     const sent = this.notifications.notify({
@@ -303,16 +314,6 @@ export class TicketLifecycleService {
     });
     if (!sent) return;
     this.history.record({ ticket, type: 'NOTIFIED', actor: 'system', actorUser: null, body: message });
-    const requester = this.usersRepository.findAdminByUuid(ticket.ownerUuid);
-    if (!requester) return;
-    void this.mail
-      .send({
-        to: requester.email,
-        subject: `${ticket.code} · cambió el estado de tu solicitud`,
-        text: `${message}. Puedes ver el detalle y el historial en «Mis tickets».`,
-        link: `${this.env.APP_URL}/my-tickets?ticket=${ticket.uuid}`,
-      })
-      .catch(() => undefined);
   }
 
   private notifyAboutComment(ticket: TicketEntity, user: ISessionUser, actor: TTransitionActor): void {
@@ -339,24 +340,16 @@ export class TicketLifecycleService {
       answeredAt: null,
       score: null,
       comment: null,
+      resolved: null,
     });
     this.history.record({ ticket, type: 'SURVEY_SENT', actor: 'system', actorUser: null, at: now });
     this.notifications.notify({
       recipientUuid: requester.uuid,
       type: 'TICKET_SURVEY',
-      message: `¿Cómo te atendimos en ${ticket.code}? Tu opinión es opcional`,
+      message: `¿Se resolvió tu problema en ${ticket.code}? Cuéntanos cómo te atendimos (es opcional)`,
       resourceType: 'Ticket',
       resourceUuid: ticket.uuid,
-    });
-    const link = `${this.env.APP_URL}/tickets/${ticket.uuid}?survey=1`;
-    void this.mail
-      .send({
-        to: requester.email,
-        subject: `¿Cómo te atendimos? · ${ticket.code}`,
-        text: `Tu ticket ${ticket.code} «${ticket.title}» se cerró. Si quieres, cuéntanos cómo te fue (1 a 5, y un comentario opcional). Vence en ${SURVEY_VALID_DAYS} días y no te lo volveremos a pedir.`,
-        link,
-      })
-      .catch(() => undefined);
+    }, { allowSelf: true });
   }
 
   private toSurveyState(survey: ITicketSurvey, now: Date): z.output<typeof SurveyStateSchema> {
@@ -365,6 +358,7 @@ export class TicketLifecycleService {
       expiresAt: survey.expiresAt.toISOString(),
       score: survey.score,
       comment: survey.comment,
+      resolved: survey.resolved,
     };
   }
 
@@ -387,7 +381,15 @@ export class TicketLifecycleService {
       from: event.from ?? null,
       to: event.to ?? null,
       body: event.body,
-      attachments: event.attachments,
+      attachments: event.attachments.map((a) => ({
+        id: a.id,
+        name: a.name,
+        mimeType: a.mimeType,
+        size: a.size,
+        // Eventos anteriores al bucket no traen el tipo: se deduce del contenido ya detectado.
+        kind: a.kind ?? kindOfMimeSafe(a.mimeType),
+        durationSeconds: a.durationSeconds ?? null,
+      })),
       assignee: event.assignee,
     };
   }
@@ -403,4 +405,15 @@ export class TicketLifecycleService {
     }
     return { ticket, user, actors: this.history.actorsFor(ticket, user) };
   }
+}
+
+/** Referencia compacta a un adjunto para el renglón del historial. */
+function toRef({ id, name, mimeType, size, kind, durationSeconds }: ITicketAttachment): IAttachmentRef {
+  return { id, name, mimeType, size, kind, durationSeconds };
+}
+
+function kindOfMimeSafe(mime: string): 'image' | 'document' | 'video' {
+  if (mime.startsWith('image/')) return 'image';
+  if (mime.startsWith('video/')) return 'video';
+  return kindOfMime(mime as TAllowedMime) ?? 'document';
 }

@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Param,
   Patch,
   Post,
@@ -30,12 +31,14 @@ import { EAbility } from '../auth/casl/ability.enum.js';
 import { CaslAbilityFactory } from '../auth/casl/casl-ability.factory.js';
 import { CheckAbility } from '../auth/casl/check-ability.decorator.js';
 import { TicketAttachmentsRepository } from './attachments/ticket-attachments.repository.js';
+import { ATTACHMENT_MAX_BYTES, kindOfMime, MAX_UPLOAD_BYTES, MAX_VIDEO_SECONDS } from './attachments/attachment-limits.js';
 import { detectMime, safeFileName } from './attachments/detect-mime.js';
+import { videoDurationSeconds } from './attachments/video-duration.js';
+import { OBJECT_STORAGE, type IObjectStorage } from '../../core/storage/object-storage.js';
 import {
   AssignSchema,
   AttachmentResponseSchema,
   CommentCreateSchema,
-  MAX_ATTACHMENT_BYTES,
   SurveyAnswerSchema,
   SurveyStateSchema,
   TicketEventListSchema,
@@ -76,6 +79,7 @@ export class TicketLifecycleController {
     private readonly attachments: TicketAttachmentsRepository,
     private readonly tickets: TicketsRepository,
     private readonly abilityFactory: CaslAbilityFactory,
+    @Inject(OBJECT_STORAGE) private readonly storage: IObjectStorage,
   ) {}
 
   @Get('events')
@@ -166,9 +170,11 @@ export class TicketLifecycleController {
   @ApiZodResponse(201, AttachmentResponseSchema)
   @ApiProblemResponse(400, 'SATT-E003 · Falta el archivo')
   @ApiProblemResponse(...E404)
-  @ApiProblemResponse(413, 'SATT-E001 · El archivo supera 5 MB')
-  @ApiProblemResponse(415, 'SATT-E002 · Tipo de archivo no permitido (imágenes, PDF y texto)')
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_ATTACHMENT_BYTES, files: 1 } }))
+  @ApiProblemResponse(413, 'SATT-E001 · El archivo supera el tope de su tipo (imagen 10 MB, documento 25 MB, video 100 MB)')
+  @ApiProblemResponse(415, 'SATT-E002 · Tipo no permitido (imágenes, PDF, Excel, CSV, texto y video mp4/mov/webm)')
+  @ApiProblemResponse(422, 'SATT-E004 · El video dura más de 5 minutos · SATT-E005 · No se pudo comprobar su duración')
+  @ApiProblemResponse(503, 'SATT-E006 · El bucket de archivos no responde')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 } }))
   async upload(@Param() { uuid }: UuidParamDto, @UploadedFile() file: IUploadedFile | undefined) {
     const user = RequestContext.currentUser();
     const ticket = user && (await this.tickets.findByUuid(uuid));
@@ -177,16 +183,37 @@ export class TicketLifecycleController {
       throw new CustomBusinessException(ERROR_CODES.TCK.NOT_FOUND, { uuid });
     }
     if (!file) throw new CustomBusinessException(ERROR_CODES.ATT.FILE_REQUIRED);
-    if (file.size > MAX_ATTACHMENT_BYTES) throw new CustomBusinessException(ERROR_CODES.ATT.TOO_LARGE);
-    const mimeType = detectMime(file.buffer);
+    // El tipo sale del CONTENIDO (firma de cabecera), no del nombre ni de lo que declare el navegador.
+    const mimeType = detectMime(file.buffer, file.originalname);
     if (!mimeType) throw new CustomBusinessException(ERROR_CODES.ATT.TYPE_NOT_ALLOWED);
+    const kind = kindOfMime(mimeType);
+    if (file.size > ATTACHMENT_MAX_BYTES[kind]) throw new CustomBusinessException(ERROR_CODES.ATT.TOO_LARGE);
+    // Un video debe ser CORTO: se lee su duración de la cabecera; si no se puede verificar, se rechaza.
+    let durationSeconds: number | null = null;
+    if (kind === 'video') {
+      const seconds = videoDurationSeconds(file.buffer, mimeType);
+      if (seconds === null) throw new CustomBusinessException(ERROR_CODES.ATT.VIDEO_DURATION_UNKNOWN);
+      if (seconds > MAX_VIDEO_SECONDS) throw new CustomBusinessException(ERROR_CODES.ATT.VIDEO_TOO_LONG);
+      durationSeconds = Math.round(seconds);
+    }
+    // El contenido va al bucket; la clave la arma el servidor (nunca el cliente).
+    const id = randomUUID();
+    const objectKey = `tickets/${uuid}/${id}`;
+    try {
+      await this.storage.put(objectKey, file.buffer, mimeType);
+    } catch {
+      throw new CustomBusinessException(ERROR_CODES.ATT.STORAGE_UNAVAILABLE);
+    }
     const attachment = {
-      id: randomUUID(),
+      id,
       ticketUuid: uuid,
       name: safeFileName(file.originalname),
       mimeType,
       size: file.size,
-      content: file.buffer,
+      kind,
+      durationSeconds,
+      objectKey,
+      content: null,
       uploadedBy: user.uuid,
       createdAt: new Date(),
       commentUuid: null,
@@ -212,13 +239,21 @@ export class TicketLifecycleController {
     await this.lifecycle.listEvents(uuid);
     const attachment = this.attachments.find(attachmentId, uuid);
     if (!attachment) throw new CustomBusinessException(ERROR_CODES.ATT.NOT_FOUND);
+    // Del bucket; los adjuntos anteriores a él se sirven desde la base.
+    let content: Buffer | null;
+    try {
+      content = attachment.objectKey ? await this.storage.get(attachment.objectKey) : attachment.content;
+    } catch {
+      throw new CustomBusinessException(ERROR_CODES.ATT.STORAGE_UNAVAILABLE);
+    }
+    if (!content) throw new CustomBusinessException(ERROR_CODES.ATT.NOT_FOUND);
     res.set({
       'Content-Type': attachment.mimeType,
-      'Content-Length': String(attachment.size),
+      'Content-Length': String(content.length),
       'Content-Disposition': `attachment; filename="${attachment.name}"`,
       'X-Content-Type-Options': 'nosniff',
     });
-    return new StreamableFile(attachment.content);
+    return new StreamableFile(content);
   }
 
   // ── Encuesta CSAT ──────────────────────────────────────────────────────────────────────────

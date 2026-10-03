@@ -50,7 +50,7 @@ export class TicketsService extends BaseApiAbstract<TTicket, TTicketRequest, TTi
 
   answerSurvey(uuid: string, form: TSurveyForm): Observable<TSurveyState> {
     // El comentario vacío viaja como `null` (el contrato lo exige así).
-    const body = { score: form.score, comment: form.comment || null };
+    const body = { resolved: form.resolved === 'yes', score: form.score, comment: form.comment || null };
     return this._http.post<unknown>(`${this.endpoint}/${uuid}/survey`, body).pipe(map((raw) => SurveyStateSchema.parse(raw)));
   }
 

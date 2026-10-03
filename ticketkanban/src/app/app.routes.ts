@@ -77,6 +77,10 @@ export const routes: Routes = [
         loadChildren: () => import('./pages/catalogs/catalogs.routes').then((m) => m.CATALOGS_ROUTES),
       },
       {
+        path: 'jobs',
+        loadChildren: () => import('./pages/jobs/jobs.routes').then((m) => m.JOBS_ROUTES),
+      },
+      {
         path: 'audit-logs',
         loadChildren: () => import('./pages/audit-logs/audit-logs.routes').then((m) => m.AUDIT_LOGS_ROUTES),
       },

@@ -1,0 +1,35 @@
+<header class="jb-header page-header-art">
+  <div>
+    <h1 class="jb-title">Tareas programadas</h1>
+    <p class="jb-subtitle">
+      Procesos automáticos del servicio. Activa o desactiva cada uno, cambia cuándo corre y ejecútalo a mano si lo necesitas.
+      Los cambios quedan en la auditoría.
+    </p>
+  </div>
+  <app-illustration class="page-art" [$name]="'jobs'" />
+</header>
+
+@let state = _store.$listState();
+@switch (state.kind) {
+  @case ('loading') {
+    <p class="jb-muted" role="status" aria-live="polite">Cargando las tareas…</p>
+  }
+  @case ('error') {
+    <div role="alert" class="jb-error">
+      <p>No se pudieron cargar las tareas programadas.</p>
+      <button type="button" pButton severity="secondary" (click)="_store.reload()">
+        <i pButtonIcon class="pi pi-refresh" aria-hidden="true"></i>
+        <span pButtonLabel>Reintentar</span>
+      </button>
+    </div>
+  }
+  @case ('success') {
+    <div class="jb-list">
+      @for (job of state.data.data; track job.key) {
+        <app-job-card [$job]="job" />
+      } @empty {
+        <p class="jb-muted" role="status">No hay tareas programadas.</p>
+      }
+    </div>
+  }
+}

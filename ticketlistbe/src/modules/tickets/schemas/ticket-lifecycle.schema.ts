@@ -2,9 +2,8 @@ import * as z from 'zod';
 import { VALIDATION_ERRORS as V, validationMessage as msg } from '../../../common/codes/validation-errors.js';
 import { TICKET_STATUS } from '../lifecycle/ticket-lifecycle.js';
 
-/** Máximo de adjuntos por comentario y tamaño de cada uno (A2 de la historia de seguimiento). */
+/** Máximo de adjuntos por comentario (o por cambio de estado). El tope de TAMAÑO depende del tipo: `attachments/attachment-limits.ts`. */
 export const MAX_ATTACHMENTS_PER_COMMENT = 5;
-export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 
 /**
  * Un comentario NUEVO. No hay schema de actualización: lo anterior no se modifica (trazabilidad); la
@@ -28,6 +27,8 @@ export const TransitionSchema = z
   .strictObject({
     to: z.enum(TICKET_STATUS, { error: msg(V.GENERIC.REQUIRED_SELECTION, { field: 'un estado' }) }),
     note: z.string().trim().max(500, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'La nota', max: 500 }) }).optional(),
+    /** Evidencia ya subida (fotos de la solución, etc.) que acompaña al cambio de estado. */
+    attachmentIds: z.array(z.uuid()).max(MAX_ATTACHMENTS_PER_COMMENT).default([]),
     resolution: z.string().trim().max(2000, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'La solución', max: 2000 }) }).optional(),
   })
   .refine((value) => value.to !== 'resolved' || (value.resolution?.length ?? 0) >= 3, {
@@ -39,8 +40,12 @@ export const AssignSchema = z.strictObject({
   assigneeEmail: z.email({ error: msg(V.GENERIC.IS_EMAIL) }).transform((email) => email.toLowerCase()),
 });
 
-/** Calificación CSAT: 1 a 5 y un comentario opcional (nadie está obligado a explicarse). */
+/**
+ * Encuesta de cierre (CU02): si se resolvió el problema, calificación 1 a 5 y un comentario opcional (nadie está obligado a
+ * explicarse).
+ */
 export const SurveyAnswerSchema = z.strictObject({
+  resolved: z.boolean({ error: msg(V.GENERIC.REQUIRED_SELECTION, { field: 'si se resolvió el problema' }) }),
   score: z.number({ error: msg(V.TICKET.SURVEY_SCORE) }).int({ error: msg(V.TICKET.SURVEY_SCORE) }).min(1, { error: msg(V.TICKET.SURVEY_SCORE) }).max(5, { error: msg(V.TICKET.SURVEY_SCORE) }),
   comment: z.string().trim().max(500, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'El comentario', max: 500 }) }).nullable().default(null),
 });
@@ -50,6 +55,10 @@ export const AttachmentRefSchema = z.object({
   name: z.string(),
   mimeType: z.string(),
   size: z.number().int(),
+  /** Imagen (miniatura), documento (enlace) o video (reproductor). */
+  kind: z.enum(['image', 'document', 'video']),
+  /** Solo videos: segundos (≤ 300). */
+  durationSeconds: z.number().int().nullable(),
 });
 
 /** Un renglón del historial tal como lo ve quien consulta (las notas internas ya vienen filtradas). */
@@ -74,6 +83,8 @@ export const SurveyStateSchema = z.object({
   expiresAt: z.iso.datetime(),
   score: z.number().int().nullable(),
   comment: z.string().nullable(),
+  /** ¿Se resolvió el problema? `null` hasta que responde. */
+  resolved: z.boolean().nullable(),
 });
 
 export const AttachmentResponseSchema = AttachmentRefSchema;

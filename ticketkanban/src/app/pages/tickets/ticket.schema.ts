@@ -182,6 +182,8 @@ export const TicketTransitionSchema = z
     to: z.enum(TICKET_STATUS, { error: msg(V.GENERIC.REQUIRED_SELECTION, { field: 'un estado' }) }),
     note: z.string().trim().max(500, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'La nota', max: 500 }) }).optional(),
     resolution: z.string().trim().max(2000, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'La solución', max: 2000 }) }).optional(),
+    /** Evidencia ya subida (fotos de la solución…) que acompaña al cambio de estado. */
+    attachmentIds: z.array(z.uuid()).max(5).optional(),
   })
   .refine((value) => value.to !== 'resolved' || (value.resolution?.length ?? 0) >= 3, {
     error: msg(V.TICKET.RESOLUTION_REQUIRED),
@@ -225,6 +227,8 @@ export function toLocalIsoDate(date: Date): string {
 /** Calificación del servicio al cerrarse un ticket (CSAT, escala 1–5). Espejo de `SurveyAnswerSchema` / `SurveyStateSchema` del backend. */
 export const SURVEY_SCORES = [1, 2, 3, 4, 5] as const;
 export const SurveyFormSchema = z.object({
+  /** ¿Se resolvió el problema? El formulario usa «yes»/«no» (radios); al enviar se convierte a boolean. */
+  resolved: z.enum(['yes', 'no'], { error: msg(V.GENERIC.REQUIRED_SELECTION, { field: 'si se resolvió el problema' }) }),
   score: z.number({ error: msg(V.TICKET.SURVEY_SCORE) }).int({ error: msg(V.TICKET.SURVEY_SCORE) }).min(1, { error: msg(V.TICKET.SURVEY_SCORE) }).max(5, { error: msg(V.TICKET.SURVEY_SCORE) }),
   comment: z.string().trim().max(500, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'El comentario', max: 500 }) }),
 });
@@ -233,4 +237,6 @@ export const SurveyStateSchema = z.object({
   expiresAt: z.coerce.date(),
   score: z.number().int().nullable(),
   comment: z.string().nullable(),
+  /** ¿Se resolvió el problema? `null` hasta que responde. */
+  resolved: z.boolean().nullable(),
 });

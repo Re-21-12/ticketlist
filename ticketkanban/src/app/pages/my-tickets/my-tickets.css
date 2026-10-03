@@ -251,3 +251,56 @@
 .mt-comment button {
   justify-self: start;
 }
+
+/* CU02: confirmar o reabrir */
+.mt-confirm {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 1rem;
+  border: 1px solid var(--app-primary);
+  border-radius: var(--app-radius);
+  background: var(--app-surface-muted);
+}
+.mt-confirm .mt-h3 {
+  margin: 0;
+}
+.mt-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Historial inmutable (A1): aviso y rechazo de edición */
+.mt-immutable {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-bottom: 0.75rem;
+}
+.mt-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--app-text-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.mt-edit:hover {
+  color: var(--app-text);
+  text-decoration: underline;
+}
+.mt-edit-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--app-danger);
+}

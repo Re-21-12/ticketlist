@@ -4,6 +4,7 @@ import { BoardHttpModule } from './bff/board/board-http.module.js';
 import { ShellHttpModule } from './bff/shell/shell-http.module.js';
 import { AppConfigModule } from './config/config.module.js';
 import { DatabaseModule } from './database/database.module.js';
+import { StorageModule } from './core/storage/storage.module.js';
 import { MethodNotAllowedMiddleware } from './common/http/method-not-allowed.middleware.js';
 import { HealthModule } from './core/health/health.module.js';
 import { KvModule } from './core/kv/kv.module.js';
@@ -30,6 +31,7 @@ import { NotificationsHttpModule } from './modules/notifications/notifications-h
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { RelationshipsHttpModule } from './modules/relationships/relationships-http.module.js';
 import { RelationshipsModule } from './modules/relationships/relationships.module.js';
+import { JobsHttpModule } from './modules/jobs/jobs-http.module.js';
 import { TicketsHttpModule } from './modules/tickets/tickets-http.module.js';
 import { UsersHttpModule } from './modules/users/users-http.module.js';
 import { UsersModule } from './modules/users/users.module.js';
@@ -46,6 +48,7 @@ import { UsersModule } from './modules/users/users.module.js';
     // Plataforma. RateLimitModule va ANTES de AuthModule: el límite por IP es el primer guard.
     AppConfigModule,
     DatabaseModule,
+    StorageModule,
     KvModule,
     MailModule,
     RateLimitModule,
@@ -62,6 +65,7 @@ import { UsersModule } from './modules/users/users.module.js';
     AuthHttpModule,
     UsersHttpModule,
     TicketsHttpModule,
+    JobsHttpModule,
     RolePermissionsHttpModule,
     RelationshipsHttpModule,
     NotificationsHttpModule,

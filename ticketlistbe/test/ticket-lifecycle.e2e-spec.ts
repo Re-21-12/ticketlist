@@ -208,7 +208,7 @@ describe('Ciclo de vida del ticket (e2e)', () => {
       expect(trail.filter((type) => type !== 'NOTIFIED')).toEqual(['CREATED', 'STATUS_CHANGED', 'ASSIGNED', 'COMMENT_PUBLIC', 'STATUS_CHANGED', 'STATUS_CHANGED', 'SURVEY_SENT']);
       expect(trail).toContain('NOTIFIED');
       expect((await victor.agent.get(`/api/tickets/${uuid}/survey`).expect(200)).body.state).toBe('pending');
-      // Quien cierra está en pantalla: nadie se notifica a sí mismo (la encuesta le llega por correo y en la propia vista).
+      // Quien cierra no se avisa a sí mismo del cierre; la encuesta SÍ queda en su buzón aunque la haya provocado él.
       expect((await notificationsOf(ana)).some((n) => n.message.includes('confirmó el cierre'))).toBe(true);
     });
 
@@ -285,10 +285,10 @@ describe('Ciclo de vida del ticket (e2e)', () => {
       expect(download.headers['x-content-type-options']).toBe('nosniff');
     });
 
-    it('supera 5 MB → 413 SATT-E001; un tipo no permitido → 415 SATT-E002; sin archivo → 400', async () => {
+    it('una imagen de más de 10 MB → 413 SATT-E001; un tipo no permitido → 415 SATT-E002; sin archivo → 400', async () => {
       const victor = await login('victor@ticketit.dev');
       const { uuid } = await create(victor);
-      const big = Buffer.concat([PNG, Buffer.alloc(5 * 1024 * 1024)]);
+      const big = Buffer.concat([PNG, Buffer.alloc(10 * 1024 * 1024)]);
       expect((await upload(victor, uuid, big).expect(413)).body.code).toBe('SATT-E001');
       expect((await upload(victor, uuid, Buffer.from([0x4d, 0x5a, 0x90, 0x00, 1, 2, 3]), 'virus.png').expect(415)).body.code).toBe('SATT-E002');
       expect((await post(victor, `/api/tickets/${uuid}/attachments`).expect(400)).body.code).toBe('SATT-E003');
@@ -314,21 +314,25 @@ describe('Ciclo de vida del ticket (e2e)', () => {
       return { victor, ana, uuid };
     }
 
-    it('se envía por correo al cerrar (una sola vez) y el solicitante responde con 1–5 y comentario opcional', async () => {
+    it('se deja en el buzón al cerrar (sin correo) y el solicitante responde si se resolvió, 1–5 y comentario opcional', async () => {
       const { victor, uuid } = await closedTicket();
-      const mail = app.get(LogMailService, { strict: false });
-      expect(mail.outbox.filter((m) => m.subject.includes('¿Cómo te atendimos?')).length).toBeGreaterThan(0);
+      // No hay SMTP: la encuesta llega SOLO al buzón de notificaciones y no sale ningún correo.
+      const inbox = (await victor.agent.get('/api/notifications').expect(200)).body.data as { type: string; message: string }[];
+      expect(inbox.some((n) => n.type === 'TICKET_SURVEY' && n.message.includes('¿Se resolvió tu problema'))).toBe(true);
+      expect(app.get(LogMailService, { strict: false }).outbox).toHaveLength(0);
 
-      const answered = await post(victor, `/api/tickets/${uuid}/survey`, { score: 5, comment: 'Muy amable.' }).expect(200);
-      expect(answered.body).toMatchObject({ state: 'answered', score: 5, comment: 'Muy amable.' });
-      expect((await post(victor, `/api/tickets/${uuid}/survey`, { score: 1 }).expect(409)).body.code).toBe('SSRV-E002');
+      const answered = await post(victor, `/api/tickets/${uuid}/survey`, { resolved: true, score: 5, comment: 'Muy amable.' }).expect(200);
+      expect(answered.body).toMatchObject({ state: 'answered', score: 5, comment: 'Muy amable.', resolved: true });
+      expect((await post(victor, `/api/tickets/${uuid}/survey`, { resolved: true, score: 1 }).expect(409)).body.code).toBe('SSRV-E002');
       expect((await events(victor, uuid)).map((e) => e.type)).toContain('SURVEY_ANSWERED');
     });
 
-    it('el comentario es opcional; la calificación debe ser entera de 1 a 5', async () => {
+    it('indicar si se resolvió es obligatorio; el comentario es opcional; la calificación debe ser entera de 1 a 5', async () => {
       const { victor, uuid } = await closedTicket();
-      for (const score of [0, 6, 3.5, 'cinco']) await post(victor, `/api/tickets/${uuid}/survey`, { score }).expect(400);
-      expect((await post(victor, `/api/tickets/${uuid}/survey`, { score: 4 }).expect(200)).body).toMatchObject({ score: 4, comment: null });
+      // Sin «resolved» no se acepta (CU02): hay que decir si se resolvió el problema.
+      expect((await post(victor, `/api/tickets/${uuid}/survey`, { score: 4 }).expect(400)).body.code).toBe('CVAL-E001');
+      for (const score of [0, 6, 3.5, 'cinco']) await post(victor, `/api/tickets/${uuid}/survey`, { resolved: true, score }).expect(400);
+      expect((await post(victor, `/api/tickets/${uuid}/survey`, { resolved: true, score: 4 }).expect(200)).body).toMatchObject({ score: 4, comment: null });
     });
 
     it('solo la responde quien registró el ticket; para los demás «no hay encuesta» (404)', async () => {
@@ -336,7 +340,7 @@ describe('Ciclo de vida del ticket (e2e)', () => {
       const sergio = await login('sergio@ticketit.dev');
       for (const other of [ana, sergio]) {
         expect((await other.agent.get(`/api/tickets/${uuid}/survey`).expect(404)).body.code).toBe('SSRV-E001');
-        await post(other, `/api/tickets/${uuid}/survey`, { score: 5 }).expect(404);
+        await post(other, `/api/tickets/${uuid}/survey`, { resolved: true, score: 5 }).expect(404);
       }
     });
 
@@ -355,14 +359,14 @@ describe('Ciclo de vida del ticket (e2e)', () => {
       const store = app.get(repository, { strict: false });
       const survey = store.find(closed.uuid)!;
       store.save({ ...survey, expiresAt: new Date(Date.now() - 1000) });
-      expect((await post(closed.victor, `/api/tickets/${closed.uuid}/survey`, { score: 5 }).expect(410)).body.code).toBe('SSRV-E003');
+      expect((await post(closed.victor, `/api/tickets/${closed.uuid}/survey`, { resolved: true, score: 5 }).expect(410)).body.code).toBe('SSRV-E003');
       expect((await closed.victor.agent.get(`/api/tickets/${closed.uuid}/survey`).expect(200)).body.state).toBe('expired');
     });
 
     it('una calificación baja (1–2) avisa a los supervisores', async () => {
       const { victor, uuid } = await closedTicket();
       const sergio = await login('sergio@ticketit.dev');
-      await post(victor, `/api/tickets/${uuid}/survey`, { score: 2, comment: 'Tardaron.' }).expect(200);
+      await post(victor, `/api/tickets/${uuid}/survey`, { resolved: true, score: 2, comment: 'Tardaron.' }).expect(200);
       expect((await notificationsOf(sergio)).some((n) => n.type === 'TICKET_SURVEY_ALERT' && n.message.includes('2/5'))).toBe(true);
     });
   });

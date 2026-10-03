@@ -20,6 +20,12 @@ import { AVATAR_COLORS, AVATAR_ICONS } from '../ui/user-avatar/avatar.const';
 import { buildShell, handleAdmin, isActiveCatalogCode, recordAudit, resetAdminState, type IMockHelpers } from './mock-bff.admin';
 import { buildViewerShell, MOCK_SHELLS, MOCK_TICKETS, type IMockTicket } from './mock-bff.data';
 import { mockAgentDetail, mockAgentsResponse, mockProblems, mockSummaryResponse, type IMockMetricsInput } from './mock-metrics';
+import { EVIDENCE_MAX_BYTES } from '../../shared/evidence/evidence.constants';
+import { kindOfFile } from '../../shared/evidence/evidence.util';
+import type { TAttachmentRef } from '../../shared/evidence/evidence.types';
+import { parseCron } from '../../pages/jobs/cron.util';
+import { registerMockAttachment, resetMockAttachments } from './mock-attachments';
+import { jobResponse, MOCK_AUTO_CLOSE_KEY, seedJobs, type IMockJob } from './mock-jobs';
 import { mockRealtime$ } from './mock-realtime';
 import { requesterMessage, type IMockEvent } from './mock-ticket-events';
 import { MOCK_TRANSITIONS, mockActorsFor, mockIsTeamFor, mockNextStatuses, REOPEN_WINDOW_MS, type IMockViewer, type TMockActor } from './mock-ticket-lifecycle';
@@ -37,6 +43,9 @@ const TICKET_TRANSITION = /^\/api\/tickets\/([\w-]+)\/transitions$/;
 const TICKET_SURVEY = /^\/api\/tickets\/([\w-]+)\/survey$/;
 const TICKET_EVENTS = /^\/api\/tickets\/([\w-]+)\/events$/;
 const TICKET_COMMENTS = /^\/api\/tickets\/([\w-]+)\/comments$/;
+const TICKET_COMMENT_ITEM = /^\/api\/tickets\/([\w-]+)\/comments\/([\w-]+)$/;
+const TICKET_ATTACHMENTS = /^\/api\/tickets\/([\w-]+)\/attachments$/;
+const JOBS_PATH = /^\/api\/jobs(?:\/([\w-]+)(\/run)?)?$/;
 
 /** Estado en memoria del mock (se reinicia al recargar la página). */
 type TStoredTicket = IMockTicket;
@@ -101,9 +110,12 @@ const db: {
   sessions: IMockSession[];
   notifications: IMockNotification[];
   /** Encuestas respondidas por ticket. */
-  surveys: Map<string, { score: number; comment: string | null }>;
+  surveys: Map<string, { score: number; comment: string | null; resolved: boolean }>;
   /** Historial de cada ticket (CU01): se siembra al consultarlo y crece con cada cambio. */
   events: IMockEvent[];
+  /** Evidencia subida: metadata + quién la subió y si ya se amarró a un renglón del historial. */
+  attachments: Map<string, { ref: TAttachmentRef; ticketUuid: string; uploadedBy: string; used: boolean }>;
+  jobs: IMockJob[];
 } = {
   tickets: [...MOCK_TICKETS],
   session: null,
@@ -113,6 +125,8 @@ const db: {
   notifications: [],
   surveys: new Map(),
   events: [],
+  attachments: new Map(),
+  jobs: seedJobs(),
 };
 
 /** Vuelve el mock a su estado inicial. Lo usan los tests: el estado es del módulo y persistiría entre ellos. */
@@ -125,6 +139,9 @@ export function resetMockBff(): void {
   db.notifications = [];
   db.surveys = new Map();
   db.events = [];
+  db.attachments = new Map();
+  db.jobs = seedJobs();
+  resetMockAttachments();
   resetAdminState();
 }
 
@@ -223,6 +240,8 @@ function dispatch(req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> 
   if (admin) return admin as Observable<HttpResponse<unknown>>;
   const metrics = handleMetrics(req, url);
   if (metrics) return metrics;
+  const jobs = handleJobs(req, url);
+  if (jobs) return jobs;
 
   if (url.pathname === '/api/tickets') {
     if (req.method === 'GET') return listTickets(url);
@@ -236,6 +255,10 @@ function dispatch(req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> 
   if (eventsMatch && req.method === 'GET') return listTicketEvents(req, eventsMatch[1] as string);
   const commentsMatch = TICKET_COMMENTS.exec(url.pathname);
   if (commentsMatch && req.method === 'POST') return postComment(req, commentsMatch[1] as string);
+  // El historial es inmutable: un comentario previo no se edita ni se borra (A1 de CU02).
+  if (TICKET_COMMENT_ITEM.test(url.pathname) && ['PATCH', 'PUT', 'DELETE'].includes(req.method)) return fail(req, 409, 'STCK-E002', 'Los comentarios previos no pueden modificarse');
+  const attachmentsMatch = TICKET_ATTACHMENTS.exec(url.pathname);
+  if (attachmentsMatch && req.method === 'POST') return uploadAttachment(req, attachmentsMatch[1] as string);
   const match = TICKET_ITEM.exec(url.pathname);
   if (match) return ticketItem(req, match[1], !!match[2]);
 
@@ -514,7 +537,7 @@ function derivedNotifications(userUuid: string): IMockNotification[] {
     .map<IMockNotification>((t) => ({
       uuid: `5e5e5e5e-0000-4000-8000-${t.uuid.slice(-12)}`,
       type: 'TICKET_SURVEY',
-      message: `¿Cómo te atendimos en ${t.code}? Tu opinión es opcional`,
+      message: `¿Se resolvió tu problema en ${t.code}? Cuéntanos cómo te atendimos (es opcional)`,
       resourceType: 'Ticket',
       resourceUuid: t.uuid,
       readAt: null,
@@ -544,20 +567,24 @@ function handleSurvey(req: HttpRequest<unknown>, uuid: string): Observable<HttpR
   if (!ticket || ticket.ownerUuid !== me || ticket.status !== 'closed') return fail(req, 404, 'SSRV-E001', 'No hay encuesta disponible para este ticket');
   const answered = db.surveys.get(uuid);
   const expiresAt = new Date(new Date(ticket.closedAt ?? Date.now()).getTime() + 7 * 86_400_000).toISOString();
-  const state = (): { state: string; expiresAt: string; score: number | null; comment: string | null } => ({
+  const state = (): { state: string; expiresAt: string; score: number | null; comment: string | null; resolved: boolean | null } => ({
     state: answered ? 'answered' : Date.now() > new Date(expiresAt).getTime() ? 'expired' : 'pending',
     expiresAt,
     score: answered?.score ?? null,
     comment: answered?.comment ?? null,
+    resolved: answered?.resolved ?? null,
   });
   if (req.method === 'GET') return ok(state());
   if (req.method !== 'POST') return fail(req, 405, 'NEST-E405', 'Método no permitido');
-  const parsed = SurveyFormSchema.safeParse({ score: (req.body as Record<string, unknown>)?.['score'], comment: (req.body as Record<string, unknown>)?.['comment'] ?? '' });
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  // El backend recibe `resolved` como boolean; el schema del formulario usa «yes»/«no».
+  const parsed = SurveyFormSchema.safeParse({ resolved: body['resolved'] === true ? 'yes' : body['resolved'] === false ? 'no' : undefined, score: body['score'], comment: body['comment'] ?? '' });
   if (!parsed.success) return invalid(req, parsed.error);
   if (answered) return fail(req, 409, 'SSRV-E002', 'La encuesta ya fue respondida');
   if (state().state === 'expired') return fail(req, 410, 'SSRV-E003', 'La encuesta venció');
-  db.surveys.set(uuid, { score: parsed.data.score, comment: parsed.data.comment || null });
-  return ok({ state: 'answered', expiresAt, score: parsed.data.score, comment: parsed.data.comment || null });
+  const resolved = parsed.data.resolved === 'yes';
+  db.surveys.set(uuid, { score: parsed.data.score, comment: parsed.data.comment || null, resolved });
+  return ok({ state: 'answered', expiresAt, score: parsed.data.score, comment: parsed.data.comment || null, resolved });
 }
 
 /** Mismas reglas que `AccountSecurityService`: actual incorrecta → 422, igual a la actual → 422. */
@@ -829,6 +856,8 @@ function transitionTicket(req: HttpRequest<unknown>, uuid: string): Observable<H
     return fail(req, 409, 'STCK-E004', 'Venció el plazo para reabrir el ticket; registra uno nuevo');
   }
 
+  const evidence = takeEvidence(parsed.data.attachmentIds ?? [], current);
+  if (evidence === null) return fail(req, 404, 'RATT-E001', 'Adjunto no encontrado');
   const now = new Date().toISOString();
   const updated: TStoredTicket = {
     ...current,
@@ -840,15 +869,20 @@ function transitionTicket(req: HttpRequest<unknown>, uuid: string): Observable<H
     ...(to === 'assigned' || to === 'in_progress' ? { attendedSince: now } : {}),
   };
   db.tickets = db.tickets.map((t) => (t.uuid === uuid ? updated : t));
-  recordEvent(updated, { type: 'STATUS_CHANGED', actor: actor === 'customer' ? 'customer' : actor === 'system' ? 'system' : 'staff', from: current.status, to, body: parsed.data.note ?? parsed.data.resolution ?? null });
+  recordEvent(updated, { type: 'STATUS_CHANGED', actor: actor === 'customer' ? 'customer' : actor === 'system' ? 'system' : 'staff', from: current.status, to, body: parsed.data.note ?? parsed.data.resolution ?? null, attachments: evidence });
   const message = requesterMessage(updated.code, to, { teamActor: actor === 'agent' || actor === 'supervisor' || actor === 'admin', system: actor === 'system' });
   if (message) notifyRequester(updated, message);
+  // A3 de CU02: si el solicitante reabre, se avisa al agente asignado.
+  if (to === 'reopened' && actor === 'customer') {
+    const assignee = updated.assigneeEmail ? findUser(updated.assigneeEmail) : null;
+    if (assignee) notifyUser(assignee.shell.user.uuid, 'TICKET_REOPENED', `${db.session?.user.name ?? 'El solicitante'} reabrió ${updated.code} «${updated.title}»`, updated);
+  }
   return ok(present(updated));
 }
 
 // ── Historial y avisos del ticket (CU01) ──────────────────────────────────────────────────────────
 // Los eventos se siembran al consultarlos (los tres tickets de siempre no traen historial) y crecen con cada cambio.
-type TEventInput = { type: IMockEvent['type']; actor: IMockEvent['actor']; from?: IMockEvent['from']; to?: IMockEvent['to']; body?: string | null; assignee?: string | null; visibility?: IMockEvent['visibility']; at?: string };
+type TEventInput = { type: IMockEvent['type']; actor: IMockEvent['actor']; from?: IMockEvent['from']; to?: IMockEvent['to']; body?: string | null; assignee?: string | null; visibility?: IMockEvent['visibility']; at?: string; attachments?: TAttachmentRef[] };
 
 function recordEvent(ticket: TStoredTicket, input: TEventInput): IMockEvent {
   const sessionUser = db.session?.user;
@@ -863,7 +897,7 @@ function recordEvent(ticket: TStoredTicket, input: TEventInput): IMockEvent {
     from: input.from ?? null,
     to: input.to ?? null,
     body: input.body ?? null,
-    attachments: [],
+    attachments: input.attachments ?? [],
     assignee: input.assignee ?? null,
   };
   db.events = [...db.events, event];
@@ -913,6 +947,100 @@ function listTicketEvents(req: HttpRequest<unknown>, uuid: string): Observable<H
   return ok({ data: eventsOfTicket(ticket).filter((e) => team || e.visibility === 'public') });
 }
 
+/** Evidencia ya subida por la sesión a ESTE ticket y aún sin usar → se amarra al renglón; `null` si alguna no existe. */
+function takeEvidence(ids: readonly string[], ticket: TStoredTicket): TAttachmentRef[] | null {
+  const me = db.session?.user.uuid;
+  const found = ids.map((id) => db.attachments.get(id));
+  if (found.some((entry) => !entry || entry.ticketUuid !== ticket.uuid || entry.uploadedBy !== me || entry.used)) return null;
+  for (const id of ids) db.attachments.set(id, { ...(db.attachments.get(id) as NonNullable<ReturnType<typeof db.attachments.get>>), used: true });
+  return found.map((entry) => (entry as NonNullable<typeof entry>).ref);
+}
+
+/** `POST /api/tickets/:uuid/attachments`: mismas reglas que el backend (tipo admitido y tope de su familia). */
+function uploadAttachment(req: HttpRequest<unknown>, uuid: string): Observable<HttpResponse<unknown>> {
+  const ticket = visibleTickets().find((t) => t.uuid === uuid);
+  if (!ticket) return fail(req, 404, 'RTCK-E001', 'Ticket no encontrado');
+  const file = req.body instanceof FormData ? req.body.get('file') : null;
+  if (!(file instanceof File)) return fail(req, 400, 'SATT-E003', 'Adjunta un archivo');
+  const kind = kindOfFile(file);
+  if (!kind) return fail(req, 415, 'SATT-E002', 'Ese tipo de archivo no está permitido');
+  if (file.size > EVIDENCE_MAX_BYTES[kind]) return fail(req, 413, 'SATT-E001', 'El archivo supera el tamaño permitido');
+  const id = crypto.randomUUID();
+  registerMockAttachment(id, file);
+  // La duración de un video la comprueba el navegador antes de subir (el mock no decodifica).
+  const ref: TAttachmentRef = { id, name: file.name, mimeType: file.type || 'application/octet-stream', size: file.size, kind, durationSeconds: null };
+  db.attachments.set(id, { ref, ticketUuid: uuid, uploadedBy: db.session?.user.uuid ?? '', used: false });
+  return ok(ref, 201);
+}
+
+// ── Tareas programadas (solo administración) ─────────────────────────────────────────────────────
+/** Cierra los «Resuelto» sin respuesta pasado el plazo, como `closeStaleResolved` del backend. Devuelve cuántos cerró. */
+function closeStaleResolved(afterHours: number, now: Date): number {
+  let closed = 0;
+  for (const ticket of db.tickets) {
+    if (ticket.status !== 'resolved' || !ticket.resolvedAt) continue;
+    if (now.getTime() - new Date(ticket.resolvedAt).getTime() < afterHours * 3_600_000) continue;
+    const updated: TStoredTicket = { ...ticket, status: 'closed', closedAt: now.toISOString() };
+    db.tickets = db.tickets.map((t) => (t.uuid === ticket.uuid ? updated : t));
+    recordEvent(updated, { type: 'STATUS_CHANGED', actor: 'system', from: 'resolved', to: 'closed', body: `Cierre automático: ${afterHours} h sin respuesta` });
+    notifyRequester(updated, `${updated.code} se cerró automáticamente por falta de respuesta`);
+    closed += 1;
+  }
+  return closed;
+}
+
+function handleJobs(req: HttpRequest<unknown>, url: URL): Observable<HttpResponse<unknown>> | null {
+  const match = JOBS_PATH.exec(url.pathname);
+  if (!match) return null;
+  const [, key, run] = match;
+  const action = req.method === 'GET' ? 'read' : 'update';
+  if (!ability().can(action, 'ScheduledJob')) return forbidden(req);
+  if (!key) return req.method === 'GET' ? ok({ data: db.jobs.map((job) => jobResponse(job)) }) : fail(req, 405, 'NEST-E405', 'Método no permitido');
+  const job = db.jobs.find((candidate) => candidate.key === key);
+  if (!job) return fail(req, 404, 'RJOB-E001', 'Tarea programada no encontrada');
+
+  if (run && req.method === 'POST') {
+    const now = new Date();
+    const hours = job.params.afterHours ?? 48;
+    const summary =
+      job.key === MOCK_AUTO_CLOSE_KEY
+        ? (() => {
+            const closed = closeStaleResolved(hours, now);
+            return closed === 0
+              ? `Ningún ticket «Resuelto» llevaba más de ${hours} h sin respuesta`
+              : `Cerró ${closed} ticket(s) «Resuelto» sin respuesta tras ${hours} h y envió la encuesta a su buzón`;
+          })()
+        : 'Sin lógica';
+    const saved: IMockJob = { ...job, lastRunAt: now.toISOString(), lastRunStatus: 'ok', lastRunSummary: summary, lastRunTrigger: db.session?.user.email ?? 'manual' };
+    db.jobs = db.jobs.map((candidate) => (candidate.key === key ? saved : candidate));
+    return ok(jobResponse(saved, now));
+  }
+
+  if (req.method === 'PATCH' && !run) {
+    const body = (req.body ?? {}) as { enabled?: unknown; cron?: unknown; params?: { afterHours?: unknown } };
+    const errors: IProblemFieldError[] = [];
+    if (typeof body.enabled !== 'boolean') errors.push(fieldError('enabled', 'Indica si la tarea está activada'));
+    const cron = typeof body.cron === 'string' ? body.cron.trim() : '';
+    if (!parseCron(cron)) errors.push(fieldError('cron', 'La expresión cron no es válida: usa 5 campos (minuto hora día mes día-de-la-semana), por ejemplo */10 * * * *'));
+    const afterHours = body.params?.afterHours;
+    if (afterHours !== undefined && (typeof afterHours !== 'number' || !Number.isInteger(afterHours) || afterHours < 1 || afterHours > 720)) {
+      errors.push(fieldError('params.afterHours', 'Indica un número entero de horas entre 1 y 720'));
+    }
+    if (errors.length > 0) return fail(req, 400, 'CVAL-E001', 'Datos inválidos', errors);
+    const saved: IMockJob = {
+      ...job,
+      enabled: body.enabled as boolean,
+      cron,
+      params: { ...job.params, ...(afterHours !== undefined ? { afterHours: afterHours as number } : {}) },
+      updatedAt: new Date().toISOString(),
+      updatedBy: db.session?.user.email ?? null,
+    };
+    db.jobs = db.jobs.map((candidate) => (candidate.key === key ? saved : candidate));
+    return ok(jobResponse(saved));
+  }
+  return fail(req, 405, 'NEST-E405', 'Método no permitido');
+}
+
 /** `POST /api/tickets/:uuid/comments`: el solicitante comenta en público; el equipo también puede dejar notas internas. */
 function postComment(req: HttpRequest<unknown>, uuid: string): Observable<HttpResponse<unknown>> {
   const ticket = visibleTickets().find((t) => t.uuid === uuid);
@@ -925,7 +1053,10 @@ function postComment(req: HttpRequest<unknown>, uuid: string): Observable<HttpRe
   if (body.length < 1 || body.length > 2000) return fail(req, 400, 'CVAL-E001', 'Datos inválidos', [fieldError('body', 'El comentario debe tener entre 1 y 2000 caracteres')]);
   const team = mockIsTeamFor(ticket, viewer());
   if (internal && !team) return forbidden(req);
-  const event = recordEvent(ticket, { type: internal ? 'COMMENT_INTERNAL' : 'COMMENT_PUBLIC', actor: team ? 'staff' : 'customer', visibility: internal ? 'internal' : 'public', body });
+  const ids = Array.isArray((req.body as { attachmentIds?: unknown })?.attachmentIds) ? ((req.body as { attachmentIds: string[] }).attachmentIds) : [];
+  const evidence = takeEvidence(ids, ticket);
+  if (evidence === null) return fail(req, 404, 'RATT-E001', 'Adjunto no encontrado');
+  const event = recordEvent(ticket, { type: internal ? 'COMMENT_INTERNAL' : 'COMMENT_PUBLIC', actor: team ? 'staff' : 'customer', visibility: internal ? 'internal' : 'public', body, attachments: evidence });
   // El solicitante que responde a «Pendiente del cliente» devuelve el ticket a «En atención».
   if (!team && ticket.status === 'pending_customer') {
     const resumed: TStoredTicket = { ...ticket, status: 'in_progress' };

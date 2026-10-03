@@ -6,6 +6,9 @@ const PROD = {
   TOTP_ENCRYPTION_KEY: 't'.repeat(40),
   REDIS_URL: 'redis://redis:6379',
   DATABASE_URL: 'postgres://u:p@db:5432/ticketit',
+  S3_ENDPOINT: 'minio',
+  S3_ACCESS_KEY: 'ticketit',
+  S3_SECRET_KEY: 'una-clave-larga-del-bucket',
 };
 
 describe('loadEnv · production', () => {
@@ -22,6 +25,15 @@ describe('loadEnv · production', () => {
 
   it('una contraseña inicial corta se rechaza', () => {
     expect(() => loadEnv({ ...PROD, BOOTSTRAP_ADMIN_PASSWORD: 'corta' })).toThrow();
+  });
+
+  it('production exige el bucket de evidencia (S3_*): sin él los archivos se perderían al reiniciar', () => {
+    const base = { ...PROD, BOOTSTRAP_ADMIN_PASSWORD: 'Clave-Inicial-2026!' };
+    expect(loadEnv(base).S3_BUCKET).toBe('ticketit-evidence');
+    for (const missing of ['S3_ENDPOINT', 'S3_ACCESS_KEY', 'S3_SECRET_KEY']) {
+      const { [missing]: _omitted, ...rest } = base as Record<string, string>;
+      expect(() => loadEnv(rest as NodeJS.ProcessEnv), missing).toThrow(/S3_ENDPOINT/);
+    }
   });
 
   it('production exige la base de datos y prohíbe borrarla o apagar la persistencia', () => {

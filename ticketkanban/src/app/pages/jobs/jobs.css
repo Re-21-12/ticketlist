@@ -1,0 +1,25 @@
+.jb-header {
+  margin-bottom: 1.5rem;
+}
+.jb-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.jb-subtitle,
+.jb-muted {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+.jb-list {
+  display: grid;
+  gap: 1rem;
+}
+.jb-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: var(--app-danger);
+}

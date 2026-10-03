@@ -11,7 +11,7 @@ export class TicketAttachmentsRepository implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     if (!this.persistence.enabled) return;
-    this.attachments = (await this.persistence.load(TicketAttachmentSchema)).map((row) => ({ ...row, content: Buffer.from(row.content) }));
+    this.attachments = (await this.persistence.load(TicketAttachmentSchema)).map((row) => ({ ...row, content: row.content ? Buffer.from(row.content) : null }));
   }
 
   add(attachment: ITicketAttachment): void {

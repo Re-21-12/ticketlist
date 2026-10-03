@@ -312,6 +312,8 @@ function demoSeed(now: Date, firstNumber: number): ITicketsSeed {
               answeredAt: new Date(at.getTime() + 3_600_000),
               score: row.survey.score,
               comment: row.survey.comment ?? null,
+              // En la demostración, una calificación de 3 o más equivale a «sí se resolvió».
+              resolved: row.survey.score >= 3,
             });
             events.push(base({ type: 'SURVEY_ANSWERED', at: new Date(at.getTime() + 3_600_000), actor: 'customer', actorName: owner.name, actorUuid: owner.uuid, body: row.survey.comment ?? null }));
           }

@@ -13,6 +13,7 @@ export const SUBJECT_LABELS: Record<TSubjects, string> = {
   Catalog: 'Catálogos',
   Metric: 'Métricas del equipo',
   MyMetric: 'Mis métricas',
+  ScheduledJob: 'Tareas programadas',
   all: 'Todo el sistema',
 };
 

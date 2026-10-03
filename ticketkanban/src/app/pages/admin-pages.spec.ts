@@ -71,7 +71,7 @@ describe('pantallas de administración (render con el mock del BFF)', () => {
 
   it('Menú: lista los ítems del menú sembrado', async () => {
     const { root } = await render(MenuItems);
-    await vi.waitFor(() => expect(rows(root)).toBe(17), WAIT);
+    await vi.waitFor(() => expect(rows(root)).toBe(18), WAIT);
     expect(root.textContent).toContain('Matriz de roles');
   });
 

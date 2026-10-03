@@ -110,6 +110,7 @@ Acceso a datos: registro inexistente, ya eliminado, y violaciones de constraints
 | `RTCK-E002` | 410 | `ERROR_CODES.TCK.ALREADY_DELETED` | El ticket ya fue eliminado | Ticket already deleted |
 | `RTCK-E003` | 409 | `ERROR_CODES.TCK.NOT_DELETED` | El ticket no está eliminado | Ticket is not deleted |
 | `RATT-E001` | 404 | `ERROR_CODES.ATT.NOT_FOUND` | Adjunto no encontrado | Attachment not found |
+| `RJOB-E001` | 404 | `ERROR_CODES.JOB.NOT_FOUND` | Tarea programada no encontrada | Scheduled job not found |
 
 ### 3.2 Servicio (S)
 
@@ -153,6 +154,9 @@ Reglas de negocio y autorización por registro (`BaseService.assertCan`) o por t
 | `SATT-E001` | 413 | `ERROR_CODES.ATT.TOO_LARGE` | El archivo supera el tamaño permitido | The file is too large |
 | `SATT-E002` | 415 | `ERROR_CODES.ATT.TYPE_NOT_ALLOWED` | Ese tipo de archivo no está permitido | That file type is not allowed |
 | `SATT-E003` | 400 | `ERROR_CODES.ATT.FILE_REQUIRED` | Adjunta un archivo | Attach a file |
+| `SATT-E004` | 422 | `ERROR_CODES.ATT.VIDEO_TOO_LONG` | El video dura más de 5 minutos | The video is longer than 5 minutes |
+| `SATT-E005` | 422 | `ERROR_CODES.ATT.VIDEO_DURATION_UNKNOWN` | No se pudo comprobar la duración del video | The video duration could not be verified |
+| `SATT-E006` | 503 | `ERROR_CODES.ATT.STORAGE_UNAVAILABLE` | El almacenamiento de archivos no está disponible en este momento | File storage is not available right now |
 | `SSRV-E001` | 404 | `ERROR_CODES.SRV.NOT_AVAILABLE` | No hay encuesta disponible para este ticket | There is no survey available for this ticket |
 | `SSRV-E002` | 409 | `ERROR_CODES.SRV.ALREADY_ANSWERED` | La encuesta ya fue respondida | The survey was already answered |
 | `SSRV-E003` | 410 | `ERROR_CODES.SRV.EXPIRED` | La encuesta venció | The survey expired |
@@ -206,6 +210,7 @@ Errores no mapeados. `NEST-E<status>` lo genera el filtro para `HttpException` d
 | `VALIDATION_ERRORS.ADMIN.INVALID_CODE` | — | Usa solo mayúsculas, números y guion bajo (empieza con una letra) | Use only uppercase letters, numbers and underscores (start with a letter) |
 | `VALIDATION_ERRORS.METRICS.PERIOD_ORDER` | — | La fecha final no puede ser anterior a la inicial | The end date cannot be before the start date |
 | `VALIDATION_ERRORS.METRICS.PERIOD_TOO_LONG` | `max` | El período no puede superar {max} días | The period cannot exceed {max} days |
+| `VALIDATION_ERRORS.JOB.CRON_INVALID` | — | La expresión cron no es válida: usa 5 campos (minuto hora día mes día-de-la-semana), por ejemplo */10 * * * * | The cron expression is not valid: use 5 fields (minute hour day month weekday), for example */10 * * * * |
 <!-- error-catalog:generated:end -->
 
 ### 4.2 Mapeo por DTO: campo → regla → mensaje
@@ -244,9 +249,19 @@ Schema: `src/modules/tickets/schemas/ticket.schema.ts` (`TicketCreateSchema` / `
 | `body` | `.max(2000)` | `too_big` | `GENERIC.MAX_LENGTH` `{field: 'El comentario', max: 2000}` | El comentario no debe superar 2000 caracteres |
 | `to` | `enum(TICKET_STATUS)` | `invalid_value` | `GENERIC.REQUIRED_SELECTION` `{field: 'un estado'}` | Selecciona un estado |
 | `resolution` | refine: obligatoria (≥ 3 caracteres) si `to = 'resolved'` | `custom` | `TICKET.RESOLUTION_REQUIRED` | Documenta la solución para poder resolver el ticket |
+| `resolved` | `boolean()` (obligatorio) | `invalid_type` | `GENERIC.REQUIRED_SELECTION` `{field: 'si se resolvió el problema'}` | Selecciona si se resolvió el problema |
 | `score` | `number().int().min(1).max(5)` (tipo) | `invalid_type` | `TICKET.SURVEY_SCORE` | Elige una calificación de 1 a 5 |
 | `score` | `number().int().min(1).max(5)` (límite) | `too_big` | `TICKET.SURVEY_SCORE` | Elige una calificación de 1 a 5 |
 | `assigneeEmail` | `email()` | `invalid_format` | `GENERIC.IS_EMAIL` | Ingresa un correo válido (ej. ana@empresa.com) |
+
+#### Tareas programadas (`PATCH /api/jobs/:key`)
+
+Schema: `src/modules/jobs/jobs.schema.ts` (`JobUpdateSchema`).
+
+| Campo | Regla (Zod) | `code` | Clave del catálogo | Mensaje resultante |
+|---|---|---|---|---|
+| `cron` | refine: 5 campos válidos (`parseCron`) | `custom` | `JOB.CRON_INVALID` | La expresión cron no es válida: usa 5 campos (minuto hora día mes día-de-la-semana), por ejemplo */10 * * * * |
+| `params.afterHours` | `number().int().min(1).max(720)` (límite) | `too_small` | `GENERIC.MIN_VALUE` `{min: 1}` | El valor mínimo es 1 |
 
 #### Métricas (`/api/metrics/*`)
 
@@ -399,9 +414,13 @@ La validación del DTO corre ANTES del servicio: una contraseña débil devuelve
 | `STCK-E004` | `TicketLifecycleService.transition` | Reabrir un cerrado fuera de los 7 días de reincidencia |
 | `STCK-E005` | `TicketLifecycleService.assign` | Un agente intenta asignar a otra persona o tomar un ticket que ya tiene responsable |
 | `STCK-E006` | `TicketLifecycleService.assign` | La persona indicada no puede recibir tickets (cliente, deshabilitada, inexistente) |
-| `SATT-E001` | `TicketLifecycleController.upload` · filtro de excepciones (multer) | El archivo supera 5 MB |
-| `SATT-E002` | `TicketLifecycleController.upload` | El contenido no es un tipo permitido (imagen, PDF o texto): se detecta por firma, no por el nombre |
+| `SATT-E001` | `TicketLifecycleController.upload` · filtro de excepciones (multer) | El archivo supera el tope de su tipo (imagen 10 MB, documento 25 MB, video 100 MB) |
+| `SATT-E002` | `TicketLifecycleController.upload` | El contenido no es un tipo permitido (imagen, PDF, Excel, CSV, texto o video mp4/mov/webm): se detecta por firma, no por el nombre |
 | `SATT-E003` | `TicketLifecycleController.upload` | Falta el archivo |
+| `SATT-E004` | `TicketLifecycleController.upload` | Un video dura más de 5 minutos (la duración se lee de la cabecera del archivo) |
+| `SATT-E005` | `TicketLifecycleController.upload` | La duración del video no se puede comprobar (cabecera ilegible o fragmentada sin duración): no se acepta lo que no se puede verificar |
+| `SATT-E006` | `TicketLifecycleController` (`upload`, `download`) | El bucket de archivos (MinIO/S3) no responde |
+| `RJOB-E001` | `JobsService` (`update`, `run`) | La tarea programada no existe |
 | `RATT-E001` | `TicketLifecycleController.download` · `TicketLifecycleService.comment` | Adjunto inexistente, de otro ticket o ya usado en otro comentario |
 | `SSRV-E001` | `TicketLifecycleService.loadSurvey` | No hay encuesta: el ticket no está cerrado o quien consulta no es el solicitante |
 | `SSRV-E002` | `TicketLifecycleService.answerSurvey` | La encuesta ya fue respondida |
