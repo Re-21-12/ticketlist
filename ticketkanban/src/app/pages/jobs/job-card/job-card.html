@@ -1,0 +1,119 @@
+@let job = $job();
+<article class="jc" [attr.aria-labelledby]="'jc-title-' + job.key">
+  <header class="jc-head">
+    <div>
+      <h2 [id]="'jc-title-' + job.key" class="jc-title">{{ job.name }}</h2>
+      <p class="jc-desc">{{ job.description }}</p>
+    </div>
+    <label class="jc-switch" [for]="'jc-enabled-' + job.key">
+      <input
+        type="checkbox"
+        role="switch"
+        class="jc-switch-input"
+        [id]="'jc-enabled-' + job.key"
+        [checked]="$enabled()"
+        (change)="toggle($event)"
+      />
+      <span class="jc-switch-text">{{ $enabled() ? 'Activada' : 'Desactivada' }}</span>
+    </label>
+  </header>
+
+  <div class="jc-form">
+    <div class="jc-field">
+      <label class="jc-label" [for]="'jc-preset-' + job.key">¿Cada cuánto corre?</label>
+      <select class="jc-control" [id]="'jc-preset-' + job.key" [value]="$presetId()" (change)="pickPreset($event)">
+        @for (preset of presets; track preset.id) {
+          <option [value]="preset.id" [selected]="preset.id === $presetId()">{{ preset.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="jc-field">
+      <label class="jc-label" [for]="'jc-cron-' + job.key">Expresión cron <span class="jc-muted">(zona UTC−6)</span></label>
+      <input
+        type="text"
+        class="jc-control jc-mono"
+        [id]="'jc-cron-' + job.key"
+        [value]="$cron()"
+        [readOnly]="!$isCustom()"
+        spellcheck="false"
+        autocomplete="off"
+        [attr.aria-invalid]="$cronError() ? 'true' : null"
+        [attr.aria-describedby]="'jc-cron-help-' + job.key"
+        (input)="setCron($event)"
+      />
+      <p [id]="'jc-cron-help-' + job.key" class="jc-help" [class.jc-help--error]="$cronError() !== null">
+        {{ $cronError() ?? 'Minuto hora día-del-mes mes día-de-la-semana. Ej.: 0 8 * * 1-5 = lunes a viernes a las 8:00.' }}
+      </p>
+    </div>
+
+    @if ($usesHours()) {
+      <div class="jc-field">
+        <label class="jc-label" [for]="'jc-hours-' + job.key">Cerrar tras (horas sin respuesta)</label>
+        <input
+          type="number"
+          class="jc-control"
+          [id]="'jc-hours-' + job.key"
+          [min]="hoursMin"
+          [max]="hoursMax"
+          step="1"
+          [value]="$hours()"
+          [attr.aria-invalid]="$hoursError() ? 'true' : null"
+          [attr.aria-describedby]="'jc-hours-help-' + job.key"
+          (input)="setHours($event)"
+        />
+        <p [id]="'jc-hours-help-' + job.key" class="jc-help" [class.jc-help--error]="$hoursError() !== null">
+          {{ $hoursError() ?? 'Un ticket «Resuelto» sin respuesta del solicitante se cierra pasado este plazo (por defecto 48 h).' }}
+        </p>
+      </div>
+    }
+  </div>
+
+  <p class="jc-error" role="alert">{{ $serverError() }}</p>
+
+  <div class="jc-actions">
+    <button type="button" pButton [disabled]="!$dirty() || $saving() || $cronError() !== null || $hoursError() !== null" (click)="save()">
+      <i pButtonIcon class="pi pi-save" aria-hidden="true"></i>
+      <span pButtonLabel>{{ $saving() ? 'Guardando…' : 'Guardar cambios' }}</span>
+    </button>
+    <button type="button" pButton severity="secondary" [outlined]="true" [disabled]="$running() || $dirty()" (click)="run()">
+      <i pButtonIcon class="pi pi-play" aria-hidden="true"></i>
+      <span pButtonLabel>{{ $running() ? 'Ejecutando…' : 'Ejecutar ahora' }}</span>
+    </button>
+    @if ($dirty()) {
+      <span class="jc-muted">Guarda los cambios antes de ejecutarla.</span>
+    }
+  </div>
+
+  @if ($runNotice(); as notice) {
+    <p class="jc-notice" role="status"><i class="pi pi-info-circle" aria-hidden="true"></i> {{ notice }}</p>
+  }
+
+  <dl class="jc-facts">
+    <div>
+      <dt>Próxima corrida</dt>
+      <dd>{{ job.nextRunAt ? (job.nextRunAt | date: 'dd/MM/yyyy HH:mm') : 'No programada (desactivada)' }}</dd>
+    </div>
+    <div>
+      <dt>Última corrida</dt>
+      <dd>
+        @if (job.lastRunAt; as at) {
+          {{ at | date: 'dd/MM/yyyy HH:mm' }}
+          @if (job.lastRunStatus; as status) {
+            <app-badge [$label]="runStatus[status].label" [$icon]="runStatus[status].icon" [$severity]="runStatus[status].severity" />
+          }
+          <span class="jc-muted"> · {{ job.lastRunTrigger === scheduleTrigger ? 'por el reloj' : 'a mano por ' + job.lastRunTrigger }}</span>
+          @if (job.lastRunSummary) {
+            <span class="jc-summary">{{ job.lastRunSummary }}</span>
+          }
+        } @else {
+          Todavía no ha corrido
+        }
+      </dd>
+    </div>
+    <div>
+      <dt>Último cambio de configuración</dt>
+      <dd>{{ job.updatedAt | date: 'dd/MM/yyyy HH:mm' }}{{ job.updatedBy ? ' · ' + job.updatedBy : '' }}</dd>
+    </div>
+  </dl>
+</article>

@@ -157,6 +157,13 @@ export const VALIDATION_ERRORS = {
       messageEn: 'The period cannot exceed {max} days',
     },
   },
+  /** Tareas programadas (`modules/jobs/jobs.schema.ts`). */
+  JOB: {
+    CRON_INVALID: {
+      messageEs: 'La expresión cron no es válida: usa 5 campos (minuto hora día mes día-de-la-semana), por ejemplo */10 * * * *',
+      messageEn: 'The cron expression is not valid: use 5 fields (minute hour day month weekday), for example */10 * * * *',
+    },
+  },
 } as const satisfies Record<string, Record<string, IValidationMessage>>;
 
 /** Mensaje en español con los `{tokens}` reemplazados — lo que va en `{ error }` de Zod. */

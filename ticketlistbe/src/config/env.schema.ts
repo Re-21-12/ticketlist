@@ -89,6 +89,17 @@ export const EnvSchema = z.object({
     .enum(['true', 'false'])
     .transform((v) => v === 'true')
     .optional(),
+  /**
+   * Bucket S3-compatible (MinIO) donde vive la EVIDENCIA de los tickets (imágenes, PDF, Excel, CSV y videos cortos).
+   * Sin `S3_ENDPOINT` se usa memoria (desarrollo y pruebas); en production es OBLIGATORIO.
+   */
+  S3_ENDPOINT: z.string().min(1).optional(),
+  S3_PORT: z.coerce.number().int().min(1).max(65535).default(9000),
+  S3_USE_SSL: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  S3_ACCESS_KEY: z.string().min(1).optional(),
+  S3_SECRET_KEY: z.string().min(1).optional(),
+  S3_BUCKET: z.string().min(3).max(63).default('ticketit-evidence'),
+  S3_REGION: z.string().min(1).optional(),
   /** Scalar UI (/api/reference) + OpenAPI JSON — apagado por defecto en producción. */
   API_DOCS_ENABLED: z
     .enum(['true', 'false'])
@@ -128,6 +139,9 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): TEnv {
   }
   if (env.NODE_ENV === 'production' && env.DB_PERSISTENCE === false) {
     throw new Error('En production el dominio debe persistirse: no uses DB_PERSISTENCE=false.');
+  }
+  if (env.NODE_ENV === 'production' && (!env.S3_ENDPOINT || !env.S3_ACCESS_KEY || !env.S3_SECRET_KEY)) {
+    throw new Error('S3_ENDPOINT, S3_ACCESS_KEY y S3_SECRET_KEY son obligatorios en production (la evidencia vive en el bucket).');
   }
   if (env.NODE_ENV === 'production' && !env.DATABASE_URL) {
     throw new Error('DATABASE_URL es obligatorio en production (los datos se guardan en Postgres).');

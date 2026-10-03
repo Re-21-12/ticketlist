@@ -37,9 +37,10 @@ export class NotificationsService {
    * Nunca lanza: una falla al notificar no debe revertir la operación de negocio. Devuelve si SE ENVIÓ (nadie se
    * notifica a sí mismo): quien la llama la deja también en el historial del ticket (CU01, postcondición).
    */
-  notify(notification: TNewNotification): boolean {
+  notify(notification: TNewNotification, options: { allowSelf?: boolean } = {}): boolean {
     const actor = RequestContext.currentUser()?.uuid ?? 'system';
-    if (notification.recipientUuid === actor) return false; // nadie se notifica a sí mismo
+    // Nadie se notifica a sí mismo, salvo lo que debe quedar en SU buzón aunque lo provoque él (la encuesta al cerrar).
+    if (notification.recipientUuid === actor && !options.allowSelf) return false;
     const entity = Object.assign(new NotificationEntity(), notification, {
       uuid: randomUUID(),
       readAt: null,

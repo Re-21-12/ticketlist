@@ -12,6 +12,7 @@ export const ILLUSTRATIONS = [
   'catalog',
   'audit',
   'metrics',
+  'jobs',
   'sharing',
   'empty',
   'survey',

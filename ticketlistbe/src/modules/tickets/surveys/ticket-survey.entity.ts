@@ -11,6 +11,8 @@ export interface ITicketSurvey {
   /** 1 a 5. */
   score: number | null;
   comment: string | null;
+  /** ¿Se resolvió el problema? (CU02). `null` hasta que responde. */
+  resolved: boolean | null;
 }
 
 export const SURVEY_VALID_DAYS = 7;

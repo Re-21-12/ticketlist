@@ -422,6 +422,33 @@ export const ERROR_CODES = {
       messageEn: 'Attach a file',
       messageEs: 'Adjunta un archivo',
     },
+    VIDEO_TOO_LONG: {
+      code: 'SATT-E004',
+      httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+      messageEn: 'The video is longer than 5 minutes',
+      messageEs: 'El video dura más de 5 minutos',
+    },
+    VIDEO_DURATION_UNKNOWN: {
+      code: 'SATT-E005',
+      httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+      messageEn: 'The video duration could not be verified',
+      messageEs: 'No se pudo comprobar la duración del video',
+    },
+    STORAGE_UNAVAILABLE: {
+      code: 'SATT-E006',
+      httpStatus: HttpStatus.SERVICE_UNAVAILABLE,
+      messageEn: 'File storage is not available right now',
+      messageEs: 'El almacenamiento de archivos no está disponible en este momento',
+    },
+  },
+  // ── Tareas programadas (R) ────────────────────────────────────────────────
+  JOB: {
+    NOT_FOUND: {
+      code: 'RJOB-E001',
+      httpStatus: HttpStatus.NOT_FOUND,
+      messageEn: 'Scheduled job not found',
+      messageEs: 'Tarea programada no encontrada',
+    },
   },
   // ── Encuesta de satisfacción (S) ──────────────────────────────────────────
   SRV: {

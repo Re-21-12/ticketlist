@@ -14,13 +14,39 @@ describe('detectMime', () => {
 
   it('rechaza lo que no es evidencia: ejecutables, comprimidos y binarios', () => {
     expect(detectMime(bytes(0x4d, 0x5a, 0x90, 0x00))).toBeNull(); // .exe
-    expect(detectMime(bytes(0x50, 0x4b, 0x03, 0x04, 0x00))).toBeNull(); // .zip
+    expect(detectMime(bytes(0x50, 0x4b, 0x03, 0x04, 0x00))).toBeNull(); // .zip cualquiera (no trae xl/workbook.xml)
     expect(detectMime(bytes(0x7f, 0x45, 0x4c, 0x46, 0x00))).toBeNull(); // ELF
     expect(detectMime(Buffer.alloc(0))).toBeNull();
   });
 
   it('un .png falso (en realidad texto con otro contenido) no se hace pasar por imagen', () => {
     expect(detectMime(Buffer.from('<script>alert(1)</script>'))).toBe('text/plain');
+  });
+});
+
+describe('detectMime · Excel, CSV y video', () => {
+  it('reconoce Excel (xlsx y xls) por su contenido, no por la extensión', () => {
+    const xlsx = Buffer.concat([bytes(0x50, 0x4b, 0x03, 0x04), Buffer.from('....[Content_Types].xml....xl/workbook.xml....')]);
+    expect(detectMime(xlsx, 'ventas.xlsx')).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    expect(detectMime(bytes(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0), 'viejo.xls')).toBe('application/vnd.ms-excel');
+  });
+
+  it('CSV: texto con extensión .csv; sin ella es texto plano', () => {
+    const csv = Buffer.from(['id,nombre', '1,Ana', ''].join(String.fromCharCode(10)));
+    expect(detectMime(csv, 'datos.csv')).toBe('text/csv');
+    expect(detectMime(csv, 'datos.txt')).toBe('text/plain');
+  });
+
+  it('reconoce video mp4, mov y webm por su cabecera', () => {
+    // [tamaño(4)] 'ftyp' [marca(4)] [versión(4)] 'isom'
+    const ftyp = (brand: string) => Buffer.concat([bytes(0, 0, 0, 0x18), Buffer.from('ftyp' + brand), bytes(0, 0, 0, 0), Buffer.from('isom')]);
+    expect(detectMime(ftyp('isom'))).toBe('video/mp4');
+    expect(detectMime(ftyp('qt  '))).toBe('video/quicktime');
+    expect(detectMime(bytes(0x1a, 0x45, 0xdf, 0xa3, 0x80))).toBe('video/webm');
+  });
+
+  it('una foto HEIC (misma caja ftyp que el video) NO se acepta como video', () => {
+    expect(detectMime(Buffer.concat([bytes(0, 0, 0, 0x18), Buffer.from('ftypheic'), bytes(0, 0, 0, 0), Buffer.from('mif1')]))).toBeNull();
   });
 });
 

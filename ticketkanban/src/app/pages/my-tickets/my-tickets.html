@@ -117,7 +117,44 @@
               <p class="mt-resolution"><strong>Solución:</strong> {{ ticket.resolution }}</p>
             }
 
+            <!-- CU02: el ticket está «Resuelto»: resumen de la solución y la decisión del solicitante. -->
+            @if ($awaitingConfirmation()) {
+              <section class="mt-confirm" aria-labelledby="mt-confirm-title">
+                <h3 id="mt-confirm-title" class="mt-h3">¿Quedó resuelto tu problema?</h3>
+                <p class="mt-muted">
+                  Revisa la solución. Si no respondes en 48 horas, el ticket se cierra solo y te dejaremos una encuesta en tu buzón.
+                </p>
+                <app-attachment-list [$attachments]="$resolutionEvidence()" [$ticketUuid]="ticket.uuid" />
+                <div class="mt-confirm-actions">
+                  <button type="button" pButton [disabled]="_store.$acting() !== null" (click)="confirmClosure()">
+                    <i pButtonIcon class="pi pi-check-circle" aria-hidden="true"></i>
+                    <span pButtonLabel>{{ _store.$acting() === 'closing' ? 'Cerrando…' : 'Confirmar cierre' }}</span>
+                  </button>
+                  @if ($canReopen()) {
+                    <button type="button" pButton severity="secondary" [outlined]="true" [disabled]="_store.$acting() !== null" (click)="reopen()">
+                      <i pButtonIcon class="pi pi-replay" aria-hidden="true"></i>
+                      <span pButtonLabel>{{ _store.$acting() === 'reopening' ? 'Reabriendo…' : 'Reabrir ticket' }}</span>
+                    </button>
+                  }
+                </div>
+                @if ($canReopen()) {
+                  <label class="mt-comment-label" for="mt-reopen-reason">Motivo para reabrir (opcional)</label>
+                  <textarea
+                    id="mt-reopen-reason"
+                    class="mt-comment-input"
+                    rows="2"
+                    maxlength="500"
+                    [value]="$reopenReason()"
+                    (input)="setReason($event)"
+                  ></textarea>
+                }
+              </section>
+            } @else if (ticket.status === 'closed') {
+              <app-attachment-list [$attachments]="$resolutionEvidence()" [$ticketUuid]="ticket.uuid" />
+            }
+
             <h3 class="mt-h3">Historial de interacciones</h3>
+            <p class="mt-muted mt-immutable"><i class="pi pi-lock" aria-hidden="true"></i> Los comentarios previos no pueden modificarse: el historial queda tal como ocurrió.</p>
             @let events = _store.$eventsState();
             @switch (events.kind) {
               @case ('loading') {
@@ -147,7 +184,16 @@
                         @if (event.body) {
                           <p class="mt-event-text">{{ event.body }}</p>
                         }
+                        <app-attachment-list [$attachments]="event.attachments" [$ticketUuid]="ticket.uuid" />
                         <time class="mt-event-date" [attr.datetime]="event.at.toISOString()">{{ event.at | date: 'dd/MM/yyyy HH:mm' }}</time>
+                        @if (event.ownComment) {
+                          <button type="button" class="mt-edit" (click)="attemptEdit(event.uuid, event.body)">
+                            <i class="pi pi-pencil" aria-hidden="true"></i> Editar
+                          </button>
+                          @if ($editNotices()[event.uuid]; as notice) {
+                            <p class="mt-edit-notice" role="alert"><i class="pi pi-lock" aria-hidden="true"></i> {{ notice }}</p>
+                          }
+                        }
                       </div>
                     </li>
                   }
@@ -169,7 +215,8 @@
                   (input)="setDraft($event)"
                 ></textarea>
                 <p id="mt-comment-error" class="mt-comment-error" role="alert">{{ $draftError() }}</p>
-                <button type="submit" pButton size="small" [disabled]="_store.$sending()">
+                <app-evidence-uploader [$ticketUuid]="ticket.uuid" [($attachments)]="$evidence" [($busy)]="$uploading" />
+                <button type="submit" pButton size="small" [disabled]="_store.$sending() || $uploading()">
                   <i pButtonIcon class="pi pi-send" aria-hidden="true"></i>
                   <span pButtonLabel>{{ _store.$sending() ? 'Enviando…' : 'Enviar comentario' }}</span>
                 </button>

@@ -1,0 +1,42 @@
+.rd {
+  display: grid;
+  gap: 1rem;
+}
+.rd-field {
+  display: grid;
+  gap: 0.25rem;
+}
+.rd-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.rd-required {
+  color: var(--app-danger);
+}
+.rd-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--app-border);
+  border-radius: calc(var(--app-radius) / 1.5);
+  background: var(--app-surface);
+  color: var(--app-text);
+  font: inherit;
+  resize: vertical;
+}
+.rd-count {
+  margin: 0;
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--app-text-muted);
+}
+.rd-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--app-danger);
+}
+.rd-error:empty {
+  display: none;
+}
+.rd button[type='submit'] {
+  justify-self: start;
+}

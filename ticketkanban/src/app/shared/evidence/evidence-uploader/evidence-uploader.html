@@ -1,0 +1,47 @@
+<div class="ev">
+  <div class="ev-head">
+    <span class="ev-title">Evidencia <span class="ev-optional">(opcional)</span></span>
+    <span class="ev-hint">{{ typesText }}. Hasta {{ maxFiles }} archivos; videos de hasta {{ maxVideo }}.</span>
+  </div>
+
+  @if ($attachments().length > 0) {
+    <ul class="ev-list" aria-label="Archivos adjuntos">
+      @for (attachment of $attachments(); track attachment.id) {
+        <li class="ev-chip">
+          <i [class]="'pi ' + kindMeta[attachment.kind].icon" aria-hidden="true"></i>
+          <span class="ev-name">{{ attachment.name }}</span>
+          <span class="ev-meta">
+            {{ kindMeta[attachment.kind].label }} · {{ format.bytes(attachment.size) }}
+            @if (attachment.durationSeconds !== null) { · {{ format.duration(attachment.durationSeconds) }} }
+          </span>
+          <button type="button" class="ev-remove" [attr.aria-label]="'Quitar ' + attachment.name" (click)="remove(attachment.id)">
+            <i class="pi pi-times" aria-hidden="true"></i>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+
+  <!-- El `input` real queda oculto a la vista pero accesible por teclado; la etiqueta hace de botón. -->
+  <div class="ev-pick" [class.ev-pick--disabled]="!$canAdd()">
+    <input
+      class="ev-input"
+      type="file"
+      multiple
+      [id]="$inputId()"
+      [accept]="accept"
+      [disabled]="!$canAdd()"
+      (change)="onPick($event)"
+    />
+    <label class="ev-add" [for]="$inputId()">
+      <i [class]="$busy() ? 'pi pi-spin pi-spinner' : 'pi pi-paperclip'" aria-hidden="true"></i>
+      {{ $busy() ? 'Subiendo…' : 'Adjuntar archivos' }}
+    </label>
+  </div>
+
+  <ul class="ev-errors" role="alert">
+    @for (message of $errors(); track message) {
+      <li>{{ message }}</li>
+    }
+  </ul>
+</div>

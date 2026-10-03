@@ -6,7 +6,7 @@ Caso de uso **CU01 «Control de estado y notificaciones por ticket»**: el usuar
 |---|---|
 | Panel «Mis tickets»: lista con el estado actual | `GET /api/tickets?mine=true` · pantalla `/my-tickets` (front) |
 | Detalle e historial de interacciones | `GET /api/tickets/:uuid/events` (comentarios, cambios de estado, asignaciones, avisos) |
-| El equipo cambia el estado → aviso automático | `TicketLifecycleService.notifyRequester()` (bandeja + tiempo real + correo) |
+| El equipo cambia el estado → aviso automático | `TicketLifecycleService.notifyRequester()` (buzón + tiempo real; **sin correo**) |
 | Quedan registradas en el historial del ticket (postcondición) | evento `NOTIFIED` en `ticket_events` |
 | **A1** sin tickets | la lista llega vacía (`meta.total = 0`); la pantalla lo dice y ofrece «Crear un ticket» |
 | **A2** falla la conexión en vivo | el front muestra una alerta de sincronización y permite «Actualizar» a mano |
@@ -16,11 +16,16 @@ Caso de uso **CU01 «Control de estado y notificaciones por ticket»**: el usuar
 `NotificationsService.notify()` sigue siendo el único camino. `TicketLifecycleService.notifyRequester(ticket, mensaje)` avisa al **solicitante** de un cambio y además:
 
 1. **Registra el evento `NOTIFIED`** (público, actor «Sistema», `body` = el mensaje) en el historial del ticket. El solicitante lo ve en su historial; el equipo también.
-2. Manda un **correo** de mejor esfuerzo (`IMailService`): hoy el servicio solo escribe en el log hasta que se configure SMTP (ver `docs/design/auth-flows.md`). Nada depende de que llegue.
+
+**No hay correo**: no se usa SMTP, así que el **buzón de notificaciones** (campana del topbar + Mi perfil → Notificaciones, con tiempo real por SSE) es el único canal. Los tickets no llaman a `IMailService`.
 
 Avisan al solicitante: asignación («X atenderá tu solicitud»), «en atención» (solo si lo hace el equipo), «necesitamos más información», escalamiento, resuelto, reabierto por el equipo y cierre automático. **Nadie se notifica a sí mismo**: si el propio solicitante provoca el cambio, `notify()` devuelve `false` y no se registra ningún evento.
 
 Los comentarios y las encuestas ya dejan su propio renglón en el historial (`COMMENT_PUBLIC`, `SURVEY_SENT`), por eso no generan un `NOTIFIED` aparte.
+
+### La encuesta también va al buzón (CU02)
+
+Al cerrarse un ticket (por el solicitante o automáticamente a las 48 h, ver [scheduled-jobs.md](scheduled-jobs.md)) el solicitante recibe en su buzón la notificación `TICKET_SURVEY`: **¿se resolvió tu problema?** (sí/no, obligatorio), calificación 1–5 y un **comentario opcional**. Esa notificación SÍ se entrega aunque el cierre lo haya provocado el propio solicitante (`notify(..., { allowSelf: true })`): queda en su buzón por si cierra la ventana sin responder. Vigente 7 días, una sola vez, sin recordatorios.
 
 ## 2. Tiempo real: SSE
 
@@ -40,7 +45,7 @@ Los comentarios y las encuestas ya dejan su propio renglón en el historial (`CO
 
 - **Una sola réplica de la API**: la entrega es por proceso (`NotificationStreamService` publica en un `Subject`). Con varias réplicas, un aviso generado en una no llegaría a quien tiene el stream en otra: habría que publicar por Redis (`pub/sub`). Coincide con el límite de [persistence.md](persistence.md).
 - Cada pestaña abierta es una conexión; el rate limit global por IP no cuenta las conexiones ya abiertas.
-- Sin correo real (SMTP pendiente) el canal de correo del caso de uso no llega a nadie.
+- Sin correo (decisión: no se usa SMTP): quien no abre la aplicación no se entera hasta que entra; el buzón guarda todo.
 
 ## 3. Front
 

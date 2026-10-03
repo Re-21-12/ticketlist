@@ -5,7 +5,7 @@ Dos formas de desplegar. La **A (stack propio)** es la recomendada; la **B** met
 | | A · Stack propio | B · Dentro del compose de wallet-api |
 |---|---|---|
 | Archivo | `docker-compose.dokploy.yml` | `docker-compose.wallet-integration.yml` |
-| Servicios | web, api, **db**, **redis** | web, api, `ticketit-db-init` (usa el `db` y el `redis` de wallet) |
+| Servicios | web, api, **db**, **redis**, **minio** | web, api, `ticketit-db-init` (usa el `db`, el `redis` y el `minio` de wallet) |
 | Aislamiento | total (si uno cae, el otro no) | Redis con prefijo `ticketit:`; Postgres con su propia base y rol |
 | Cuándo | por defecto | si el VPS es chico y quieres un solo Postgres/Redis |
 
@@ -43,6 +43,9 @@ docker build -t ticketit-web ticketkanban
 - **No hay usuarios de prueba.** `NODE_ENV=production` desactiva los datos de demostración (los usuarios `*@ticketit.dev` con la contraseña pública `ticketit-dev` y los tickets de ejemplo). Las cuentas iniciales salen del secreto `ticketit_seed_users`: **una por rol** (ADMIN, SUPERVISOR, AGENT, AUDITOR, VIEWER), cada una con su contraseña aleatoria. Los permisos por rol, el menú y los catálogos (tipos, urgencias, departamentos…) ya vienen sembrados en el código. Si `SEED_DEMO_DATA=false` y no hay ningún ADMIN en ese secreto, **la API no arranca** (a propósito).
 - **Arranque seguro:** en `production` la API exige también `SESSION_SECRET` y `TOTP_ENCRYPTION_KEY` propios (≥ 32 caracteres) y `REDIS_URL`.
 - **Persistencia (TypeORM + Postgres):** todo el dominio (usuarios, tickets con historial y adjuntos, catálogos, permisos, notificaciones, relaciones) se guarda en Postgres y **sobrevive a reinicios y redeploys**. Las migraciones corren **solas al arrancar** la API (`DB_AUTO_MIGRATE=true`); las semillas son idempotentes (no pisan lo que un administrador editó ni las contraseñas que cambió cada persona). Modelo y límites en `ticketlistbe/docs/standard/persistence.md`: la API corre en **una sola instancia** (no la escales a varias réplicas todavía).
+- **Evidencia en un bucket (MinIO):** las fotos, PDF, Excel, CSV y videos cortos (≤ 5 min) de los tickets viven en un bucket S3-compatible (servicio `minio`, red `backend`, **sin puerto al host**, volumen `ticketit-minio`). En `production` la API **exige** `S3_ENDPOINT`, `S3_ACCESS_KEY` y `S3_SECRET_KEY` (el compose los toma de `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` de la pestaña *Environment*) y **crea el bucket sola**. Tipos, topes y límites: `ticketlistbe/docs/standard/storage.md`. **Respalda `ticketit-minio` junto con Postgres**: sin el objeto, el adjunto queda roto. En la integración con wallet-api se reutiliza **su** MinIO con un bucket propio (`ticketit-evidence`).
+- **Tareas programadas:** el cierre automático de tickets «Resuelto» sin respuesta (48 h por defecto) lo configura el administrador en **Tareas programadas** (`/jobs`: activar, cron, plazo, «Ejecutar ahora»). Corre dentro de la API (una sola réplica). Detalle: `ticketlistbe/docs/standard/scheduled-jobs.md`.
+- **Sin correo en los tickets:** los avisos al solicitante (cambios de estado, cierre automático, la encuesta de satisfacción) llegan **solo al buzón de notificaciones** (campana + SSE); no se usa SMTP.
 - **Sin confirmación por correo:** el registro público deja la cuenta **activa al instante** (siempre con el rol de menor privilegio, VIEWER); no hay SMTP ni enlaces de verificación. La recuperación de contraseña funciona **sin correo** con el código del autenticador (TOTP) o con la contraseña actual. El enlace «por correo» de `/forgot-password` no llega a nadie mientras no exista un adaptador SMTP: por eso conviene que cada persona active su autenticador en Mi perfil → Seguridad, y que el administrador conserve el acceso.
 
 ## 3. Secretos y variables (común a A y B)
@@ -107,7 +110,7 @@ Detalles que ya están resueltos (los mismos problemas que encontraste en wallet
 cd deploy
 docker network create dokploy-network
 node generate-secrets.mjs      # crea deploy/secrets/ y muestra las cuentas por rol
-printf 'TICKETIT_DOMAIN=localhost\nDB_PASSWORD=db-local\nREDIS_PASSWORD=redis-local\nBOOTSTRAP_ADMIN_EMAIL=admin@local.test\n' > .env.local
+printf 'TICKETIT_DOMAIN=localhost\nDB_PASSWORD=db-local\nREDIS_PASSWORD=redis-local\nMINIO_ROOT_USER=ticketit\nMINIO_ROOT_PASSWORD=minio-local-clave\nBOOTSTRAP_ADMIN_EMAIL=admin@local.test\n' > .env.local
 docker compose -f docker-compose.dokploy.yml -f docker-compose.local-test.yml --env-file .env.local up --build
 # web → http://localhost:8080   api → http://localhost:3001/api/health
 ```
@@ -121,10 +124,11 @@ En local la API corre en `production` sin HTTPS, así que la cookie de sesión (
 
 ## 7. Checklist de producción
 
-- [ ] Los 3 secretos creados, con permisos `600`, y la clave TOTP respaldada aparte.
+- [ ] Los 3 secretos creados (dueño `1000:1000`, modo `400`) y la clave TOTP respaldada aparte.
 - [ ] `SEED_DEMO_DATA=false` (no existen cuentas con clave pública).
 - [ ] `API_DOCS_ENABLED=false` (sin Scalar/OpenAPI público).
 - [ ] DNS y certificado emitido; `/api/health/ready` responde `ok`.
 - [ ] Contraseña del administrador cambiada y autenticador (TOTP) activado.
-- [ ] Respaldo programado del volumen de Postgres (`ticketit-postgres`, o la base `ticketit` en la integración con wallet): ahora ahí vive todo.
+- [ ] Respaldo programado del volumen de Postgres (`ticketit-postgres`, o la base `ticketit` en la integración con wallet) **y del de MinIO** (`ticketit-minio`, o el bucket `ticketit-evidence` del MinIO de wallet): ahí viven los datos y la evidencia.
+- [ ] `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` definidos en *Environment* (`/api/health/ready` muestra `storage: up`).
 - [ ] Una sola réplica de `api` (ver §2).

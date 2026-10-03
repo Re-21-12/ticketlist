@@ -1,8 +1,8 @@
 # ────────────────────────────────────────────────────────────────────────────────────────────────
 # Ticketit — PRODUCCIÓN en Dokploy (stack PROPIO e independiente de wallet-api).
 #
-# Servicios: web (Caddy + SPA) · api (BFF NestJS) · db (Postgres: auditoría persistente) · redis
-# (sesiones, rate limit, tokens de un solo uso).
+# Servicios: web (Caddy + SPA) · api (BFF NestJS) · db (Postgres: dominio y auditoría) · redis
+# (sesiones, rate limit, tokens de un solo uso) · minio (bucket de evidencia: imágenes, PDF, Excel, CSV, videos cortos).
 #
 # Mismas reglas que docker-compose.dokploy.yml de wallet-api:
 #   - SIN traefik propio: Dokploy ya corre el suyo; web/api se unen a la red externa `dokploy-network`.
@@ -88,6 +88,14 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-ticketit}:${DB_PASSWORD:?DB_PASSWORD es obligatorio}@db:5432/${DB_NAME:-ticketit}
       REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD es obligatorio}@redis:6379
       REDIS_KEY_PREFIX: 'ticketit:'
+      # Bucket de EVIDENCIA (imágenes, PDF, Excel, CSV y videos cortos): MinIO en la red `backend`, sin puerto al host.
+      # La API crea el bucket si no existe. Mismas credenciales que el servicio `minio` de abajo.
+      S3_ENDPOINT: minio
+      S3_PORT: '9000'
+      S3_USE_SSL: 'false'
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:?MINIO_ROOT_USER es obligatorio}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD es obligatorio}
+      S3_BUCKET: ${S3_BUCKET:-ticketit-evidence}
       LOGIN_MAX_ATTEMPTS: ${LOGIN_MAX_ATTEMPTS:-5}
       RATE_LIMIT_GLOBAL_PER_MIN: ${RATE_LIMIT_GLOBAL_PER_MIN:-300}
       # Sin datos de demostración: las cuentas iniciales salen del secreto `ticketit_seed_users` (una por rol).
@@ -101,6 +109,8 @@ services:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     healthcheck:
       test:
@@ -154,6 +164,33 @@ services:
         limits:
           cpus: '0.50'
           memory: 256M
+    networks:
+      - backend
+
+  # Almacén de objetos (S3-compatible) de la EVIDENCIA de los tickets, como el de wallet-api. Stateful: sin read_only.
+  # Sin puerto al host: solo la API lo alcanza. Respalda el volumen `ticketit-minio` junto con el de Postgres.
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772@sha256:17c37babd4df263211938fdc5675f8f7bf4dcfd6b78f1892fd7e7fd0a22334f8
+    restart: unless-stopped
+    init: true
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER es obligatorio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD es obligatorio}
+      MC_HOST_local: http://${MINIO_ROOT_USER:?MINIO_ROOT_USER es obligatorio}:${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD es obligatorio}@localhost:9000
+    volumes:
+      - ticketit-minio:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
     networks:
       - backend
 
@@ -216,6 +253,7 @@ secrets:
 volumes:
   ticketit-postgres:
   ticketit-redis:
+  ticketit-minio:
 
 networks:
   # La creó Dokploy: NUNCA `driver: bridge` acá.

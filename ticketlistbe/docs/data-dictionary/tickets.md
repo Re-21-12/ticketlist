@@ -61,8 +61,8 @@ Reglas de métricas y SLA: [metrics.md](../standard/metrics.md).
 |---|---|---|
 | `ticket_events` | Historial **inmutable**: creación, asignaciones, cambios de estado, comentarios, encuesta y los avisos enviados al solicitante (`NOTIFIED`, CU01). Solo se agrega | `GET /api/tickets/:uuid/events` |
 | Comentarios | Evento `COMMENT_PUBLIC` (lo ve el solicitante) o `COMMENT_INTERNAL` (nota del equipo). **No se editan ni se borran** (409 `STCK-E002`); la corrección es otro comentario. Un ticket cerrado no admite comentarios | `POST /:uuid/comments` |
-| Adjuntos | Evidencia: imagen (PNG/JPEG/GIF/WebP), PDF o texto, ≤ 5 MB, ≤ 5 por comentario. El tipo se detecta por la FIRMA del contenido, no por el nombre; se descarga siempre como adjunto con `nosniff` y `no-store` | `POST /:uuid/attachments`, `GET /:uuid/attachments/:id` |
-| `ticket_surveys` | Encuesta CSAT: una por ticket, enviada al cerrar (correo + aviso), vigente 7 días, sin recordatorios; 1–5 y comentario opcional | `GET`/`POST /:uuid/survey` (solo el solicitante) |
+| Adjuntos | Evidencia en el **bucket** (MinIO/S3): imagen (PNG/JPEG/GIF/WebP, ≤ 10 MB), documento (PDF, Excel, CSV, texto, ≤ 25 MB) o video (MP4/MOV/WebM, ≤ 100 MB y **≤ 5 min**), ≤ 5 por comentario o cambio de estado. El tipo se detecta por la FIRMA del contenido; se descarga siempre como adjunto con `nosniff` y `no-store`. Detalle: [storage.md](../standard/storage.md) | `POST /:uuid/attachments`, `GET /:uuid/attachments/:id` |
+| `ticket_surveys` | Encuesta de cierre: una por ticket, enviada al cerrar a su **buzón** (sin correo), vigente 7 días, sin recordatorios; `resolved` (¿se resolvió?, obligatorio), 1–5 y comentario opcional | `GET`/`POST /:uuid/survey` (solo el solicitante) |
 | Asignación | Supervisor/administrador asignan o reasignan; un agente solo toma uno SIN responsable | `POST /:uuid/assign` |
 
 ## Validaciones (DTO Zod)
@@ -82,6 +82,8 @@ Reglas de métricas y SLA: [metrics.md](../standard/metrics.md).
 | `estimateHours` | opcional (default `null`) | obligatorio (nullable) | `int().min(1).max(200)` | `GENERIC.IS_NUMBER`, `IS_INTEGER`, `MIN_VALUE`, `MAX_VALUE` |
 | `dueDate` | opcional (default `null`) | obligatorio (nullable) | `Date` o `'YYYY-MM-DD'` | `GENERIC.IS_DATE` |
 | `notifyReporter` | opcional (default `false`) | obligatorio | boolean | — |
+
+Cuerpos de seguimiento: `POST /:uuid/transitions` acepta `attachmentIds` (evidencia de la solución, ≤ 5) además de `to`, `note` y `resolution`; `POST /:uuid/survey` exige `resolved` (boolean), `score` (1–5) y `comment` opcional.
 
 > Mensaje resultante y `code` de cada regla: [error-catalog.md §4.2](../standard/error-catalog.md).
 

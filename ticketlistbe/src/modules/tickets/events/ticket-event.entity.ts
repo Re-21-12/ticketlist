@@ -1,5 +1,6 @@
 import type { ITicketEventFact, TTicketEventType } from '../sla/ticket-analysis.js';
 import type { TTicketStatus } from '../lifecycle/ticket-lifecycle.js';
+import type { TAttachmentKind } from '../attachments/attachment-limits.js';
 
 /** Referencia a un adjunto dentro de un comentario (el contenido vive en `TicketAttachmentsRepository`). */
 export interface IAttachmentRef {
@@ -7,6 +8,9 @@ export interface IAttachmentRef {
   name: string;
   mimeType: string;
   size: number;
+  /** Ausente en eventos anteriores al bucket: se deduce del `mimeType`. */
+  kind?: TAttachmentKind;
+  durationSeconds?: number | null;
 }
 
 /**

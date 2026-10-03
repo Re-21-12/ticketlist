@@ -11,11 +11,24 @@ export const SURVEY_OPTIONS = [
   { value: 5, label: 'Excelente' },
 ];
 
-/** «¿Cómo te atendimos?»: calificación de 1 a 5 (CSAT, meta del equipo ≥ 4.5) y un comentario opcional. */
+/**
+ * Encuesta de cierre (CU02): si se resolvió el problema (obligatorio), calificación de 1 a 5 (CSAT, meta del equipo ≥ 4.5) y un
+ * comentario opcional.
+ */
 export const TICKET_SURVEY_FORM = defineForm({
   name: 'TICKET_SURVEY_FORM',
   schema: SurveyFormSchema,
   fields: [
+    {
+      key: 'resolved',
+      label: '¿Se resolvió tu problema?',
+      type: FieldType.RADIO,
+      options: [
+        { value: 'yes', label: 'Sí, se resolvió' },
+        { value: 'no', label: 'No, sigue sin resolverse' },
+      ],
+      fullWidth: true,
+    },
     {
       key: 'score',
       label: 'Tu calificación',

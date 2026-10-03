@@ -52,7 +52,7 @@ describe('Métricas (e2e)', () => {
     for (let i = 0; i < replies; i++) await post(ana, `/api/tickets/${created.uuid}/comments`, { body: `Respuesta ${i + 1}` }).expect(201);
     if (options.resolve) await post(ana, `/api/tickets/${created.uuid}/transitions`, { to: 'resolved', resolution: 'Listo.' }).expect(200);
     if (options.close) await post(victor, `/api/tickets/${created.uuid}/transitions`, { to: 'closed' }).expect(200);
-    if (options.score) await post(victor, `/api/tickets/${created.uuid}/survey`, { score: options.score, ...(options.comment ? { comment: options.comment } : {}) }).expect(200);
+    if (options.score) await post(victor, `/api/tickets/${created.uuid}/survey`, { resolved: true, score: options.score, ...(options.comment ? { comment: options.comment } : {}) }).expect(200);
     return { victor, ana, uuid: created.uuid as string };
   }
 

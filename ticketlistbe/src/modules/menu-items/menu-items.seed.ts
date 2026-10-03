@@ -27,6 +27,7 @@ const SEED: TSeed[] = [
   { key: 'relation-permissions', label: 'Relaciones', route: '/relation-permissions', group: 'Administración', icon: 'pi-sitemap', subject: 'Relationship', requiredAction: EAbility.MANAGE, order: 40 },
   { key: 'menu-items', label: 'Menú', route: '/menu-items', group: 'Administración', icon: 'pi-bars', subject: 'MenuItem', requiredAction: EAbility.READ, order: 50 },
   { key: 'catalogs', label: 'Catálogos', route: '/catalogs', group: 'Administración', icon: 'pi-database', subject: 'Catalog', requiredAction: EAbility.READ, order: 60 },
+  { key: 'jobs', label: 'Tareas programadas', route: '/jobs', group: 'Administración', icon: 'pi-clock', subject: 'ScheduledJob', requiredAction: EAbility.READ, order: 80 },
   { key: 'audit-logs', label: 'Auditoría', route: '/audit-logs', group: 'Administración', icon: 'pi-history', subject: 'AuditLog', requiredAction: EAbility.READ, order: 70 },
 ];
 

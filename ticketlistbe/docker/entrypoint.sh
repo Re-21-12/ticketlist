@@ -9,7 +9,7 @@
 # ────────────────────────────────────────────────────────────────────────────────────────────────
 set -e
 
-for name in SESSION_SECRET TOTP_ENCRYPTION_KEY BOOTSTRAP_ADMIN_PASSWORD SEED_USERS_JSON DATABASE_URL REDIS_URL; do
+for name in SESSION_SECRET TOTP_ENCRYPTION_KEY BOOTSTRAP_ADMIN_PASSWORD SEED_USERS_JSON DATABASE_URL REDIS_URL S3_ACCESS_KEY S3_SECRET_KEY; do
   file_var="${name}_FILE"
   file_path="$(printenv "$file_var" || true)"
   if [ -n "$file_path" ] && [ -z "$(printenv "$name" || true)" ]; then

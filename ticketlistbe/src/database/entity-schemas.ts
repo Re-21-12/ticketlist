@@ -4,6 +4,7 @@ import type { MenuItemEntity } from '../modules/menu-items/menu-item.entity.js';
 import type { NotificationEntity } from '../modules/notifications/notification.entity.js';
 import type { RolePermissionEntity } from '../modules/access-control/role-permissions/role-permission.entity.js';
 import type { RelationshipEntity } from '../modules/relationships/relationship.entity.js';
+import type { IScheduledJob } from '../modules/jobs/scheduled-job.entity.js';
 import type { ITicketAttachment } from '../modules/tickets/attachments/ticket-attachment.entity.js';
 import type { ITicketEvent } from '../modules/tickets/events/ticket-event.entity.js';
 import type { ITicketSurvey } from '../modules/tickets/surveys/ticket-survey.entity.js';
@@ -205,7 +206,10 @@ export const TicketAttachmentSchema = defineTable<ITicketAttachment>({
     name: { type: 'varchar', length: 255 },
     mimeType: { type: 'varchar', length: 100 },
     size: { type: 'int' },
-    content: { type: 'bytea' },
+    kind: { type: 'varchar', length: 10, default: 'document' },
+    durationSeconds: nullable({ type: 'int' }),
+    objectKey: nullable({ type: 'varchar', length: 300 }),
+    content: nullable({ type: 'bytea' }),
     uploadedBy: { type: 'uuid' },
     createdAt: { type: 'timestamptz' },
     commentUuid: nullable({ type: 'uuid' }),
@@ -225,6 +229,27 @@ export const TicketSurveySchema = defineTable<ITicketSurvey>({
     answeredAt: nullable({ type: 'timestamptz' }),
     score: nullable({ type: 'smallint' }),
     comment: nullable({ type: 'varchar', length: 500 }),
+    /** ¿Se resolvió el problema? (CU02): lo responde quien lo solicitó junto con la calificación. */
+    resolved: nullable({ type: 'boolean' }),
+  },
+});
+
+export const ScheduledJobSchema = defineTable<IScheduledJob>({
+  name: 'scheduled_jobs',
+  tableName: 'scheduled_jobs',
+  columns: {
+    key: { type: 'varchar', length: 60, primary: true },
+    name: { type: 'varchar', length: 120 },
+    description: { type: 'varchar', length: 300, default: '' },
+    enabled: { type: 'boolean', default: true },
+    cron: { type: 'varchar', length: 120 },
+    params: { type: 'jsonb', default: () => "'{}'" },
+    lastRunAt: nullable({ type: 'timestamptz' }),
+    lastRunStatus: nullable({ type: 'varchar', length: 10 }),
+    lastRunSummary: nullable({ type: 'varchar', length: 300 }),
+    lastRunTrigger: nullable({ type: 'varchar', length: 254 }),
+    updatedAt: { type: 'timestamptz' },
+    updatedBy: nullable({ type: 'varchar', length: 254 }),
   },
 });
 
@@ -268,6 +293,7 @@ export const ENTITY_SCHEMAS = [
   TicketEventSchema,
   TicketAttachmentSchema,
   TicketSurveySchema,
+  ScheduledJobSchema,
   CatalogSchema,
   CatalogItemSchema,
 ];

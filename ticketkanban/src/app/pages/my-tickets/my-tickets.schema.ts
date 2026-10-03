@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { VALIDATION_ERRORS as V, validationMessage as msg } from '../../core/validation/validation-errors';
+import { AttachmentRefSchema } from '../../shared/evidence/evidence.schema';
 import { TICKET_STATUS, TicketSchema } from '../tickets/ticket.schema';
 
 /** Tipos de renglón del historial de un ticket (espejo de `TicketEventResponseSchema` del backend). */
@@ -15,7 +16,7 @@ export const TicketEventSchema = z.object({
   from: z.enum(TICKET_STATUS).nullable(),
   to: z.enum(TICKET_STATUS).nullable(),
   body: z.string().nullable(),
-  attachments: z.array(z.object({ id: z.uuid(), name: z.string(), mimeType: z.string(), size: z.number().int() })),
+  attachments: z.array(AttachmentRefSchema),
   assignee: z.string().nullable(),
 });
 export const TicketEventListSchema = z.object({ data: z.array(TicketEventSchema) });

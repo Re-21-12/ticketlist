@@ -1,0 +1,25 @@
+<form class="rd" (submit)="$event.preventDefault(); submit()">
+  <div class="rd-field">
+    <label class="rd-label" for="rd-resolution">Solución <span class="rd-required" aria-hidden="true">*</span><span class="sr-only">(obligatoria)</span></label>
+    <textarea
+      id="rd-resolution"
+      class="rd-input"
+      rows="5"
+      [attr.maxlength]="resolutionMax"
+      placeholder="¿Qué se hizo para resolverlo?"
+      [value]="$text()"
+      [attr.aria-invalid]="$error() ? 'true' : null"
+      [attr.aria-describedby]="$error() ? 'rd-error' : null"
+      (input)="setText($event)"
+    ></textarea>
+    <p class="rd-count">{{ $text().length }} / {{ resolutionMax }}</p>
+    <p id="rd-error" class="rd-error" role="alert">{{ $error() }}</p>
+  </div>
+
+  <app-evidence-uploader [$ticketUuid]="data.ticketUuid" [$inputId]="'rd-evidence'" [($attachments)]="$evidence" [($busy)]="$uploading" />
+
+  <button type="submit" pButton [disabled]="$busy()">
+    <i pButtonIcon class="pi pi-check" aria-hidden="true"></i>
+    <span pButtonLabel>{{ data.submitting() ? 'Guardando…' : 'Marcar como resuelto' }}</span>
+  </button>
+</form>
