@@ -66,6 +66,8 @@ export const EnvSchema = z.object({
     .transform((v) => v === 'true'),
   /** Intentos fallidos SEGUIDOS de inicio de sesión que bloquean la cuenta hasta que un administrador la desbloquee. */
   LOGIN_MAX_ATTEMPTS: z.coerce.number().int().min(3).max(20).default(5),
+  /** Minutos que dura el bloqueo antes de desbloquearse SOLO (RNF-07: 15). `0` = solo lo desbloquea un administrador. Éste último siempre puede hacerlo antes. */
+  LOGIN_LOCK_MINUTES: z.coerce.number().int().min(0).max(1440).default(15),
   /** Clave con que se cifran en reposo los secretos TOTP (AES-256-GCM). En production es OBLIGATORIA una propia. */
   TOTP_ENCRYPTION_KEY: z.string().min(32).default(DEV_TOTP_KEY),
   /**

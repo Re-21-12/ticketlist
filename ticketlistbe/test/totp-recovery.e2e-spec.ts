@@ -47,12 +47,12 @@ describe('Recuperación con segundo factor (e2e)', () => {
   /** Activa el autenticador de Ana y devuelve su secreto y la sesión abierta. */
   async function enableTotp() {
     const session = await login();
-    expect((await session.get('/api/auth/totp').expect(200)).body).toEqual({ enabled: false });
+    expect((await session.get('/api/auth/totp').expect(200)).body).toEqual({ enabled: false, recoveryCodesLeft: 0 });
     const setup = await session.post('/api/auth/totp/setup').expect(200);
     expect(setup.body.otpauthUrl).toContain(`secret=${setup.body.secret}`);
-    await session.post('/api/auth/totp/enable').send({ code: totpCode(setup.body.secret, totpStep(Date.now())) }).expect(204);
-    expect((await session.get('/api/auth/totp').expect(200)).body).toEqual({ enabled: true });
-    return { secret: setup.body.secret as string, session };
+    const enabled = await session.post('/api/auth/totp/enable').send({ code: totpCode(setup.body.secret, totpStep(Date.now())) }).expect(200);
+    expect((await session.get('/api/auth/totp').expect(200)).body).toEqual({ enabled: true, recoveryCodesLeft: 10 });
+    return { secret: setup.body.secret as string, session, recoveryCodes: enabled.body.recoveryCodes as string[] };
   }
 
   /** El código con que se activó ya se usó: para recuperar se pide el SIGUIENTE paso (±1 paso es válido). */
@@ -79,6 +79,54 @@ describe('Recuperación con segundo factor (e2e)', () => {
     it('sin sesión no se toca (401)', async () => {
       await api().get('/api/auth/totp').expect(401);
       await api().post('/api/auth/totp/setup').expect(401);
+    });
+  });
+
+  describe('Códigos de recuperación de un solo uso', () => {
+    it('al activar el autenticador nacen 10 códigos XXXX-XXXX distintos; no se guardan en claro', async () => {
+      const { recoveryCodes } = await enableTotp();
+      expect(recoveryCodes).toHaveLength(10);
+      expect(new Set(recoveryCodes).size).toBe(10);
+      expect(recoveryCodes.every((code) => /^[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(code))).toBe(true);
+    });
+
+    it('un código recupera la contraseña UNA vez (aunque se escriba en minúsculas y sin guion) y descuenta del total', async () => {
+      const { recoveryCodes, session } = await enableTotp();
+      const typed = (recoveryCodes[0] as string).replace('-', '').toLowerCase();
+      await recover({ method: 'recovery_code', email: ANA, recoveryCode: typed, newPassword: NEW_PASSWORD }).expect(204);
+      await signIn(ANA, NEW_PASSWORD).expect(200);
+      const again = await recover({ method: 'recovery_code', email: ANA, recoveryCode: recoveryCodes[0], newPassword: 'Otra-Clave-2027!' }).expect(401);
+      expect(again.body.code).toBe('SAUT-E010');
+      // La sesión anterior se cerró; con una nueva se ve que quedan 9.
+      await session.get('/api/auth/totp').expect(401);
+      const fresh = request.agent(app.getHttpServer());
+      await fresh.post('/api/auth/sign-in').send({ email: ANA, password: NEW_PASSWORD }).expect(200);
+      expect((await fresh.get('/api/auth/totp').expect(200)).body.recoveryCodesLeft).toBe(9);
+    });
+
+    it('un código inventado o mal formado no sirve (401 SAUT-E010 / 400)', async () => {
+      await enableTotp();
+      expect((await recover({ method: 'recovery_code', email: ANA, recoveryCode: 'AAAA-BBBB', newPassword: NEW_PASSWORD }).expect(401)).body.code).toBe('SAUT-E010');
+      await recover({ method: 'recovery_code', email: ANA, recoveryCode: '12', newPassword: NEW_PASSWORD }).expect(400);
+    });
+
+    it('regenerar exige la contraseña actual, invalida los anteriores y entrega 10 nuevos', async () => {
+      const { recoveryCodes, session } = await enableTotp();
+      expect((await session.post('/api/auth/totp/recovery-codes').send({ currentPassword: 'Equivocada-1!' }).expect(422)).body.code).toBe('SAUT-E006');
+      const fresh = await session.post('/api/auth/totp/recovery-codes').send({ currentPassword: DEV_PASSWORD }).expect(200);
+      expect(fresh.body.recoveryCodes).toHaveLength(10);
+      expect(fresh.body.recoveryCodes).not.toContain(recoveryCodes[0]);
+      await recover({ method: 'recovery_code', email: ANA, recoveryCode: recoveryCodes[0], newPassword: NEW_PASSWORD }).expect(401); // el viejo ya no vale
+      await recover({ method: 'recovery_code', email: ANA, recoveryCode: fresh.body.recoveryCodes[0], newPassword: NEW_PASSWORD }).expect(204);
+    });
+
+    it('sin autenticador no hay códigos que regenerar (409 SAUT-E017); desactivarlo los borra', async () => {
+      const plain = await login();
+      expect((await plain.post('/api/auth/totp/recovery-codes').send({ currentPassword: DEV_PASSWORD }).expect(409)).body.code).toBe('SAUT-E017');
+      const { session, recoveryCodes } = await enableTotp();
+      await session.post('/api/auth/totp/disable').send({ currentPassword: DEV_PASSWORD }).expect(204);
+      expect((await session.get('/api/auth/totp').expect(200)).body).toEqual({ enabled: false, recoveryCodesLeft: 0 });
+      await recover({ method: 'recovery_code', email: ANA, recoveryCode: recoveryCodes[0], newPassword: NEW_PASSWORD }).expect(401);
     });
   });
 

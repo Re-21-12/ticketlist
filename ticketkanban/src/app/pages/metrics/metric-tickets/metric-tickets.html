@@ -1,8 +1,9 @@
 @if ($rows().length === 0) {
   <p class="mt-empty" role="status">Esta persona no tiene tickets asignados ni resueltos en el período.</p>
 } @else {
-  <div class="mt-scroll" role="region" aria-label="Tickets gestionados" tabindex="0">
-    <table class="mt-table">
+  <div class="mt-export"><app-list-export [$table]="$export()" [$label]="'Exportar tickets'" /></div>
+  <div class="mt-scroll app-scroll-panel" role="region" aria-label="Tickets gestionados" tabindex="0">
+    <table class="mt-table app-zebra">
       <caption class="sr-only">
         Tickets gestionados, con el estado de la primera respuesta y del plazo de resolución
       </caption>

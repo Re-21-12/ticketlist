@@ -7,6 +7,7 @@ import { openSecret, sealSecret } from '../../core/crypto/secret-box.js';
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import { EUserRole } from '../auth/casl/ability.enum.js';
 import type { ISessionUser } from '../auth/session/session-user.interface.js';
+import { hashRecoveryCode } from '../auth/session/recovery-codes.util.js';
 import { verifyTotp } from '../auth/session/totp.util.js';
 import { DEV_PASSWORD, USERS_SEED } from './users.seed.js';
 
@@ -28,6 +29,12 @@ export interface IStoredUser extends ISessionUser {
   failedLogins: number;
   /** `null` = cuenta desbloqueada. Bloqueada: solo un administrador la desbloquea. */
   lockedAt: Date | null;
+  /** Contraseña TEMPORAL de un solo uso entregada por un administrador: hay que cambiarla antes de hacer cualquier otra cosa. */
+  mustChangePassword: boolean;
+  /** Vigencia de la contraseña temporal (`null` = no hay una vigente). */
+  tempPasswordExpiresAt: Date | null;
+  /** Huellas HMAC de los códigos de recuperación AÚN sin usar (cada uno sirve una vez). */
+  recoveryCodes: string[];
 }
 
 /** Vista administrativa de un usuario (nunca incluye hash ni sal). */
@@ -38,6 +45,8 @@ export interface IAdminUser extends ISessionUser {
   locked: boolean;
   lockedAt: Date | null;
   createdAt: Date;
+  totpEnabled: boolean;
+  mustChangePassword: boolean;
 }
 
 const KEY_LENGTH = 64;
@@ -93,7 +102,7 @@ export class UsersRepository implements OnModuleInit {
     const seeded = (user: ISessionUser, password: string, createdAt: Date): IStoredUser => {
       const salt = randomBytes(16);
       // Las cuentas iniciales nacen con el correo verificado.
-      return { ...user, passwordSalt: salt, passwordHash: hash(password, salt), emailVerifiedAt: new Date(), disabledAt: null, createdAt, totpSecret: null, totpPendingSecret: null, totpLastStep: 0, failedLogins: 0, lockedAt: null };
+      return { ...user, passwordSalt: salt, passwordHash: hash(password, salt), emailVerifiedAt: new Date(), disabledAt: null, createdAt, totpSecret: null, totpPendingSecret: null, totpLastStep: 0, failedLogins: 0, lockedAt: null, mustChangePassword: false, tempPasswordExpiresAt: null, recoveryCodes: [] };
     };
     if (seedDemoData(this.env)) return USERS_SEED.map((user) => seeded(user, DEV_PASSWORD, new Date('2026-09-01T00:00:00Z')));
     // Production: las cuentas de `SEED_USERS_JSON` (una por rol) y, si se pidió, el administrador inicial de BOOTSTRAP_*.
@@ -163,10 +172,48 @@ export class UsersRepository implements OnModuleInit {
       totpLastStep: 0,
       failedLogins: 0,
       lockedAt: null,
+      mustChangePassword: false,
+      tempPasswordExpiresAt: null,
+      recoveryCodes: [],
     };
     this.users.push(user);
     this.persist(user);
     return this.toPublic(user) as ISessionUser;
+  }
+
+  /**
+   * Alta por un administrador: con el rol elegido y una contraseña TEMPORAL de un solo uso (la persona debe cambiarla al
+   * entrar y vence en `ttlMs`). El administrador la ve una única vez; aquí solo queda el hash.
+   */
+  createByAdmin(input: { name: string; email: string; role: EUserRole; tempPassword: string; ttlMs: number }): IAdminUser {
+    const created = this.create({ name: input.name, email: input.email, password: input.tempPassword });
+    const user = this.users.find((u) => u.uuid === created.uuid) as IStoredUser;
+    user.role = input.role;
+    user.mustChangePassword = true;
+    user.tempPasswordExpiresAt = new Date(Date.now() + input.ttlMs);
+    this.persist(user);
+    return this.toAdmin(user);
+  }
+
+  /** Restablece la contraseña a una TEMPORAL de un solo uso, quita el bloqueo y los intentos fallidos. */
+  issueTempPassword(uuid: string, tempPassword: string, ttlMs: number): IAdminUser | null {
+    const user = this.users.find((u) => u.uuid === uuid);
+    if (!user) return null;
+    user.passwordSalt = randomBytes(16);
+    user.passwordHash = hash(tempPassword, user.passwordSalt);
+    user.mustChangePassword = true;
+    user.tempPasswordExpiresAt = new Date(Date.now() + ttlMs);
+    user.failedLogins = 0;
+    user.lockedAt = null;
+    this.persist(user);
+    return this.toAdmin(user);
+  }
+
+  /** ¿Debe cambiar la contraseña antes de seguir? (`expired`: la temporal venció y ya no sirve para entrar). */
+  passwordChangeState(uuid: string): { required: boolean; expired: boolean } {
+    const user = this.users.find((u) => u.uuid === uuid);
+    if (!user?.mustChangePassword) return { required: false, expired: false };
+    return { required: true, expired: !!user.tempPasswordExpiresAt && user.tempPasswordExpiresAt.getTime() < Date.now() };
   }
 
   isEmailVerified(uuid: string): boolean {
@@ -204,13 +251,40 @@ export class UsersRepository implements OnModuleInit {
     if (!user) return;
     user.passwordSalt = randomBytes(16);
     user.passwordHash = hash(password, user.passwordSalt);
+    // Una contraseña que la persona ELIGE sustituye a la temporal.
+    user.mustChangePassword = false;
+    user.tempPasswordExpiresAt = null;
     this.persist(user);
   }
 
   // ── Bloqueo por intentos fallidos ────────────────────────────────────────────────────────
   /** ¿La cuenta de este correo está bloqueada? (cuenta inexistente: `false`, como cualquier otra). */
   isLocked(email: string): boolean {
-    return !!this.users.find((u) => u.email === email.toLowerCase())?.lockedAt;
+    const user = this.users.find((u) => u.email === email.toLowerCase());
+    return !!user && this.lockActive(user);
+  }
+
+  /** Cuándo se desbloquea sola la cuenta de este correo (`null` si no está bloqueada o solo la libera un administrador). */
+  unlocksAt(email: string): Date | null {
+    const user = this.users.find((u) => u.email === email.toLowerCase());
+    const ms = this.env.LOGIN_LOCK_MINUTES * 60_000;
+    return user?.lockedAt && ms > 0 ? new Date(user.lockedAt.getTime() + ms) : null;
+  }
+
+  /**
+   * ¿El bloqueo sigue vigente? Pasados `LOGIN_LOCK_MINUTES` (15, RNF-07) se levanta SOLO (con los intentos en cero); un
+   * administrador puede levantarlo antes con `unlock`. Con `0` solo lo levanta un administrador.
+   */
+  private lockActive(user: IStoredUser): boolean {
+    if (!user.lockedAt) return false;
+    const ms = this.env.LOGIN_LOCK_MINUTES * 60_000;
+    if (ms > 0 && Date.now() - user.lockedAt.getTime() >= ms) {
+      user.lockedAt = null;
+      user.failedLogins = 0;
+      this.persist(user);
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -219,7 +293,7 @@ export class UsersRepository implements OnModuleInit {
    */
   registerFailedLogin(email: string, max: number): boolean {
     const user = this.users.find((u) => u.email === email.toLowerCase());
-    if (!user || user.disabledAt || user.lockedAt) return false;
+    if (!user || user.disabledAt || this.lockActive(user)) return false;
     user.failedLogins += 1;
     if (user.failedLogins >= max) user.lockedAt = new Date();
     this.persist(user);
@@ -278,7 +352,32 @@ export class UsersRepository implements OnModuleInit {
     user.totpSecret = null;
     user.totpPendingSecret = null;
     user.totpLastStep = 0;
+    user.recoveryCodes = [];
     this.persist(user);
+  }
+
+  /** Reemplaza los códigos de recuperación por unos NUEVOS (los anteriores dejan de valer). */
+  issueRecoveryCodes(uuid: string, codes: readonly string[]): void {
+    const user = this.users.find((u) => u.uuid === uuid);
+    if (!user) return;
+    user.recoveryCodes = codes.map((code) => hashRecoveryCode(code, this.env.TOTP_ENCRYPTION_KEY));
+    this.persist(user);
+  }
+
+  recoveryCodesLeft(uuid: string): number {
+    return this.users.find((u) => u.uuid === uuid)?.recoveryCodes.length ?? 0;
+  }
+
+  /** Un código válido se CONSUME (no sirve dos veces). `false` si no existe, no coincide o no hay autenticador. */
+  consumeRecoveryCode(uuid: string, code: string): boolean {
+    const user = this.users.find((u) => u.uuid === uuid);
+    if (!user?.totpSecret) return false;
+    const fingerprint = hashRecoveryCode(code, this.env.TOTP_ENCRYPTION_KEY);
+    const index = user.recoveryCodes.indexOf(fingerprint);
+    if (index < 0) return false;
+    user.recoveryCodes = user.recoveryCodes.filter((_, i) => i !== index);
+    this.persist(user);
+    return true;
   }
 
   /**
@@ -351,9 +450,11 @@ export class UsersRepository implements OnModuleInit {
       ...(this.toPublic(user) as ISessionUser),
       emailVerified: !!user.emailVerifiedAt,
       disabled: !!user.disabledAt,
-      locked: !!user.lockedAt,
+      locked: this.lockActive(user),
       lockedAt: user.lockedAt,
       createdAt: user.createdAt,
+      totpEnabled: !!user.totpSecret,
+      mustChangePassword: user.mustChangePassword,
     };
   }
 

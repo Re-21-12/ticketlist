@@ -14,6 +14,21 @@ export function formatDuration(seconds: number): string {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
+/**
+ * URL local de un archivo elegido, para verlo ANTES de subirlo.
+ *
+ * Si el navegador no la concede devuelve `''` en vez de dejar volar la excepción: la vista previa es
+ * un extra y no puede impedir que el archivo se suba. Quien la use con `''` muestra el ícono de la
+ * familia en vez de la miniatura.
+ */
+export function blobUrl(file: Blob): string {
+  try {
+    return URL.createObjectURL(file);
+  } catch {
+    return '';
+  }
+}
+
 /** Familia del archivo según su extensión; `null` si no es un tipo admitido. */
 export function kindOfFile(file: Pick<File, 'name'>): TAttachmentKind | null {
   const extension = file.name.includes('.') ? (file.name.split('.').pop() ?? '') : '';

@@ -1,15 +1,42 @@
 @if ($attachments().length > 0) {
-  <ul class="al" aria-label="Evidencia adjunta">
+  <!-- Con tope y scroll (`.app-scroll-panel`): son hasta 5 por envío, pero pueden aparecer en varias
+       listas seguidas (comentarios, solución) y sin tope la última empuja el formulario de abajo. -->
+  <ul class="al app-scroll-panel" aria-label="Evidencia adjunta">
     @for (attachment of $attachments(); track attachment.id) {
       <li class="al-item">
+        <!-- Miniatura/reproductor + botón «Ver» abren el MISMO visor de solo lectura para imagen,
+             video y PDF: antes un documento no se podía mirar, solo descargar. La descarga sigue
+             siendo un enlace aparte y explícito. -->
         @switch (attachment.kind) {
           @case ('image') {
-            <a class="al-thumb" [href]="url(attachment)" target="_blank" rel="noopener" [attr.aria-label]="'Abrir imagen ' + attachment.name">
+            <button
+              type="button"
+              class="al-thumb"
+              [attr.aria-label]="'Ver ' + attachment.name"
+              (click)="openPreview(attachment)"
+            >
               <img [src]="url(attachment)" [alt]="'Evidencia: ' + attachment.name" loading="lazy" />
-            </a>
+            </button>
           }
           @case ('video') {
-            <video class="al-video" controls preload="metadata" [src]="url(attachment)" [attr.aria-label]="'Video: ' + attachment.name"></video>
+            <video
+              class="al-video"
+              controls
+              preload="metadata"
+              [src]="url(attachment)"
+              [attr.aria-label]="'Video: ' + attachment.name"
+            ></video>
+          }
+          @case ('document') {
+            <button
+              type="button"
+              class="al-thumb al-thumb--doc"
+              [attr.aria-label]="'Ver ' + attachment.name"
+              (click)="openPreview(attachment)"
+            >
+              <i [class]="'pi ' + kindMeta[attachment.kind].icon" aria-hidden="true"></i>
+              <span class="al-thumb-label">Ver</span>
+            </button>
           }
         }
         <a class="al-link" [href]="url(attachment)" [attr.download]="attachment.name">
@@ -25,3 +52,5 @@
     }
   </ul>
 }
+
+<app-evidence-preview #preview [$ticketUuid]="$ticketUuid()" [$attachments]="$attachments()" />

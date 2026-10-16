@@ -89,8 +89,8 @@ export const ERROR_CODES = {
     INVALID_CREDENTIALS: {
       code: 'SAUT-E004',
       httpStatus: HttpStatus.UNAUTHORIZED,
-      messageEn: 'Invalid credentials',
-      messageEs: 'Credenciales inválidas',
+      messageEn: 'Incorrect email or password',
+      messageEs: 'Correo electrónico o contraseña incorrectos',
     },
     SESSION_EXPIRED: {
       code: 'SAUT-E005',
@@ -143,8 +143,26 @@ export const ERROR_CODES = {
     ACCOUNT_LOCKED: {
       code: 'SAUT-E014',
       httpStatus: HttpStatus.LOCKED,
-      messageEn: 'Your account is locked after too many failed attempts. Contact an administrator to unlock it',
-      messageEs: 'Tu cuenta está bloqueada por demasiados intentos fallidos. Comunícate con un administrador para desbloquearla',
+      messageEn: 'Your account is locked after too many failed attempts. It unlocks by itself after 15 minutes, or an administrator can unlock it sooner',
+      messageEs: 'Tu cuenta está bloqueada por demasiados intentos fallidos. Se desbloquea sola a los 15 minutos o un administrador puede desbloquearla antes',
+    },
+    PASSWORD_CHANGE_REQUIRED: {
+      code: 'SAUT-E015',
+      httpStatus: HttpStatus.FORBIDDEN,
+      messageEn: 'You must change your temporary password before continuing',
+      messageEs: 'Debes cambiar tu contraseña temporal antes de continuar',
+    },
+    TEMP_PASSWORD_EXPIRED: {
+      code: 'SAUT-E016',
+      httpStatus: HttpStatus.UNAUTHORIZED,
+      messageEn: 'The temporary password expired. Ask an administrator for a new one',
+      messageEs: 'La contraseña temporal venció. Pide a un administrador una nueva',
+    },
+    TOTP_NOT_ENABLED: {
+      code: 'SAUT-E017',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'The authenticator is not enabled',
+      messageEs: 'El autenticador no está activado',
     },
     TOTP_ALREADY_ENABLED: {
       code: 'SAUT-E013',

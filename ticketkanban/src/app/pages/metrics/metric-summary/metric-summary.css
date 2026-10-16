@@ -44,6 +44,8 @@
   font-size: 0.875rem;
   color: var(--app-text-muted);
 }
+/* Rejilla de conteos: con `.app-scroll-list` en el HTML el alto lo pone el tope y no el contenido, así
+   una tabla de diez estados no empuja la antigüedad fuera de la pantalla. */
 .ms-counts {
   display: grid;
   gap: 0.5rem;
@@ -69,6 +71,7 @@
   color: var(--app-danger);
   font-weight: 600;
 }
+/* Los tramos de antigüedad son pocos y fijos: no llevan tope; el alto lo pone el contenido. */
 .ms-aging {
   display: grid;
   gap: 0.625rem;
@@ -87,8 +90,12 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+/* Barras de antigüedad: TONALIDADES del color de marca elegido en /appearance, no colores sueltos.
+   `--app-meter-*` son pasos 50–950 de ese color con ≥ 3:1 contra la superficie (WCAG 1.4.11), y
+   `.app-dark` los invierte para que «más viejo» se siga leyendo como «más fuerte» sobre fondo
+   oscuro. El color NO es la única señal: cada fila dice a qué rango de días corresponde. */
 .ms-bar {
-  height: 0.75rem;
+  height: var(--app-space-3);
   border-radius: 999px;
   background: var(--app-surface-muted);
   overflow: hidden;
@@ -96,12 +103,14 @@
 .ms-bar-fill {
   display: block;
   height: 100%;
+  min-width: 2px;
   border-radius: 999px;
-  background: var(--app-primary);
+  background: var(--app-meter-low);
+  transition: width var(--app-motion-base) var(--app-motion-ease);
 }
 .ms-bar-fill[data-age='mid'] {
-  background: var(--app-warning);
+  background: var(--app-meter-mid);
 }
 .ms-bar-fill[data-age='old'] {
-  background: var(--app-danger);
+  background: var(--app-meter-high);
 }

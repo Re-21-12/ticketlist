@@ -11,3 +11,25 @@
   min-width: 7.5rem;
   justify-content: center;
 }
+
+/* En la tabla (escritorio) las acciones propias de la pantalla van como botón CUADRADO con ícono: con ellas la columna
+   «Acciones» se apilaba en tres renglones. El nombre accesible y el tooltip siguen diciendo qué hace cada una; en la card
+   móvil (≤ 640 px) hay lugar y conservan la etiqueta. */
+@media (min-width: 641px) {
+  .row-actions {
+    flex-wrap: nowrap;
+  }
+  .row-actions .ra-extra {
+    min-width: var(--app-control-height);
+    width: var(--app-control-height);
+    padding: 0;
+  }
+  .row-actions .ra-extra-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

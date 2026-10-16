@@ -25,6 +25,7 @@
   [$take]="$service().$pagination().take"
   [$loading]="$loading()"
   [$busy]="$saving()"
+  [$exportFetch]="$exportFetch()"
   ($pageChange)="onPage($event)"
   ($searchChange)="$service().setSearch($event)"
   ($refresh)="$service().reload()"
@@ -32,4 +33,5 @@
   ($view)="onView($event)"
   ($edit)="onEdit($event)"
   ($delete)="onDelete($event)"
+  ($rowAction)="onRowAction($event)"
 />

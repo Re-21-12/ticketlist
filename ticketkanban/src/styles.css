@@ -24,6 +24,58 @@
   --app-warning: var(--p-orange-700);
   --app-focus-ring: var(--p-primary-color);
   --app-radius: 0.75rem;
+
+  /* ── Espaciado: escala CERRADA de 8px (ver docs/standard/spacing.md) ─────────────────────────
+     Todo `padding`, `gap` y `margin` de un `.css` de componente sale de aquí. No hay valores
+     sueltos: 4px es el micro-espaciado y el resto son múltiplos de 8. Motivo en la documentación
+     (técnico, no estético: las resoluciones reales son divisibles por 8 y en @2x/@3x los múltiplos
+     pares no generan sub-píxeles borrosos al escalar). */
+  --app-space-1: 0.25rem; /*   4px · micro: ícono con texto, borde interior */
+  --app-space-2: 0.5rem; /*    8px · label ↔ su input */
+  --app-space-3: 0.75rem; /*  12px · dentro de un grupo */
+  --app-space-4: 1rem; /*     16px · campos de un mismo bloque */
+  --app-space-6: 1.5rem; /*   24px · entre tarjetas */
+  --app-space-8: 2rem; /*     32px · entre secciones */
+  --app-space-12: 3rem; /*    48px · entre bloques grandes */
+  --app-space-16: 4rem; /*    64px · layout de página */
+
+  /* ── Controles: UNA sola altura ──────────────────────────────────────────────────────────────
+     El motivo del pedido «congruencia entre el tamaño de los campos y los botones»: un `<input>`
+     nativo mide 44px y un `pButton size="small"` mide 35px, así que en la misma fila los bordes
+     no emparejan. Todos los controles de una barra de filtros usan esta altura, y por eso los
+     botones de esas barras NO llevan `size="small"` (35px, además por debajo del objetivo táctil
+     mínimo). 44px = objetivo táctil mínimo WCAG 2.5.8. */
+  --app-control-height: 2.75rem;
+  --app-control-radius: calc(var(--app-radius) / 1.5);
+
+  /* Alto de una fila de lista con scroll dentro de una tarjeta: 3 ítems + 2 separaciones. */
+  --app-scroll-3-items: calc(9.5rem * 3 + 0.75rem * 2);
+
+  /* Tonalidades del color de marca para barras y medidores. Los escribe `ThemePaletteService` en
+     vivo desde la rampa 50–950 del color elegido; estos son los valores por defecto (Aura) para
+     que la pantalla pinte algo antes de que arranque el servicio. Cada uno se elige con ≥ 3:1
+     contra la superficie (WCAG 1.4.11, objetos gráficos no textuales). */
+  --app-shade-50: #ecfdf5;
+  --app-shade-100: #d1fae5;
+  --app-shade-200: #a7f3d0;
+  --app-shade-300: #6ee7b7;
+  --app-shade-400: #34d399;
+  --app-shade-500: #10b981;
+  --app-shade-600: #059669;
+  --app-shade-700: #047857;
+  --app-shade-800: #065f46;
+  --app-shade-900: #064e3b;
+  --app-shade-950: #022c22;
+  /* Lectura ↔Media↔Crítico, en TONALIDADES del tema (no colores sueltos): en claro se oscurecen
+     y en oscuro se aclaran, para que «más grave» se lea siempre como «más fuerte». Los tres tonos
+     exactos los elige `ThemePaletteService`: tres pasos DISTINTOS de la rampa del color elegido,
+     cada uno con 3:1 de contraste medido contra la superficie real de su modo (`--app-surface`).
+     Solo se publica el modo activo; el `var(--app-shade-…)` de respaldo cubre el otro (y pinta
+     algo antes de que arranque el servicio). */
+  --app-meter-low: var(--app-meter-low-light, var(--app-shade-400));
+  --app-meter-mid: var(--app-meter-mid-light, var(--app-shade-600));
+  --app-meter-high: var(--app-meter-high-light, var(--app-shade-800));
+
   /* Círculo del barrido entre rutas (inicio y fin del `clip-path`). */
   --circle-top-right-out: circle(0% at 100% 0%);
   --circle-bottom-right-in: circle(150% at 100% 100%);
@@ -39,6 +91,12 @@
   --app-danger: var(--p-red-300);
   --app-success: var(--p-green-300);
   --app-warning: var(--p-orange-300);
+  /* Las tonalidades se INVIERTEN: sobre una superficie oscura, «más grave» tiene que verse más
+     claro (una barra 800 sobre surface-800 desaparecería). Se mantienen los mismos nombres para
+     que el CSS del medidor no sepa en qué modo está. */
+  --app-meter-low: var(--app-meter-low-dark, var(--app-shade-600));
+  --app-meter-mid: var(--app-meter-mid-dark, var(--app-shade-400));
+  --app-meter-high: var(--app-meter-high-dark, var(--app-shade-200));
 }
 
 html,
@@ -51,6 +109,64 @@ body {
 :focus-visible {
   outline: 2px solid var(--app-focus-ring);
   outline-offset: 2px;
+}
+
+/* ── Controles deshabilitados: conservan los eventos del mouse ───────────────────────────────────
+   Pedido: «si un botón está deshabilitado, respeta los eventos del mouse como el mouse bloqueado».
+   optimus-ui (como PrimeNG) pone `pointer-events: none` en sus estados deshabilitados, y el
+   navegador RESUELVE EL CURSOR "A TRAVÉS" del elemento: por eso un botón deshabilitado parecía
+   pulsable. Con `cursor: not-allowed` explícito el estado se ve; con `pointer-events: auto` el
+   hover, el tooltip y la selección/copia de texto siguen funcionando sobre el control apagado
+   (WCAG 4.1.2: el estado deshabilitado se anuncia, no se oculta). NO se baja la opacidad: cada
+   componente ya se atenúa solo y duplicarlo dejaría la etiqueta ilegible.
+   Se limita a los controles de formulario y a `p-disabled`: no se toca `pointer-events` en
+   cualquier elemento (el tablero lo usa a propósito en las tarjetas que se están arrastrando). */
+:where(button, input, select, textarea, a, [role='button'])[disabled],
+:where(button, input, select, textarea, a, [role='button'])[aria-disabled='true'],
+.p-disabled {
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
+/* ── Scroll con la paleta de la app ──────────────────────────────────────────────────────────────
+   El scroll por defecto del navegador es un gris que no sigue al tema. `scrollbar-color`
+   (Firefox) + `::-webkit-scrollbar*` (Chrome/Safari/Edge) cubren los dos motores y los dos leen
+   los tokens `--app-*`, que ya cambian solos en claro/oscuro y con el color de marca.
+   `thin` + 8px (la unidad atómica de la escala de espaciado): un scroll ancho ya no hace falta
+   desde que las superficies dejaron de llevar borde. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-border) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--app-border);
+  border-radius: var(--app-radius);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--app-primary);
+}
+
+/* Lista dentro de una tarjeta con tope de alto: se ven 3 elementos y el resto se recorre con el
+   scroll ya tematizado de arriba. `overscroll-behavior: contain` evita que al llegar al final la
+   página de detrás siga desplazándose (mismo criterio del panel de notificaciones). */
+.app-scroll-list {
+  max-height: var(--app-scroll-3-items);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Panel con tope para tablas y listas largas: el alto lo fija la pantalla, nunca el contenido. */
+.app-scroll-panel {
+  max-height: min(32rem, 70vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* Animaciones de entrada/salida de Angular (`animate.enter` / `animate.leave`, API nativa de
@@ -263,4 +379,101 @@ app-dynamic-field:not(.field-error-visible) .p-invalid .p-select-label.p-placeho
 .auth-art {
   --illustration-width: 8rem;
   margin: 0 auto 0.75rem;
+}
+
+/* ── Controles de la misma altura (consistencia entre botones y campos) ─────────────────────────────
+   Botones, campos de texto, selects, datepickers y autocompletes miden `--app-control-height` (44 px, también el
+   objetivo táctil mínimo de WCAG). Antes un `pButton size="small"` medía 35 px y un campo 44 px: en la misma fila los
+   bordes no emparejaban. El botón solo-ícono es cuadrado. */
+.p-button:not(.p-button-icon-only),
+.p-inputtext,
+.p-select,
+.p-multiselect,
+.p-datepicker-input,
+.p-inputnumber-input,
+.p-autocomplete-input {
+  min-height: var(--app-control-height);
+}
+.p-button.p-button-icon-only {
+  min-width: var(--app-control-height);
+  min-height: var(--app-control-height);
+}
+.p-select,
+.p-multiselect {
+  align-items: center;
+}
+
+/* ── Grillas: filas alternas y hover con el color de marca ──────────────────────────────────────────
+   Una fila lisa y la siguiente apenas más oscura (el texto del tema al 4 % sobre la superficie: sirve en claro y
+   oscuro sin un valor por tema); al pasar el cursor la fila toma una tonalidad SUAVE del color de marca elegido
+   (`--app-primary` al 12 %). Todas las filas llevan fondo OPACO: la columna «Acciones» es fija a la derecha y hereda el
+   de su fila, y con una fila transparente el texto se vería a través al desplazar. `.app-zebra` es lo mismo para las
+   tablas hechas a mano (métricas, matriz de roles). */
+.p-datatable .p-datatable-tbody > tr,
+.app-zebra tbody > tr {
+  background: var(--app-surface);
+  transition: background-color var(--app-motion-fast) var(--app-motion-ease);
+}
+.p-datatable .p-datatable-tbody > tr:nth-child(even),
+.app-zebra tbody > tr:nth-child(even) {
+  background: color-mix(in srgb, var(--app-text) 4%, var(--app-surface));
+}
+.p-datatable .p-datatable-tbody > tr:hover,
+.app-zebra tbody > tr:hover {
+  background: color-mix(in srgb, var(--app-primary) 12%, var(--app-surface));
+}
+.p-datatable .p-datatable-tbody > tr > td,
+.app-zebra tbody > tr > td,
+.app-zebra tbody > tr > th {
+  background: inherit;
+}
+.p-datatable .p-datatable-thead > tr > th {
+  background: color-mix(in srgb, var(--app-primary) 8%, var(--app-surface));
+  color: var(--app-text);
+}
+
+/* ── Paginador de las grillas (mismo diseño que wallet-api) ─────────────────────────────────────────
+   Barra pegada a la tabla, centrada, «1 - 10 de 23» y todos los botones de página del mismo tamaño; en el teléfono se
+   ocultan primera y última página. El selector de filas por página mide lo mismo que los demás controles. */
+.p-datatable .p-paginator {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--app-space-1) var(--app-space-3);
+  padding: var(--app-space-2) var(--app-space-4);
+  border-top: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+.p-paginator .p-paginator-first,
+.p-paginator .p-paginator-prev,
+.p-paginator .p-paginator-next,
+.p-paginator .p-paginator-last,
+.p-paginator .p-paginator-page {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--app-control-height);
+  width: var(--app-control-height);
+  height: var(--app-control-height);
+  padding: 0;
+}
+.p-paginator .p-paginator-page.p-paginator-page-selected {
+  background: var(--app-primary);
+  color: var(--app-primary-contrast);
+  font-weight: 600;
+}
+.p-paginator .p-paginator-current {
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+@media (max-width: 640px) {
+  .p-paginator .p-paginator-first,
+  .p-paginator .p-paginator-last {
+    display: none;
+  }
+  .p-paginator .p-paginator-current {
+    order: 4;
+    width: 100%;
+    text-align: center;
+  }
 }

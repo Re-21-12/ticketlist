@@ -36,6 +36,8 @@ export class SessionStore {
   });
   readonly $menu = computed(() => this.$_session()?.menu ?? []);
   readonly $isAuthenticated = computed(() => this.$_session() !== null);
+  /** Contraseña temporal pendiente de cambio: los guards llevan a `/change-password` y nada más funciona. */
+  readonly $mustChangePassword = computed(() => this.$_session()?.mustChangePassword === true);
   /** Hay usuarios de desarrollo: se muestra el selector «Rol de prueba». */
   readonly canSwitchRole = environment.devSignIn !== null;
 

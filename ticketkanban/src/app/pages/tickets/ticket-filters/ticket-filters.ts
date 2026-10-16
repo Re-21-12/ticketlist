@@ -4,6 +4,7 @@ import { ButtonModule } from '@openng/optimus-ui/button';
 import { InputTextModule } from '@openng/optimus-ui/inputtext';
 import { SelectModule } from '@openng/optimus-ui/select';
 import type { ITicketFilters } from '../ticket-filter.util';
+import { TicketDateFilter } from '../ticket-date-filter/ticket-date-filter';
 import { TicketsStore } from '../tickets.store';
 
 /** Un desplegable de filtro: qué criterio cambia, su rótulo y sus opciones (con ícono y color del catálogo). */
@@ -20,7 +21,7 @@ interface IFilterSelect {
  */
 @Component({
   selector: 'app-ticket-filters',
-  imports: [FormsModule, ButtonModule, InputTextModule, SelectModule],
+  imports: [FormsModule, ButtonModule, InputTextModule, SelectModule, TicketDateFilter],
   templateUrl: './ticket-filters.html',
   styleUrl: './ticket-filters.css',
 })

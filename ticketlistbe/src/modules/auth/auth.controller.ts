@@ -11,6 +11,7 @@ import {
 import { RequestContext } from '../../core/context/request-context.js';
 import { SignInDto, SignInSchema } from './dtos/sign-in.dto.js';
 import { AuthSessionService } from './session/auth-session.service.js';
+import { AllowPasswordChangePending } from './session/allow-password-change-pending.decorator.js';
 import { Public } from './session/public.decorator.js';
 
 @ApiTags('Auth')
@@ -31,7 +32,7 @@ export class AuthController {
   @ApiZodBody(SignInSchema)
   @ApiZodResponse(200, ShellResponseSchema)
   @ApiProblemResponse(400, 'CVAL-E001 · Datos inválidos')
-  @ApiProblemResponse(401, 'SAUT-E004 · Credenciales inválidas')
+  @ApiProblemResponse(401, 'SAUT-E004 · Correo electrónico o contraseña incorrectos')
   async signIn(
     @Body() dto: SignInDto,
     @Req() req: Request,
@@ -43,6 +44,7 @@ export class AuthController {
   }
 
   @Post('sign-out')
+  @AllowPasswordChangePending()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiResponse({ status: 204, description: 'Sesión destruida y cookies borradas' })
   @ApiProblemResponse(401, 'SAUT-E002 · Sin sesión')

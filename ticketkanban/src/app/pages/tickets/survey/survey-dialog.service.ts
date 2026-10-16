@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { FormDialogService } from '../../../shared/form-dialog/form-dialog.service';
 import { TICKET_SURVEY_FORM } from '../survey-form.config';
 import type { TSurveyForm } from '../ticket.types';
+import { closureSummary } from './closure-summary.util';
 import { TicketsService } from '../tickets.service';
 
 /**
@@ -35,9 +36,12 @@ export class SurveyDialogService {
     } catch {
       return; // `errorInterceptor` ya avisó
     }
+    // La pantalla «Cierre del ticket» y la encuesta van JUNTAS: arriba el resumen del caso, abajo las preguntas.
+    const ticket = await firstValueFrom(this._ticketsService.fetchOne(ticketUuid)).catch(() => null);
     void this._formDialogService.open({
       header: '¿Se resolvió tu problema?',
       definition: TICKET_SURVEY_FORM,
+      ...(ticket ? { summary: closureSummary(ticket) } : {}),
       submitLabel: 'Enviar respuesta',
       submitting: () => false,
       onSubmit: (form) => void this.send(ticketUuid, form, onAnswered),

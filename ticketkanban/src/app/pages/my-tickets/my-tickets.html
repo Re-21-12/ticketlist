@@ -1,14 +1,22 @@
 <header class="mt-header page-header-art">
   <div>
-    <h1 class="mt-title">Mis tickets</h1>
-    <p class="mt-subtitle">
-      Tus solicitudes con su estado actual. Cuando el equipo cambia algo, te avisamos aquí y en la campana.
-    </p>
+    <h1 class="mt-title">{{ $title() }}</h1>
+    <p class="mt-subtitle">{{ $subtitle() }}</p>
   </div>
   <app-illustration class="page-art" [$name]="'tickets'" />
 </header>
 
 <div class="mt-toolbar">
+  @if ($isTeam()) {
+    <div class="mt-scopes" role="radiogroup" aria-label="Qué tickets ver">
+      @for (scope of $scopes(); track scope.value) {
+        <label class="mt-scope" [class.mt-scope--active]="_store.$scope() === scope.value" [attr.title]="scope.hint">
+          <input type="radio" name="mt-scope" class="mt-scope-input" [value]="scope.value" [checked]="_store.$scope() === scope.value" (change)="setScope(scope.value)" />
+          <span>{{ scope.label }}</span>
+        </label>
+      }
+    </div>
+  }
   @let sync = syncMeta[_store.$syncState()];
   <app-badge [$label]="sync.label" [$icon]="sync.icon" [$severity]="sync.severity" />
   <button type="button" pButton severity="secondary" [outlined]="true" size="small" (click)="_store.reload()">
@@ -44,8 +52,8 @@
       <!-- A1: sin solicitudes. -->
       <section class="mt-empty" aria-labelledby="mt-empty-title">
         <app-illustration class="mt-empty-art" [$name]="'empty'" />
-        <h2 id="mt-empty-title" class="mt-empty-title">No tienes solicitudes activas</h2>
-        <p class="mt-muted">Cuando registres un ticket lo verás aquí con su estado y su historial.</p>
+        <h2 id="mt-empty-title" class="mt-empty-title">{{ $isTeam() ? 'No hay tickets en esta vista' : 'No tienes solicitudes activas' }}</h2>
+        <p class="mt-muted">{{ $isTeam() ? 'Prueba con «Todos» u otra de las vistas de arriba.' : 'Cuando registres un ticket lo verás aquí con su estado y su historial.' }}</p>
         @if (('create' | can: 'Ticket')()) {
           <a pButton routerLink="/tickets/new">
             <i pButtonIcon class="pi pi-plus" aria-hidden="true"></i>
@@ -55,8 +63,10 @@
       </section>
     } @else {
       <div class="mt-layout">
-        <nav class="mt-list-wrap" aria-label="Mis tickets">
-          <ul class="mt-list">
+        <!-- La lista y el historial tienen tope y scroll propios (`.app-scroll-panel`): la columna
+             no crece con cada ticket y el formulario de comentario sigue entrando en la pantalla. -->
+        <nav class="mt-list-wrap" [attr.aria-label]="$title()">
+          <ul class="mt-list app-scroll-panel">
             @for (ticket of list.data.data; track ticket.uuid) {
               <li>
                 <a
@@ -74,6 +84,7 @@
                   </span>
                   <span class="mt-item-title">{{ ticket.title }}</span>
                   <span class="mt-item-meta">
+                    @if ($isTeam()) { Solicita: {{ ticket.requesterName }} · }
                     {{ ticket.assigneeName ? 'Atiende: ' + ticket.assigneeName : 'Sin responsable todavía' }}
                   </span>
                 </a>
@@ -107,6 +118,7 @@
 
             <dl class="mt-facts">
               <div><dt>Registrado</dt><dd>{{ ticket.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+              <div><dt>Solicita</dt><dd>{{ ticket.requesterName }}</dd></div>
               <div><dt>Atiende</dt><dd>{{ ticket.assigneeName ?? 'Sin responsable todavía' }}</dd></div>
               @if (ticket.sla.resolutionDueAt && ticket.status !== 'closed' && ticket.status !== 'resolved') {
                 <div><dt>Resolver antes de</dt><dd>{{ ticket.sla.resolutionDueAt | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
@@ -138,23 +150,32 @@
                   }
                 </div>
                 @if ($canReopen()) {
-                  <label class="mt-comment-label" for="mt-reopen-reason">Motivo para reabrir (opcional)</label>
-                  <textarea
-                    id="mt-reopen-reason"
-                    class="mt-comment-input"
-                    rows="2"
-                    maxlength="500"
-                    [value]="$reopenReason()"
-                    (input)="setReason($event)"
-                  ></textarea>
+                  <p class="mt-muted">Si el problema continúa, te pediremos el motivo antes de reabrirlo.</p>
                 }
               </section>
             } @else if (ticket.status === 'closed') {
+              @if ($closureCard(); as card) {
+                <app-summary-card [$card]="card" />
+              }
               <app-attachment-list [$attachments]="$resolutionEvidence()" [$ticketUuid]="ticket.uuid" />
             }
 
+            @if ($teamActions().length > 0) {
+              <section class="mt-actions" aria-labelledby="mt-actions-title">
+                <h3 id="mt-actions-title" class="mt-h3">Cambiar el estado</h3>
+                <div class="mt-confirm-actions">
+                  @for (action of $teamActions(); track action.status) {
+                    <button type="button" pButton severity="secondary" [outlined]="true" size="small" [disabled]="_store.$acting() !== null" (click)="moveTo(action.status, action.label)">
+                      <i pButtonIcon [class]="'pi ' + action.icon" aria-hidden="true"></i>
+                      <span pButtonLabel>{{ action.label }}</span>
+                    </button>
+                  }
+                </div>
+              </section>
+            }
+
             <h3 class="mt-h3">Historial de interacciones</h3>
-            <p class="mt-muted mt-immutable"><i class="pi pi-lock" aria-hidden="true"></i> Los comentarios previos no pueden modificarse: el historial queda tal como ocurrió.</p>
+            <p class="mt-muted mt-immutable"><i class="pi pi-lock" aria-hidden="true"></i> Los comentarios previos no pueden modificarse.</p>
             @let events = _store.$eventsState();
             @switch (events.kind) {
               @case ('loading') {
@@ -164,9 +185,9 @@
                 <p class="mt-muted" role="status">No se pudo cargar el historial. Usa «Actualizar».</p>
               }
               @case ('success') {
-                <ol class="mt-timeline">
+                <ol class="mt-timeline app-scroll-panel">
                   @for (event of $timeline(); track event.uuid) {
-                    <li class="mt-event" [class.mt-event--notice]="event.type === 'NOTIFIED'">
+                    <li class="mt-event" [class.mt-event--notice]="event.type === 'NOTIFIED'" [class.mt-event--internal]="event.type === 'COMMENT_INTERNAL'">
                       <i [class]="'pi ' + event.meta.icon + ' mt-event-icon'" aria-hidden="true"></i>
                       <div class="mt-event-body">
                         <p class="mt-event-title">
@@ -203,7 +224,7 @@
 
             @if ($canComment()) {
               <form class="mt-comment" (submit)="$event.preventDefault(); send()">
-                <label class="mt-comment-label" for="mt-comment">Agregar un comentario</label>
+                <label class="mt-comment-label" for="mt-comment">{{ $isTeam() ? 'Responder o dejar una nota' : 'Agregar un comentario' }}</label>
                 <textarea
                   id="mt-comment"
                   class="mt-comment-input"
@@ -215,14 +236,20 @@
                   (input)="setDraft($event)"
                 ></textarea>
                 <p id="mt-comment-error" class="mt-comment-error" role="alert">{{ $draftError() }}</p>
+                @if ($isTeam()) {
+                  <label class="mt-internal">
+                    <input type="checkbox" [checked]="$internal()" (change)="setInternal($event)" />
+                    <span>Nota interna: solo la ve el equipo, no la persona que solicitó</span>
+                  </label>
+                }
                 <app-evidence-uploader [$ticketUuid]="ticket.uuid" [($attachments)]="$evidence" [($busy)]="$uploading" />
                 <button type="submit" pButton size="small" [disabled]="_store.$sending() || $uploading()">
                   <i pButtonIcon class="pi pi-send" aria-hidden="true"></i>
-                  <span pButtonLabel>{{ _store.$sending() ? 'Enviando…' : 'Enviar comentario' }}</span>
+                  <span pButtonLabel>{{ _store.$sending() ? 'Enviando…' : $internal() ? 'Guardar nota interna' : 'Enviar comentario' }}</span>
                 </button>
               </form>
             } @else {
-              <p class="mt-muted">Este ticket está cerrado: ya no admite comentarios.</p>
+              <p class="mt-muted">{{ _store.$selected()?.status === 'closed' ? 'Este ticket está cerrado: ya no admite comentarios.' : 'Tu rol solo permite leer este ticket.' }}</p>
             }
           } @else {
             <p class="mt-muted" role="status">Elige un ticket de la lista para ver su detalle y su historial.</p>

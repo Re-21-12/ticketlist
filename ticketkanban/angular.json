@@ -18,7 +18,7 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
-            "allowedCommonJsDependencies": ["qrcode", "dijkstrajs", "quill-delta"],
+            "allowedCommonJsDependencies": ["qrcode", "dijkstrajs", "quill-delta", "exceljs", "html2canvas", "raf", "rgbcolor", "core-js"],
             "tsConfig": "tsconfig.app.json",
             "assets": [
               {
@@ -90,7 +90,10 @@
           }
         },
         "test": {
-          "builder": "@angular/build:unit-test"
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "runnerConfig": "vitest.config.mts"
+          }
         }
       }
     }

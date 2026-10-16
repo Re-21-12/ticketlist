@@ -5,7 +5,7 @@ import { BoardResponseSchema, type TBoardResponse } from './dtos/board-response.
 
 /** Las tres columnas del tablero; el estado exacto de cada tarjeta es su insignia (catálogo `ticket-status`). */
 const GROUP_LABELS: Record<TStatusGroup, string> = {
-  new: 'Nuevo',
+  new: 'Abierto',
   in_attention: 'En atención',
   closed: 'Cerrado',
 };

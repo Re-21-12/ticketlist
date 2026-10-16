@@ -24,50 +24,51 @@
   font-size: 0.875rem;
   color: var(--app-text-muted);
 }
+/* Interruptor + su etiqueta: la etiqueta es la que dice el estado, así que el color nunca es la
+   única señal (WCAG 1.4.1). El interruptor conserva sus 44 px de alto. */
 .jc-switch {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  min-height: 2.75rem;
-  cursor: pointer;
+  gap: var(--app-space-2);
+  min-height: var(--app-control-height);
   font-size: 0.875rem;
   font-weight: 600;
 }
-.jc-switch-input {
-  width: 1.25rem;
-  height: 1.25rem;
-  accent-color: var(--app-primary);
+.jc-switch-text {
   cursor: pointer;
 }
 .jc-form {
   display: grid;
-  gap: 1rem;
+  gap: var(--app-space-4);
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
 }
 .jc-field {
   display: grid;
   align-content: start;
-  gap: 0.25rem;
+  gap: var(--app-space-1);
 }
 .jc-label {
   font-size: 0.875rem;
   font-weight: 600;
 }
-.jc-control {
-  min-height: 2.75rem;
-  padding: 0 0.75rem;
-  border: 1px solid var(--app-border);
-  border-radius: calc(var(--app-radius) / 1.5);
-  background: var(--app-surface);
-  color: var(--app-text);
-  font: inherit;
+/* Todos los controles de la fila miden lo mismo (`--app-control-height`): el autocomplete y el
+   inputnumber envuelven un input propio, así que el ancho va al host y la altura al input. */
+:host ::ng-deep .jc-control {
+  width: 100%;
 }
-.jc-control[readonly] {
-  background: var(--app-surface-muted);
-  color: var(--app-text-muted);
+:host ::ng-deep .jc-input {
+  width: 100%;
+  height: var(--app-control-height);
 }
 .jc-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+/* El cron derivado de un preajuste no se edita: se lee. Fondo apagado y `cursor: not-allowed`
+   (la regla global de `styles.css` cubre el resto de controles deshabilitados). */
+.jc-readonly {
+  background: var(--app-surface-muted);
+  color: var(--app-text-muted);
+  cursor: not-allowed;
 }
 .jc-help {
   margin: 0;

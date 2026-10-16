@@ -70,7 +70,7 @@ describe('mock BFF · administración', () => {
     it('lista con búsqueda y filtro de rol, sin datos sensibles', async () => {
       const all = await get<IPage<{ email: string; role: string }>>('/api/users');
       expect(all.meta.total).toBe(7);
-      expect(JSON.stringify(all)).not.toMatch(/password/i);
+      expect(JSON.stringify(all)).not.toMatch(/"password"|passwordHash|passwordSalt|tempPassword/i);
       const viewers = await get<IPage<{ role: string }>>('/api/users?role=VIEWER');
       expect(viewers.data.every((u) => u.role === 'VIEWER')).toBe(true);
       const found = await get<IPage<{ email: string }>>('/api/users?search=luis');

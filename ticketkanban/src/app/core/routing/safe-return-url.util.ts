@@ -30,5 +30,6 @@ const AUTH_PATHS: ReadonlySet<string> = new Set([
   '/forgot-password',
   '/reset-password',
   '/verify-email',
+  '/change-password',
   '/access',
 ]);

@@ -1,0 +1,26 @@
+@let card = $card();
+<section class="sc" [attr.aria-label]="card.title">
+  <header class="sc-head">
+    <i [class]="'pi ' + $icon() + ' sc-icon'" aria-hidden="true"></i>
+    <div>
+      <h3 class="sc-title">{{ card.title }}</h3>
+      @if (card.subtitle) {
+        <p class="sc-subtitle">{{ card.subtitle }}</p>
+      }
+    </div>
+  </header>
+  <dl class="sc-facts">
+    @for (fact of card.facts; track fact.label) {
+      <div class="sc-fact">
+        <dt>{{ fact.label }}</dt>
+        <dd>{{ fact.value }}</dd>
+      </div>
+    }
+  </dl>
+  @if (card.note; as note) {
+    <div class="sc-note">
+      <p class="sc-note-label">{{ note.label }}</p>
+      <p class="sc-note-text">{{ note.text }}</p>
+    </div>
+  }
+</section>

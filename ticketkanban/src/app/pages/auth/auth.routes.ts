@@ -1,5 +1,6 @@
 import type { Routes } from '@angular/router';
 import { guestOnlyGuard } from '../../core/session/guest.guard';
+import { passwordPendingGuard } from '../../core/session/password-pending.guard';
 
 /**
  * Pantallas de acceso, dentro de `AuthLayout` (tarjeta centrada, sin menú). Iniciar sesión y crear
@@ -20,6 +21,14 @@ export const AUTH_ROUTES: Routes = [
     canActivate: [guestOnlyGuard],
     runGuardsAndResolvers: 'always',
     loadComponent: () => import('./sign-up/sign-up').then((m) => m.SignUp),
+  },
+  {
+    // Tras entrar con una contraseña temporal (alta o restablecimiento por un administrador): cambiarla es lo único que se puede hacer.
+    path: 'change-password',
+    title: 'Cambiar contraseña',
+    canActivate: [passwordPendingGuard],
+    runGuardsAndResolvers: 'always',
+    loadComponent: () => import('./change-password/change-password').then((m) => m.ChangePassword),
   },
   {
     path: 'forgot-password',

@@ -9,7 +9,10 @@ import type { IFieldOption } from '../../shared/dynamic-form/field-config.interf
 import { toMetaOptions } from '../../shared/dynamic-form/utils/to-options.util';
 import { TICKET_PRIORITY, TICKET_STATUS } from '../tickets/ticket.schema';
 import { TICKET_PRIORITY_META, TICKET_STATUS_META } from '../tickets/ticket.constants';
+import { SessionStore } from '../../core/session/session.store';
+import type { TThreadScope } from './my-tickets.constants';
 import { MyTicketsService } from './my-tickets.service';
+import type { TTicketStatus } from '../tickets/ticket.types';
 import type { TMyTicketList, TTicketEventList } from './my-tickets.types';
 
 const byCode = (options: readonly IFieldOption[]): Record<string, IFieldOption> => Object.fromEntries(options.map((option) => [option.value, option]));
@@ -28,12 +31,18 @@ export class MyTicketsStore {
   private readonly _service = inject(MyTicketsService);
   private readonly _stream = inject(NotificationStreamService);
   private readonly _catalogs = inject(CatalogOptionsService);
+  private readonly _session = inject(SessionStore);
 
   private readonly $_sending = signal(false);
   readonly $sending = this.$_sending.asReadonly();
   /** `closing` / `reopening` mientras se envía esa acción sobre el ticket (bloquea el doble clic). */
-  private readonly $_acting = signal<'closing' | 'reopening' | null>(null);
+  private readonly $_acting = signal<'closing' | 'reopening' | 'moving' | null>(null);
   readonly $acting = this.$_acting.asReadonly();
+
+  /** Equipo de soporte: ve «Asignados a mí»/«Todos», escribe notas internas y mueve el ticket de estado. */
+  readonly $isTeam = this._session.$isTeam;
+  /** Supervisión y auditoría ven TODOS los tickets; el agente, lo suyo. */
+  readonly $scope = this._service.$scope;
 
   readonly $listState = computed<TAsyncState<TMyTicketList>>(() => mapResourceState(this._service.list.status(), this._service.list.value(), this._service.list.error()));
   readonly $eventsState = computed<TAsyncState<TTicketEventList>>(() => mapResourceState(this._service.events.status(), this._service.events.value(), this._service.events.error()));
@@ -65,6 +74,10 @@ export class MyTicketsStore {
     this._stream.reconnected$.pipe(takeUntilDestroyed()).subscribe(() => this.reload());
   }
 
+  setScope(scope: TThreadScope): void {
+    this._service.setScope(scope);
+  }
+
   select(uuid: string | undefined): void {
     this._service.select(uuid);
   }
@@ -80,12 +93,12 @@ export class MyTicketsStore {
   }
 
   /** Agrega un comentario público (con su evidencia) al ticket elegido y refresca historial y lista. */
-  async comment(body: string, attachmentIds: readonly string[] = []): Promise<void> {
+  async comment(body: string, attachmentIds: readonly string[] = [], internal = false): Promise<void> {
     const uuid = this.$selectedUuid();
     if (!uuid || this.$_sending()) return;
     this.$_sending.set(true);
     try {
-      await firstValueFrom(this._service.comment(uuid, body, attachmentIds));
+      await firstValueFrom(this._service.comment(uuid, body, attachmentIds, internal));
       this._service.reload();
     } finally {
       this.$_sending.set(false);
@@ -102,12 +115,17 @@ export class MyTicketsStore {
     return this.act('reopening', 'reopened', reason);
   }
 
-  private async act(kind: 'closing' | 'reopening', to: 'closed' | 'reopened', note?: string): Promise<boolean> {
+  /** Paso de estado del EQUIPO (el backend valida quién puede cada uno; `resolved` lleva la solución y su evidencia). */
+  async move(to: TTicketStatus, extra: { resolution?: string; attachmentIds?: string[] } = {}): Promise<boolean> {
+    return this.act('moving', to, undefined, extra);
+  }
+
+  private async act(kind: 'closing' | 'reopening' | 'moving', to: TTicketStatus, note?: string, extra: { resolution?: string; attachmentIds?: string[] } = {}): Promise<boolean> {
     const uuid = this.$selectedUuid();
     if (!uuid || this.$_acting()) return false;
     this.$_acting.set(kind);
     try {
-      await firstValueFrom(this._service.transition(uuid, to, note));
+      await firstValueFrom(this._service.transition(uuid, to, note, extra));
       this._service.reload();
       return true;
     } catch {

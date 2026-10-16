@@ -15,6 +15,7 @@ export const NOTIFICATION_ROUTES: Record<TNotification['type'], { path: string; 
   RELATIONSHIP_GRANTED: { path: '/sharing' },
   RELATIONSHIP_REVOKED: { path: '/sharing' },
   ACCOUNT_LOCKED: { path: '/users' },
+  ACCOUNT_SECURITY: { path: '/profile', query: { tab: 'security' } },
 };
 
 /** Cuántas pendientes muestra la bandeja (el historial completo vive en Mi perfil → Notificaciones). */
@@ -24,7 +25,14 @@ export const INBOX_LIMIT = 5;
 export const INBOX_POLL_MS = 60_000;
 
 /**
- * Avisos que le llegan al SOLICITANTE (CU01): abren «Mis tickets» con ese ticket elegido (`?ticket=<uuid>`). Quien
- * es del equipo recibe los mismos tipos como responsable, y para él el ticket vive en el tablero.
+ * Avisos sobre un ticket que abren su HILO (`/my-tickets?ticket=<uuid>`): lo que llega al solicitante y al equipo
+ * (asignación, cambios, comentarios, reapertura, encuesta baja). El hilo es la misma pantalla para ambos.
  */
-export const REQUESTER_TICKET_TYPES: ReadonlySet<TNotification['type']> = new Set(['TICKET_STATUS_CHANGED', 'TICKET_COMMENTED']);
+export const TICKET_THREAD_TYPES: ReadonlySet<TNotification['type']> = new Set([
+  'TICKET_STATUS_CHANGED',
+  'TICKET_COMMENTED',
+  'TICKET_ASSIGNED',
+  'TICKET_CHANGED_BY_ALTERNANTE',
+  'TICKET_REOPENED',
+  'TICKET_SURVEY_ALERT',
+]);

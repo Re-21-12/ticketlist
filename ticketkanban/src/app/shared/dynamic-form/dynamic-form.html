@@ -87,6 +87,9 @@
       }
     }
 
+    <!-- Contenido propio de la pantalla justo antes de los botones (p. ej. la evidencia del alta rápida). -->
+    <ng-content select="[formExtra]" />
+
     @if (!$readonlyMode() && (!$sections() || $layout() !== 'stepper')) {
       <div class="flex gap-2">
         @if ($showClear()) {

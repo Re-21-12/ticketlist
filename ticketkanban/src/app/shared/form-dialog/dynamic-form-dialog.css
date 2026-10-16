@@ -1,3 +1,7 @@
 :host {
   display: block;
 }
+.dfd-summary {
+  display: block;
+  margin-bottom: var(--app-space-4);
+}

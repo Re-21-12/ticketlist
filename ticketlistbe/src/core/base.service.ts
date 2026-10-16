@@ -7,7 +7,7 @@ import type { BaseEntity } from './base.entity.js';
 import { RequestContext } from './context/request-context.js';
 import { CustomBusinessException } from './exceptions/app.exception.js';
 import type { IBasePagination } from './interfaces/Ibase-pagination.interface.js';
-import type { IBaseRepository, TWhere } from './interfaces/Ibase.repository.js';
+import type { IBaseRepository, TRowPredicate, TWhere } from './interfaces/Ibase.repository.js';
 import type { IBaseService } from './interfaces/Ibase.service.js';
 import type { IServiceErrorCodes } from './interfaces/Icustom-code.interface.js';
 import type { IPaginatedResult } from './interfaces/Ipaginated-result.interface.js';
@@ -97,12 +97,17 @@ export abstract class BaseService<TEntity extends BaseEntity, TResponse, TCreate
     return entity;
   }
 
-  async findAll(pagination: IBasePagination, filters?: TWhere<TEntity>): Promise<IPaginatedResult<TResponse>> {
+  async findAll(
+    pagination: IBasePagination,
+    filters?: TWhere<TEntity>,
+    predicate?: TRowPredicate<TEntity>,
+  ): Promise<IPaginatedResult<TResponse>> {
     const [rows, total] = await this.repository.findAll(
       pagination,
       filters,
       this.readScope(),
       this.readableRowFilter(),
+      predicate,
     );
     return {
       data: rows.map((row) => this.toResponse(row)),

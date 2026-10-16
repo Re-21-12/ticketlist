@@ -7,9 +7,9 @@ import type { TTicketCategory, TTicketComplexity, TTicketPriority, TTicketStatus
  * fallan. El texto siempre acompaña al color y al ícono.
  */
 export const TICKET_STATUS_META: Record<TTicketStatus, IBadgeMeta> = {
-  new: { label: 'Nuevo', icon: 'pi-inbox', severity: 'info' },
+  new: { label: 'Abierto', icon: 'pi-inbox', severity: 'info' },
   assigned: { label: 'Asignado', icon: 'pi-user-plus', severity: 'info' },
-  in_progress: { label: 'En atención', icon: 'pi-clock', severity: 'warn' },
+  in_progress: { label: 'En progreso', icon: 'pi-clock', severity: 'warn' },
   pending_customer: { label: 'Pendiente del cliente', icon: 'pi-hourglass', severity: 'secondary' },
   escalated: { label: 'Escalado (N2/N3)', icon: 'pi-angle-double-up', severity: 'danger' },
   resolved: { label: 'Resuelto', icon: 'pi-check', severity: 'success' },
@@ -63,7 +63,7 @@ export const TICKET_CATEGORY_LABELS = labelsOf(TICKET_CATEGORY_META);
 export const TICKET_COMPLEXITY_LABELS = labelsOf(TICKET_COMPLEXITY_META);
 
 /** Etiqueta de cada columna del tablero (los estados son variaciones de estos tres). */
-export const TICKET_GROUP_LABELS = { new: 'Nuevo', in_attention: 'En atención', closed: 'Cerrado' } as const;
+export const TICKET_GROUP_LABELS = { new: 'Abierto', in_attention: 'En atención', closed: 'Cerrado' } as const;
 
 /**
  * Rangos de SLA por urgencia (espejo de `sla/sla-policy.ts` del backend; minutos HÁBILES: L–V 8:00–17:00, UTC−6).
@@ -91,3 +91,31 @@ export const SLA_STATE_META: Record<string, IBadgeMeta> = {
   met: { label: 'SLA cumplido', icon: 'pi-check', severity: 'success' },
   breached: { label: 'Fuera de SLA', icon: 'pi-exclamation-circle', severity: 'danger' },
 };
+
+/** Un atajo del filtro de fechas: su etiqueta y el rango que deja, en días LOCALES de quien mira. */
+interface IDatePreset {
+  id: string;
+  label: string;
+  /** Rango que deja el atajo a partir de `hoy`. */
+  range: (hoy: Date) => { from: Date; to: Date };
+}
+
+/** «Últimos N días» cuenta hoy incluido: son N ventanas, no N saltos hacia atrás. */
+const ultimosDias = (dias: number) => (hoy: Date) => {
+  const from = new Date(hoy);
+  from.setDate(from.getDate() - (dias - 1));
+  return { from, to: new Date(hoy) };
+};
+
+/** Atajos del filtro de fechas del listado. «Hoy» es el primero porque es el caso más frecuente. */
+export const TICKET_DATE_PRESETS: readonly IDatePreset[] = [
+  { id: 'today', label: 'Hoy', range: ultimosDias(1) },
+  { id: 'week', label: 'Últimos 7 días', range: ultimosDias(7) },
+  { id: 'fortnight', label: 'Últimos 30 días', range: ultimosDias(30) },
+  { id: 'quarter', label: 'Últimos 90 días', range: ultimosDias(90) },
+  {
+    id: 'month',
+    label: 'Este mes',
+    range: (hoy) => ({ from: new Date(hoy.getFullYear(), hoy.getMonth(), 1), to: new Date(hoy) }),
+  },
+];

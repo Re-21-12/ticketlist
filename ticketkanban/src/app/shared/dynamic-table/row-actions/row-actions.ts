@@ -3,7 +3,7 @@ import { ButtonModule } from '@openng/optimus-ui/button';
 import { TooltipModule } from '@openng/optimus-ui/tooltip';
 import { CanPipe } from '../../../core/casl/can.pipe';
 import type { TSubjects } from '../../../core/casl/casl.types';
-import type { TTableAction, TTableRow } from '../dynamic-table.interface';
+import type { IRowAction, IRowActionEvent, TTableAction, TTableRow } from '../dynamic-table.interface';
 
 /**
  * Botones de una fila (port de `RowActions` de wallet-api). No navega ni llama al backend: solo
@@ -29,9 +29,16 @@ export class RowActions {
   /** Veto por fila (p. ej. elementos de sistema no se eliminan). Se suma al permiso CASL, no lo reemplaza. */
   readonly $allow = input<(action: TTableAction, row: TTableRow) => boolean>(() => true);
 
+  /** Acciones propias de la pantalla (con permiso `update`). */
+  readonly $extra = input<IRowAction[]>([]);
+
   readonly $view = output<TTableRow>();
+  readonly $extraAction = output<IRowActionEvent>();
   readonly $edit = output<TTableRow>();
   readonly $delete = output<TTableRow>();
+
+  /** Las acciones propias visibles en ESTA fila. */
+  protected readonly $visibleExtra = computed(() => this.$extra().filter((action) => action.visible?.(this.$row()) ?? true));
 
   protected readonly $hasView = computed(() => this.$actions().includes('view'));
   protected readonly $hasUpdate = computed(() => this.$actions().includes('update'));

@@ -28,4 +28,26 @@ export const UserSchema = z.object({
   locked: z.boolean(),
   lockedAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
+  /** Tiene el autenticador (TOTP) activo. */
+  totpEnabled: z.boolean(),
+  /** Entró con una contraseña temporal que todavía no cambia. */
+  mustChangePassword: z.boolean(),
+});
+
+/** Alta por la administración: la contraseña la genera el servidor (temporal, de un solo uso). Espejo de `CreateUserSchema`. */
+export const CreateUserFormSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(3, { error: msg(V.GENERIC.MIN_LENGTH, { field: 'El nombre', min: 3 }) })
+    .max(120, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'El nombre', max: 120 }) }),
+  email: z.email({ error: msg(V.GENERIC.IS_EMAIL) }).max(254),
+  role: z.enum(EUserRole, { error: msg(V.GENERIC.REQUIRED_SELECTION, { field: 'un rol' }) }),
+});
+
+/** Respuesta de crear / restablecer: la contraseña temporal se ve UNA vez (el backend solo guarda su hash). */
+export const TempCredentialSchema = z.object({
+  user: UserSchema,
+  tempPassword: z.string(),
+  expiresAt: z.iso.datetime(),
 });

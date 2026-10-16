@@ -1,0 +1,14 @@
+<button
+  type="button"
+  pButton
+  severity="secondary"
+  [outlined]="true"
+  [disabled]="$busy() || $disabled()"
+  [loading]="$busy()"
+  aria-haspopup="menu"
+  (click)="menu.toggle($event)"
+>
+  <i pButtonIcon class="pi pi-file-export" aria-hidden="true"></i>
+  <span pButtonLabel>{{ $label() }}</span>
+</button>
+<p-menu #menu [model]="$items()" [popup]="true" appendTo="body" />

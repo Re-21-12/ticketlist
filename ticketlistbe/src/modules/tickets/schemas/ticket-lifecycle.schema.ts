@@ -34,10 +34,17 @@ export const TransitionSchema = z
   .refine((value) => value.to !== 'resolved' || (value.resolution?.length ?? 0) >= 3, {
     error: msg(V.TICKET.RESOLUTION_REQUIRED),
     path: ['resolution'],
+  })
+  // Reabrir exige el motivo (pantalla «Solución no satisfactoria»): el agente necesita saber por qué volvió.
+  .refine((value) => value.to !== 'reopened' || (value.note?.length ?? 0) >= 3, {
+    error: msg(V.TICKET.REOPEN_REASON_REQUIRED),
+    path: ['note'],
   });
 
 export const AssignSchema = z.strictObject({
   assigneeEmail: z.email({ error: msg(V.GENERIC.IS_EMAIL) }).transform((email) => email.toLowerCase()),
+  /** Instrucciones para quien recibe el caso: queda en el historial y en el aviso al responsable. */
+  note: z.string().trim().max(500, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'La nota de asignación', max: 500 }) }).optional(),
 });
 
 /**

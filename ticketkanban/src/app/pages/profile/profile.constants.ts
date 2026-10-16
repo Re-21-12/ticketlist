@@ -31,4 +31,5 @@ export const NOTIFICATION_ICONS: Record<TNotification['type'], string> = {
   TICKET_SURVEY: 'pi pi-star',
   TICKET_SURVEY_ALERT: 'pi pi-exclamation-triangle',
   ACCOUNT_LOCKED: 'pi pi-lock',
+  ACCOUNT_SECURITY: 'pi pi-shield',
 };

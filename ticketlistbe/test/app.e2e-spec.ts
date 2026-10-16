@@ -314,7 +314,7 @@ describe('ticketlistbe (e2e)', () => {
       const res = await agent.get('/api/bff/board').expect(200);
       const columns = res.body.columns as { group: string; label: string; statuses: string[]; tickets: { status: string }[] }[];
       expect(columns.map((c) => [c.group, c.label])).toEqual([
-        ['new', 'Nuevo'],
+        ['new', 'Abierto'],
         ['in_attention', 'En atención'],
         ['closed', 'Cerrado'],
       ]);

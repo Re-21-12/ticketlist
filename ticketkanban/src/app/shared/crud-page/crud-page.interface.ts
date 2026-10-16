@@ -22,6 +22,8 @@ export interface ICrudService {
   create(dto: never): Observable<unknown>;
   update(uuid: string, dto: never): Observable<unknown>;
   softDelete(uuid: string): Observable<void>;
+  /** Todas las filas del listado actual (para exportar el reporte completo); sin ella se exporta la página visible. */
+  fetchAll?(): Promise<TTableRow[]>;
 }
 
 /** Lo que cambia por recurso. Todo lo demás (tabla, modal, confirmación, avisos) es de `app-crud-page`. */
@@ -32,6 +34,8 @@ export interface ICrudConfig<TSchema extends z.ZodObject = z.ZodObject> {
   article: 'el' | 'la';
   table: ITableConfig;
   form: IFormDefinition<TSchema>;
+  /** Formulario propio del alta cuando difiere del de edición (p. ej. usuarios: nombre y correo editables solo al crear). */
+  createForm?: IFormDefinition;
   /** Cómo se llama una fila en el encabezado del modal y en los avisos. */
   rowName: (row: TTableRow) => string;
   /** Valores iniciales del alta (los defaults del schema ya aplican; esto es para lo demás). */
@@ -42,6 +46,8 @@ export interface ICrudConfig<TSchema extends z.ZodObject = z.ZodObject> {
   optionsByField?: () => Record<string, IFieldOption[]>;
   /** Verbo del borrado cuando no es «Eliminar» (p. ej. «Revocar»): botón, confirmación y aviso («Relación revocada»). */
   deleteVerb?: { label: string; stem: string };
+  /** Resuelve las acciones propias de la fila declaradas en `table.rowActions`. */
+  onRowAction?: (actionId: string, row: TTableRow) => void;
   /** Mensaje de la confirmación de borrado; por defecto «¿Eliminar {rowName}?». */
   deleteMessage?: (row: TTableRow) => string;
 }

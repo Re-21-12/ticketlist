@@ -58,8 +58,8 @@ export const AUTO_CLOSE_AFTER_HOURS = 48;
 
 /**
  * Los estados son VARIACIONES de tres grandes (el tablero muestra 3 columnas y la variación como insignia):
- *  - Nuevo       → Nuevo, Reabierto
- *  - En atención → Asignado, En atención, Escalado, Pendiente del cliente
+ *  - Abierto     → Abierto (`new`), Reabierto
+ *  - En atención → Asignado, En progreso (`in_progress`), Escalado, Pendiente del cliente
  *  - Cerrado     → Resuelto, Cerrado
  */
 export const STATUS_GROUPS = {

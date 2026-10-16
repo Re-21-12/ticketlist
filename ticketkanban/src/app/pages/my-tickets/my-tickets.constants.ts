@@ -23,3 +23,13 @@ export const SYNC_STATE_META: Record<'live' | 'connecting' | 'offline' | 'idle',
 
 /** Máximo de tickets propios que trae la pantalla (el backend pagina; un solicitante rara vez pasa de unas decenas). */
 export const MY_TICKETS_TAKE = 50;
+
+/** Qué tickets lista el hilo: los que registré, los que tengo asignados (soporte) o todos los que puedo leer (supervisión). */
+export const THREAD_SCOPES = ['mine', 'assigned', 'all'] as const;
+export type TThreadScope = (typeof THREAD_SCOPES)[number];
+
+export const THREAD_SCOPE_META: Record<TThreadScope, { label: string; hint: string }> = {
+  mine: { label: 'Registrados por mí', hint: 'Los tickets que tú creaste' },
+  assigned: { label: 'Asignados a mí', hint: 'Los tickets que atiendes' },
+  all: { label: 'Todos', hint: 'Todos los tickets que puedes ver' },
+};

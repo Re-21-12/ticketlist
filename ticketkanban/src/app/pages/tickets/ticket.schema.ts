@@ -93,6 +93,8 @@ export const TicketBaseSchema = z.object({
     .nullable(),
   dueDate: LocalDateSchema.nullable(),
   notifyReporter: z.boolean(),
+  /** Instrucciones para quien recibe el caso (solo el equipo): queda en el historial y en el aviso al responsable; no es un campo del ticket. */
+  assignmentNote: z.string().trim().max(500, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'La nota de asignación', max: 500 }) }).optional(),
 });
 
 /** Regla cross-field compartida por alta y edición (la valida también el BFF). */
@@ -188,7 +190,21 @@ export const TicketTransitionSchema = z
   .refine((value) => value.to !== 'resolved' || (value.resolution?.length ?? 0) >= 3, {
     error: msg(V.TICKET.RESOLUTION_REQUIRED),
     path: ['resolution'],
+  })
+  // Reabrir exige el motivo (como el backend): el agente necesita saber por qué volvió.
+  .refine((value) => value.to !== 'reopened' || (value.note?.length ?? 0) >= 3, {
+    error: msg(V.TICKET.REOPEN_REASON_REQUIRED),
+    path: ['note'],
   });
+
+/** Motivo al reabrir un ticket (diálogo «Solución no satisfactoria»). */
+export const ReopenReasonFormSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(3, { error: msg(V.TICKET.REOPEN_REASON_REQUIRED) })
+    .max(500, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'El motivo', max: 500 }) }),
+});
 
 /** Formulario del modal «Resolver»: solo la solución (el estado destino lo fija la acción). */
 export const TicketResolveFormSchema = z.object({

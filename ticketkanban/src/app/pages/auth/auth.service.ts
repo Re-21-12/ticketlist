@@ -44,6 +44,7 @@ export class AuthService {
   recoverPassword(
     dto:
       | { method: 'totp'; email: string; code: string; newPassword: string }
+      | { method: 'recovery_code'; email: string; recoveryCode: string; newPassword: string }
       | { method: 'current_password'; email: string; currentPassword: string; newPassword: string },
   ): Observable<void> {
     return this._http.post<void>('/api/auth/recover-password', dto, { context: suppressErrorToast() });

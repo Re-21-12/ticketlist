@@ -29,7 +29,8 @@
   right: 0;
   z-index: 1;
   text-align: right;
-  background: var(--app-surface);
+  /* Toma el fondo de SU fila (cebra y hover incluidos). */
+  background: inherit;
   box-shadow: -1px 0 0 var(--app-border);
 }
 

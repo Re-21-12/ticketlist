@@ -50,7 +50,7 @@ describe('Usuarios · administración (e2e)', () => {
     const admin = await login('marta@ticketit.dev');
     const all = await admin.agent.get('/api/users').expect(200);
     expect(all.body.meta.total).toBe(USERS_SEED.length);
-    expect(JSON.stringify(all.body)).not.toMatch(/password|hash|salt/i);
+    expect(JSON.stringify(all.body)).not.toMatch(/passwordHash|passwordSalt|hash|salt|tempPassword/i);
 
     const viewers = await admin.agent.get('/api/users?role=VIEWER').expect(200);
     expect(viewers.body.data.every((u: { role: string }) => u.role === 'VIEWER')).toBe(true);

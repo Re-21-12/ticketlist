@@ -11,6 +11,8 @@
           class="tf-input-control"
           placeholder="Código, título, responsable…"
           autocomplete="off"
+          name="tf-search"
+          [ngModelOptions]="{ standalone: true }"
           [ngModel]="_ticketsStore.$filters().search"
           (ngModelChange)="set('search', $event)"
         />
@@ -30,11 +32,17 @@
         [showClear]="true"
         appendTo="body"
         styleClass="tf-select"
+        [name]="'tf-' + select.key"
+        [ngModelOptions]="{ standalone: true }"
         [ngModel]="_ticketsStore.$filters()[select.key] || null"
         (ngModelChange)="set(select.key, $event)"
       />
     </div>
   }
+
+  <!-- El filtro de fechas va en un desplegable (`app-ticket-date-filter`): son dos controles y la
+       barra ya lleva búsqueda + cinco selects + dos casillas. Aporta «Hoy» y un rango de fechas. -->
+  <app-ticket-date-filter />
 
   @if ($mode() === 'board') {
     <div class="tf-checks">
@@ -65,10 +73,11 @@
       </span>
     }
     @if (_ticketsStore.$activeFilters() > 0) {
+      <!-- Sin `size="small"`: comparte fila con los campos, y todos los controles de una barra de
+           filtros miden `--app-control-height` (WCAG 2.5.8). -->
       <button
         type="button"
         pButton
-        size="small"
         severity="secondary"
         [outlined]="true"
         (click)="_ticketsStore.clearFilters()"

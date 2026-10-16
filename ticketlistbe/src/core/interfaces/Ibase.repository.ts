@@ -17,6 +17,8 @@ export interface IBaseRepository<T> {
     filters?: TWhere<T>,
     scope?: TWhere<T>,
     rowFilter?: TRowPredicate<T>,
+    /** Filtro del recurso que no cabe en `TWhere` (rangos de fecha, comparaciones). */
+    predicate?: TRowPredicate<T>,
   ): Promise<[T[], number]>;
   findByUuid(uuid: string, scope?: TWhere<T>): Promise<T | null>;
   create(entity: T): Promise<T>;

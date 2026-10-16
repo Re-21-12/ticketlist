@@ -1,22 +1,18 @@
 <section class="totp-card" aria-labelledby="totp-title">
   <header class="totp-head">
     <app-illustration class="page-art totp-art" [$name]="'two-factor'" />
-    <div>
+    <div class="totp-head-text">
       <h2 id="totp-title" class="totp-title">Autenticador (TOTP)</h2>
       <p class="totp-lead">
-        Un código de 6 dígitos que cambia cada 30 segundos en tu app (Google Authenticator, Authy,
-        1Password…). Sirve para recuperar tu contraseña sin depender del correo.
+        Un código de 6 dígitos que cambia cada 30 segundos en tu app (Google Authenticator, Authy, 1Password…). Sirve para
+        recuperar tu contraseña sin depender del correo.
       </p>
     </div>
     @if ($loaded()) {
       @if ($enabled()) {
         <app-badge [$label]="'Activado'" [$icon]="'pi-shield'" [$severity]="'success'" />
       } @else {
-        <app-badge
-          [$label]="'No configurado'"
-          [$icon]="'pi-minus-circle'"
-          [$severity]="'secondary'"
-        />
+        <app-badge [$label]="'No configurado'" [$icon]="'pi-minus-circle'" [$severity]="'secondary'" />
       }
     }
   </header>
@@ -24,52 +20,108 @@
   @switch ($step()) {
     @case ('enrolling') {
       <ol class="totp-steps">
-        <li>
-          Abre tu app autenticadora y escanea este código QR:
-          @if ($qr(); as qr) {
-            <img
-              class="totp-qr"
-              [src]="qr"
-              width="192"
-              height="192"
-              alt="Código QR para configurar el autenticador de tu cuenta"
-            />
-          }
-          O agrega una cuenta con esta <strong>clave</strong>
-          @if ($setup(); as setup) {
-            (o abre el
-            <a [href]="setup.otpauthUrl" class="app-link">enlace de configuración</a>
-            si tu app lo admite):
-          }
-          <p class="totp-secret" aria-label="Clave del autenticador">
-            <code>{{ $secretGroups() }}</code>
-          </p>
-          <p class="totp-hint">Guárdala en un lugar seguro: no volveremos a mostrarla.</p>
+        <li class="totp-step">
+          <h3 class="totp-step-title"><span class="totp-step-num" aria-hidden="true">1</span> Escanea el código QR</h3>
+          <p class="totp-hint">Abre tu app autenticadora, elige «Agregar cuenta» y apunta la cámara al código.</p>
+          <div class="totp-scan">
+            @if ($qr(); as qr) {
+              <img class="totp-qr" [src]="qr" width="224" height="224" alt="Código QR para configurar el autenticador de tu cuenta" />
+            }
+            <div class="totp-manual">
+              <p class="totp-hint">¿No puedes escanearlo? Escribe esta <strong>clave</strong> en tu app:</p>
+              <p class="totp-secret" aria-label="Clave del autenticador"><code>{{ $secretGroups() }}</code></p>
+              <div class="totp-row">
+                <button type="button" pButton severity="secondary" [outlined]="true" (click)="copySecret()">
+                  <i pButtonIcon class="pi pi-copy" aria-hidden="true"></i>
+                  <span pButtonLabel>Copiar clave</span>
+                </button>
+                @if ($setup(); as setup) {
+                  <a class="app-link" [href]="setup.otpauthUrl">Abrir en mi app</a>
+                }
+              </div>
+              <p class="totp-hint">Guárdala en un lugar seguro: no volveremos a mostrarla.</p>
+            </div>
+          </div>
         </li>
-        <li>Escribe aquí el código que te muestra la app para confirmar.</li>
+        <li class="totp-step">
+          <h3 class="totp-step-title"><span class="totp-step-num" aria-hidden="true">2</span> Confirma con un código</h3>
+          <p class="totp-hint">Escribe el código de 6 dígitos que te muestra la app para comprobar que quedó bien configurada.</p>
+          <app-dynamic-form
+            [$definition]="enableForm"
+            [$submitting]="$busy()"
+            [$submitLabel]="'Activar autenticador'"
+            [$showClear]="false"
+            [$singleColumn]="true"
+            ($submitted)="confirm($event)"
+          />
+        </li>
       </ol>
+      <div class="totp-actions">
+        <button type="button" pButton severity="secondary" [text]="true" [disabled]="$busy()" (click)="cancel()">
+          <i pButtonIcon class="pi pi-times" aria-hidden="true"></i>
+          <span pButtonLabel>Cancelar</span>
+        </button>
+      </div>
+    }
+    @case ('codes') {
+      <section class="totp-codes" aria-labelledby="totp-codes-title">
+        <h3 id="totp-codes-title" class="totp-step-title"><span class="totp-step-num" aria-hidden="true">3</span> Guarda tus códigos de recuperación</h3>
+        <p class="totp-hint">
+          Si pierdes tu teléfono, cada uno de estos {{ $codes().length }} códigos te deja recuperar tu contraseña
+          <strong>una sola vez</strong>. Esta es la única vez que se muestran: cópialos, descárgalos o imprímelos.
+        </p>
+        <ul class="totp-code-grid" aria-label="Códigos de recuperación de un solo uso">
+          @for (code of $codes(); track code) {
+            <li class="totp-code"><code>{{ code }}</code></li>
+          }
+        </ul>
+        <div class="totp-row">
+          <button type="button" pButton severity="secondary" [outlined]="true" (click)="copyCodes()">
+            <i pButtonIcon class="pi pi-copy" aria-hidden="true"></i>
+            <span pButtonLabel>Copiar</span>
+          </button>
+          <button type="button" pButton severity="secondary" [outlined]="true" (click)="downloadCodes()">
+            <i pButtonIcon class="pi pi-download" aria-hidden="true"></i>
+            <span pButtonLabel>Descargar</span>
+          </button>
+          <button type="button" pButton severity="secondary" [outlined]="true" (click)="printCodes()">
+            <i pButtonIcon class="pi pi-print" aria-hidden="true"></i>
+            <span pButtonLabel>Imprimir</span>
+          </button>
+        </div>
+        <label class="totp-ack">
+          <input type="checkbox" [checked]="$saved()" (change)="setSaved($event)" />
+          <span>Ya guardé mis códigos en un lugar seguro</span>
+        </label>
+        <div class="totp-actions">
+          <button type="button" pButton [disabled]="!$saved()" (click)="done()">
+            <i pButtonIcon class="pi pi-check" aria-hidden="true"></i>
+            <span pButtonLabel>Listo</span>
+          </button>
+        </div>
+      </section>
+    }
+    @case ('regenerating') {
+      <p class="totp-hint">
+        Generar códigos nuevos <strong>invalida los anteriores</strong>. Confirma tu contraseña actual para continuar.
+      </p>
       <app-dynamic-form
-        [$definition]="enableForm"
+        [$definition]="disableForm"
         [$submitting]="$busy()"
-        [$submitLabel]="'Activar autenticador'"
+        [$submitLabel]="'Generar códigos nuevos'"
         [$showClear]="false"
         [$singleColumn]="true"
-        ($submitted)="confirm($event)"
+        ($submitted)="regenerate($event)"
       />
-      <button
-        type="button"
-        pButton
-        severity="secondary"
-        [text]="true"
-        [disabled]="$busy()"
-        (click)="cancel()"
-      >
-        <i pButtonIcon class="pi pi-times" aria-hidden="true"></i>
-        <span pButtonLabel>Cancelar</span>
-      </button>
+      <div class="totp-actions">
+        <button type="button" pButton severity="secondary" [text]="true" [disabled]="$busy()" (click)="cancel()">
+          <i pButtonIcon class="pi pi-times" aria-hidden="true"></i>
+          <span pButtonLabel>Cancelar</span>
+        </button>
+      </div>
     }
     @case ('disabling') {
-      <p class="totp-hint">Para desactivarlo confirma tu contraseña actual.</p>
+      <p class="totp-hint">Para desactivarlo confirma tu contraseña actual. Se borrarán también tus códigos de recuperación.</p>
       <app-dynamic-form
         [$definition]="disableForm"
         [$submitting]="$busy()"
@@ -78,39 +130,40 @@
         [$singleColumn]="true"
         ($submitted)="disable($event)"
       />
-      <button
-        type="button"
-        pButton
-        severity="secondary"
-        [text]="true"
-        [disabled]="$busy()"
-        (click)="cancel()"
-      >
-        <i pButtonIcon class="pi pi-times" aria-hidden="true"></i>
-        <span pButtonLabel>Cancelar</span>
-      </button>
+      <div class="totp-actions">
+        <button type="button" pButton severity="secondary" [text]="true" [disabled]="$busy()" (click)="cancel()">
+          <i pButtonIcon class="pi pi-times" aria-hidden="true"></i>
+          <span pButtonLabel>Cancelar</span>
+        </button>
+      </div>
     }
     @default {
       @if ($loaded()) {
-        <div class="totp-actions">
-          @if ($enabled()) {
-            <button
-              type="button"
-              pButton
-              severity="danger"
-              [outlined]="true"
-              (click)="$step.set('disabling')"
-            >
+        @if ($enabled()) {
+          <p class="totp-hint" role="status">
+            Te quedan <strong>{{ $codesLeft() }}</strong> {{ $codesLeft() === 1 ? 'código de recuperación' : 'códigos de recuperación' }} sin usar.
+            @if ($codesLeft() <= 3) {
+              Genera códigos nuevos pronto.
+            }
+          </p>
+          <div class="totp-actions">
+            <button type="button" pButton severity="secondary" [outlined]="true" (click)="$step.set('regenerating')">
+              <i pButtonIcon class="pi pi-refresh" aria-hidden="true"></i>
+              <span pButtonLabel>Generar códigos nuevos</span>
+            </button>
+            <button type="button" pButton severity="danger" [outlined]="true" (click)="$step.set('disabling')">
               <i pButtonIcon class="pi pi-times" aria-hidden="true"></i>
               <span pButtonLabel>Desactivar</span>
             </button>
-          } @else {
+          </div>
+        } @else {
+          <div class="totp-actions">
             <button type="button" pButton [disabled]="$busy()" (click)="start()">
               <i pButtonIcon class="pi pi-mobile" aria-hidden="true"></i>
               <span pButtonLabel>Configurar autenticador</span>
             </button>
-          }
-        </div>
+          </div>
+        }
       }
     }
   }

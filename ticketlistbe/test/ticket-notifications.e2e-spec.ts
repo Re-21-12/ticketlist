@@ -36,6 +36,7 @@ describe('Notificaciones por ticket · CU01 (e2e)', () => {
   };
   type TSession = Awaited<ReturnType<typeof login>>;
   const post = (s: TSession, url: string, body: object = {}) => s.agent.post(url).set('X-XSRF-TOKEN', s.csrf).send(body);
+  const patch = (s: TSession, url: string, body: object = {}) => s.agent.patch(url).set('X-XSRF-TOKEN', s.csrf).send(body);
 
   const draft = { title: 'No abre el portal', description: '', type: 'service_request', category: 'access', priority: 'medium', assigneeEmail: '', estimateHours: null, dueDate: null, notifyReporter: true };
   const createAssigned = async (customer: TSession): Promise<string> => {
@@ -45,6 +46,18 @@ describe('Notificaciones por ticket · CU01 (e2e)', () => {
     return created.uuid;
   };
   const eventsOf = async (s: TSession, uuid: string) => (await s.agent.get(`/api/tickets/${uuid}/events`).expect(200)).body.data as { type: string; body: string | null; actorName: string; visibility: string }[];
+
+  it('hilo de soporte: ?assigned=true devuelve solo lo que tiene ASIGNADO quien consulta', async () => {
+    const victor = await login('victor@ticketit.dev');
+    const uuid = await createAssigned(victor); // asignado a Ana
+    const ana = await login('ana@ticketit.dev');
+    const luis = await login('luis@ticketit.dev');
+    const anas = (await ana.agent.get('/api/tickets?take=100&assigned=true').expect(200)).body.data as { uuid: string; assigneeEmail: string }[];
+    expect(anas.map((t) => t.uuid)).toContain(uuid);
+    expect(anas.every((t) => t.assigneeEmail === 'ana@ticketit.dev')).toBe(true);
+    const luiss = (await luis.agent.get('/api/tickets?take=100&assigned=true').expect(200)).body.data as { uuid: string }[];
+    expect(luiss.some((t) => t.uuid === uuid)).toBe(false);
+  });
 
   it('«Mis tickets»: ?mine=true devuelve solo los que registró quien consulta (también para el equipo)', async () => {
     const victor = await login('victor@ticketit.dev');
@@ -82,6 +95,22 @@ describe('Notificaciones por ticket · CU01 (e2e)', () => {
     // Una por la asignación y otra por «en atención»; públicas, para que el solicitante las vea.
     expect(notified.map((e) => e.body)).toEqual(expect.arrayContaining([expect.stringContaining('atenderá'), expect.stringContaining('está en atención')]));
     expect(notified.every((e) => e.visibility === 'public' && e.actorName === 'Sistema')).toBe(true);
+  });
+
+  it('asignar desde el FORMULARIO (PATCH) también avisa al solicitante: el cliente no se queda sin enterarse', async () => {
+    // El PATCH del ticket y `POST /assign` son dos caminos distintos al mismo cambio: antes solo el
+    // segundo avisaba, así que asignar desde «Asignado a» en /tickets no le llegaba nada al cliente.
+    const victor = await login('victor@ticketit.dev');
+    const created = (await post(victor, '/api/tickets', draft).expect(201)).body as { uuid: string; code: string };
+    const sergio = await login('sergio@ticketit.dev');
+    await patch(sergio, `/api/tickets/${created.uuid}`, { ...draft, assigneeEmail: 'ana@ticketit.dev' }).expect(200);
+
+    const notices = (await victor.agent.get('/api/notifications').expect(200)).body.data as { type: string; message: string }[];
+    expect(notices.some((n) => n.type === 'TICKET_STATUS_CHANGED' && n.message.includes(created.code) && n.message.includes('atenderá'))).toBe(true);
+
+    const history = (await eventsOf(victor, created.uuid)).filter((e) => e.type === 'NOTIFIED');
+    expect(history.map((e) => e.body)).toEqual(expect.arrayContaining([expect.stringContaining('atenderá')]));
+    expect(history.every((e) => e.visibility === 'public' && e.actorName === 'Sistema')).toBe(true);
   });
 
   it('quien hace el cambio no se notifica a sí mismo: ni aviso ni evento NOTIFIED', async () => {

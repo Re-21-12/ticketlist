@@ -11,7 +11,7 @@ import { SessionStore } from '../../../core/session/session.store';
 import { NOTIFICATION_ICONS } from '../../../pages/profile/profile.constants';
 import { ProfileStore } from '../../../pages/profile/profile.store';
 import type { TNotification } from '../../../pages/profile/profile.types';
-import { INBOX_LIMIT, INBOX_POLL_MS, NOTIFICATION_ROUTES, REQUESTER_TICKET_TYPES } from './notification-panel.constants';
+import { INBOX_LIMIT, INBOX_POLL_MS, NOTIFICATION_ROUTES, TICKET_THREAD_TYPES } from './notification-panel.constants';
 
 /**
  * Buzón de notificaciones del topbar (port del `NotificationPanel` de wallet-api): campana con contador y un popover
@@ -88,13 +88,12 @@ export class NotificationPanel {
     } catch {
       return; // `errorInterceptor` ya avisó
     }
-    // El solicitante abre su ticket en «Mis tickets»; el equipo lo ve en el tablero.
-    const requester = REQUESTER_TICKET_TYPES.has(item.type) && !this._sessionStore.$isTeam();
-    if (requester && item.resourceUuid) {
+    // Todos abren el HILO del ticket (el solicitante en «Mis tickets»; el equipo, con sus notas y acciones).
+    if (item.resourceType === 'Ticket' && item.resourceUuid && TICKET_THREAD_TYPES.has(item.type)) {
       void this._router.navigate(['/my-tickets'], { queryParams: { ticket: item.resourceUuid } });
       return;
     }
-    const target = REQUESTER_TICKET_TYPES.has(item.type) ? { path: '/tickets' } : NOTIFICATION_ROUTES[item.type];
+    const target = NOTIFICATION_ROUTES[item.type];
     void this._router.navigate([target.path], { queryParams: 'query' in target ? target.query : undefined });
   }
 

@@ -30,6 +30,8 @@
     "@openng/optimus-ui-styled": "^2.0.2",
     "@openng/optimus-ui-themes": "^2.0.2",
     "animejs": "^4.5.0",
+    "exceljs": "^4.4.0",
+    "jspdf": "^4.2.1",
     "primeicons": "^7.0.0",
     "qrcode": "^1.5.4",
     "quill": "^2.0.3",

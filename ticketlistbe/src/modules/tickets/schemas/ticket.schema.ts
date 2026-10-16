@@ -70,6 +70,11 @@ export const TicketBaseSchema = z.object({
     .nullable(),
   dueDate: LocalDateSchema.nullable(),
   notifyReporter: z.boolean(),
+  /**
+   * Nota de asignación (pantalla «Asignar ticket»): instrucciones para quien recibe el caso. NO es un campo del ticket: se
+   * guarda en el renglón `ASSIGNED` del historial y viaja en el aviso al responsable. Solo la toma el equipo.
+   */
+  assignmentNote: z.string().trim().max(500, { error: msg(V.GENERIC.MAX_LENGTH, { field: 'La nota de asignación', max: 500 }) }).optional(),
 });
 
 /** Regla cross-field compartida por alta y edición. `when`: corre aunque otro campo falle. */
@@ -141,4 +146,9 @@ export const TicketFilterSchema = z.object({
   department: z.string().trim().min(1).max(40).optional(),
   /** `true`: solo los tickets que registró quien consulta («Mis tickets», CU01). */
   mine: z.enum(['true']).optional(),
+  /** `true`: solo los tickets que tiene ASIGNADOS quien consulta (el hilo de soporte). */
+  assigned: z.enum(['true']).optional(),
+  /** Rango por FECHA DE REGISTRO (inclusivo), como el período de métricas: `2026-10-01` o con hora. */
+  createdFrom: z.union([z.iso.datetime({ offset: true }), z.iso.date()], { error: msg(V.GENERIC.IS_DATE) }).optional(),
+  createdTo: z.union([z.iso.datetime({ offset: true }), z.iso.date()], { error: msg(V.GENERIC.IS_DATE) }).optional(),
 });
