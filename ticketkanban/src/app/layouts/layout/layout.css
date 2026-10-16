@@ -231,3 +231,38 @@
     clip-path: none;
   }
 }
+
+/* ── Topbar en teléfono y tableta pequeña (< 768 px) ──────────────────────────────────────────────
+   Antes los textos de «Modo claro», «Cerrar sesión» y «Menú» más el selector de rol se desbordaban y se cortaban
+   (hallazgo D-02). Bajo 768 px los botones del topbar quedan como ÍCONO (el texto sigue en el DOM, oculto solo a la
+   vista, como nombre accesible) y los elementos pueden encogerse en vez de empujar el resto. */
+@media (max-width: 767px) {
+  .app-topbar {
+    gap: 0.25rem;
+    padding: 0 0.5rem;
+    min-width: 0;
+  }
+  .app-topbar > * {
+    min-width: 0;
+  }
+  .app-topbar .p-button-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .app-role-switch {
+    flex: 0 1 8rem;
+    min-width: 0;
+  }
+  .app-role-switch .p-select {
+    width: 100%;
+    min-width: 0;
+  }
+  .app-breadcrumb {
+    flex: 1 1 0;
+    overflow: hidden;
+  }
+}

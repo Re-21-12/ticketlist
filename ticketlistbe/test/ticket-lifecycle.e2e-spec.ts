@@ -220,6 +220,32 @@ describe('Ciclo de vida del ticket (e2e)', () => {
       await post(victor, `/api/tickets/${uuid}/comments`, { body: 'una cosa más' }).expect(201);
     });
 
+    it('D-01 · límite WIP (Kanban): no hay más tickets «En progreso» que agentes activos; resolver uno libera el cupo', async () => {
+      const victor = await login('victor@ticketit.dev');
+      const ana = await login('ana@ticketit.dev');
+      const ids: string[] = [];
+      for (let i = 0; i < 3; i++) ids.push((await create(victor, { assigneeEmail: 'ana@ticketit.dev' })).uuid);
+      const board = async () => (await ana.agent.get('/api/bff/board').expect(200)).body.wip as { limit: number; count: number };
+      const start = await board();
+      expect(start.limit).toBe(2); // Ana y Luis: dos agentes activos
+      // Se llenan los cupos que queden (la semilla ya puede traer alguno en curso).
+      const free = start.limit - start.count;
+      for (let i = 0; i < free; i++) await move(ana, ids[i] as string, 'in_progress').expect(200);
+      expect(await board()).toMatchObject({ limit: 2, count: 2 });
+
+      // El siguiente ya no ofrece «En progreso» y el backend lo rechaza con el contexto del límite.
+      const next = ids[free] as string;
+      const view = (await ana.agent.get(`/api/tickets/${next}`).expect(200)).body as { nextStatuses: string[] };
+      expect(view.nextStatuses).not.toContain('in_progress');
+      const blocked = await move(ana, next, 'in_progress').expect(409);
+      expect(blocked.body).toMatchObject({ code: 'STCK-E008', context: { limit: 2, count: 2 } });
+      expect(await statusOf(ana, next)).toBe('assigned');
+
+      // Resolver uno libera el cupo.
+      await move(ana, ids[0] as string, 'resolved', { resolution: 'Listo.' }).expect(200);
+      await move(ana, next, 'in_progress').expect(200);
+    });
+
     it('reabrir exige el motivo (≥ 3 caracteres): sin él 400 y el ticket sigue «Resuelto»', async () => {
       const { victor, uuid } = await resolved();
       expect((await move(victor, uuid, 'reopened').expect(400)).body.code).toBe('CVAL-E001');

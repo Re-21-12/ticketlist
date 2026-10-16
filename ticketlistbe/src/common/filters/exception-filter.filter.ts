@@ -18,6 +18,27 @@ import {
 } from '../../core/dtos/problem-details.dto.js';
 
 type TDbError = Error & { driverError?: { code?: string } };
+
+/**
+ * Título de los errores del framework (`NEST-E<status>`) en lenguaje de negocio. NUNCA se usa `exception.name`
+ * («NotFoundException», «BadRequestException»…) ni su mensaje («Cannot GET /api/…»): delatan el framework y su
+ * enrutamiento (hallazgo D-04, seguridad: mensajes internos en producción).
+ */
+const NEST_TITLES: Record<number, { es: string; en: string }> = {
+  400: { es: 'La solicitud no es válida', en: 'The request is not valid' },
+  401: { es: 'Necesitas iniciar sesión', en: 'You need to sign in' },
+  403: { es: 'No tienes permiso para hacer esto', en: 'You do not have permission to do this' },
+  404: { es: 'No encontramos lo que buscas', en: 'We could not find what you are looking for' },
+  405: { es: 'Esa acción no está disponible', en: 'That action is not available' },
+  406: { es: 'No podemos responder en ese formato', en: 'We cannot answer in that format' },
+  408: { es: 'La solicitud tardó demasiado', en: 'The request took too long' },
+  409: { es: 'La acción choca con el estado actual', en: 'The action conflicts with the current state' },
+  413: { es: 'El contenido enviado es demasiado grande', en: 'The content sent is too large' },
+  415: { es: 'Ese tipo de contenido no se admite', en: 'That content type is not supported' },
+  422: { es: 'No pudimos procesar los datos enviados', en: 'We could not process the data sent' },
+  429: { es: 'Demasiados intentos. Espera un momento', en: 'Too many attempts. Wait a moment' },
+};
+const NEST_FALLBACK = { es: 'No se pudo completar la solicitud', en: 'The request could not be completed' };
 const DB_CODES: Record<string, IErrorDetail> = ERROR_CODES.DB;
 
 interface IResolved {
@@ -105,17 +126,10 @@ export class CustomExceptionFilter implements ExceptionFilter {
     }
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      const body = exception.getResponse();
-      const raw = typeof body === 'string' ? body : (body as { message?: unknown }).message;
-      const message = Array.isArray(raw) ? raw.map(String).join(', ') : typeof raw === 'string' ? raw : undefined;
+      const title = NEST_TITLES[status] ?? NEST_FALLBACK;
+      // Sin `detail`: el mensaje original del framework describe su funcionamiento interno (rutas, clases, validadores).
       return {
-        detail: {
-          code: `NEST-E${status}`,
-          httpStatus: status,
-          messageEs: exception.name,
-          messageEn: exception.name,
-        },
-        occurrence: message,
+        detail: { code: `NEST-E${status}`, httpStatus: status, messageEs: title.es, messageEn: title.en },
         context: null,
       };
     }

@@ -220,6 +220,8 @@ export const TicketResolveFormSchema = z.object({
  * El front no agrupa ni traduce estados: eso es responsabilidad del BFF.
  */
 export const TicketBoardSchema = z.object({
+  /** Límite de trabajo en progreso (WIP, Kanban): tantos «En progreso» a la vez como agentes activos. */
+  wip: z.object({ status: z.literal('in_progress'), limit: z.number().int(), count: z.number().int() }),
   columns: z.array(
     z.object({
       group: z.enum(TICKET_STATUS_GROUPS),

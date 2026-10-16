@@ -209,3 +209,16 @@
   --illustration-width: 5rem;
   opacity: 0.85;
 }
+
+/* Límite de trabajo en progreso (WIP) bajo el título de la columna. */
+.board-wip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-space-2);
+  margin: 0 0 var(--app-space-2);
+}
+.board-wip-hint {
+  font-size: 0.8125rem;
+  color: var(--app-text-muted);
+}

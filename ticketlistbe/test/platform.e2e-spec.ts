@@ -87,6 +87,21 @@ describe('Plataforma (e2e)', () => {
       await request(app.getHttpServer()).get('/api/no-existe').expect(404);
     });
 
+    it('D-04 · los errores del framework hablan en lenguaje de negocio: sin nombres de clase, rutas ni mensajes internos', async () => {
+      await boot();
+      const missing = await request(app.getHttpServer()).get('/api/no-existe').expect(404);
+      expect(missing.body).toMatchObject({ code: 'NEST-E404', title: 'No encontramos lo que buscas' });
+      const wrongMethod = await request(app.getHttpServer()).delete('/api/auth/sign-in').expect(405);
+      expect(wrongMethod.body).toMatchObject({ code: 'NEST-E405', title: 'Esa acción no está disponible' });
+      for (const body of [missing.body, wrongMethod.body]) {
+        expect(body).not.toHaveProperty('detail');
+        expect(JSON.stringify(body)).not.toMatch(/Exception|Cannot (GET|DELETE|POST)|at \S+\.(ts|js)|node_modules/);
+      }
+      // En inglés, el mismo mensaje de negocio.
+      const english = await request(app.getHttpServer()).get('/api/no-existe').set('Accept-Language', 'en').expect(404);
+      expect(english.body.title).toBe('We could not find what you are looking for');
+    });
+
     it('el método correcto no se ve afectado', async () => {
       await boot();
       await request(app.getHttpServer()).get('/api/problems').expect(200);

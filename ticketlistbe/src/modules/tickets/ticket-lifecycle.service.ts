@@ -118,6 +118,10 @@ export class TicketLifecycleService {
     // Si la persona tiene varios papeles (solicitante y soporte, p. ej.), gana el que SÍ permite esa transición.
     const actor = ([...actors] as TTransitionActor[]).find((candidate) => canTransition(ticket.status, dto.to, candidate));
     if (!actor) throw new CustomBusinessException(ERROR_CODES.TCK.TRANSITION_NOT_ALLOWED, { entity: 'Ticket', field: 'status', value: `${ticket.status} → ${dto.to}` });
+    if (dto.to === 'in_progress' && ticket.status !== 'in_progress' && actor !== 'system') {
+      const { limit, count } = this.ticketsService.wip();
+      if (count >= limit) throw new CustomBusinessException(ERROR_CODES.TCK.WIP_LIMIT_REACHED, { limit, count });
+    }
     if (ticket.status === 'closed' && dto.to === 'reopened' && !this.history.withinReopenWindow(ticket, now)) {
       throw new CustomBusinessException(ERROR_CODES.TCK.REOPEN_WINDOW_EXPIRED, { uuid });
     }

@@ -16,6 +16,9 @@ export interface IErrorContext {
   retryAfterSeconds?: number;
   /** 423 `SAUT-E014`: a quién pedirle el desbloqueo de una cuenta bloqueada (administradores). */
   contacts?: { name: string; email: string }[];
+  /** 409 `STCK-E008`: límite de trabajo en progreso del equipo y cuántos hay ahora. */
+  limit?: number;
+  count?: number;
   /** 423 `SAUT-E014`: instante (ISO) en que la cuenta se desbloquea sola; ausente si solo la libera un administrador. */
   unlocksAt?: string;
 }

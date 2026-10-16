@@ -25,6 +25,7 @@ export class BoardService {
   async getBoard(): Promise<TBoardResponse> {
     const { data } = await this.ticketsService.findAll({ page: 1, take: BOARD_LIMIT });
     return BoardResponseSchema.parse({
+      wip: this.ticketsService.wip(),
       columns: STATUS_GROUP_KEYS.map((group) => ({
         group,
         label: GROUP_LABELS[group],

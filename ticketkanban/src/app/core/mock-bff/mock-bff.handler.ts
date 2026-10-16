@@ -255,6 +255,7 @@ function dispatch(req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> 
   if (req.method === 'GET' && url.pathname === '/api/bff/board') {
     // Los estados son variaciones de tres columnas (mismo agrupamiento que `STATUS_GROUPS` del backend).
     return ok({
+      wip: wip(),
       columns: (Object.keys(STATUS_GROUPS) as (keyof typeof STATUS_GROUPS)[]).map((group) => ({
         group,
         label: TICKET_GROUP_LABELS[group],
@@ -793,6 +794,15 @@ const visibleTickets = (): TStoredTicket[] =>
 
 const accountName = (email: string): string | null => (email ? (findUser(email)?.name ?? email) : null);
 
+/**
+ * Límite de trabajo en progreso (WIP, Kanban) — espejo de `TicketsService.wip` del backend: tantos tickets «En progreso» a la
+ * vez como agentes ACTIVOS hay (mínimo 1).
+ */
+function wip(): { status: 'in_progress'; limit: number; count: number } {
+  const limit = Math.max(1, db.users.filter((u) => u.shell.user.role === EUserRole.AGENT && !u.disabled).length);
+  return { status: 'in_progress', limit, count: db.tickets.filter((t) => t.status === 'in_progress').length };
+}
+
 /** El ticket tal como lo devuelve el backend: lo guardado + lo derivado (SLA, quién atiende, `nextStatuses`). */
 function present(t: TStoredTicket) {
   const created = new Date(t.createdAt).getTime();
@@ -823,7 +833,8 @@ function present(t: TStoredTicket) {
       resolutionDueAt:
         t.status === 'escalated' || t.status === 'pending_customer' ? null : new Date(created + resolutionMinutes * 60_000).toISOString(),
     },
-    nextStatuses: mockNextStatuses(t, viewer()),
+    // Con el límite de trabajo alcanzado no se ofrece iniciar otro (el mock también lo rechaza).
+    nextStatuses: mockNextStatuses(t, viewer()).filter((status) => status !== 'in_progress' || t.status === 'in_progress' || wip().count < wip().limit),
   };
 }
 
@@ -983,6 +994,10 @@ function transitionTicket(req: HttpRequest<unknown>, uuid: string): Observable<H
   const { to } = parsed.data;
   const actor = ([...actors] as TMockActor[]).find((candidate) => MOCK_TRANSITIONS[current.status][to]?.includes(candidate));
   if (!actor) return fail(req, 409, 'STCK-E001', 'El ticket no puede pasar a ese estado');
+  if (to === 'in_progress' && current.status !== 'in_progress' && actor !== 'system') {
+    const { limit, count } = wip();
+    if (count >= limit) return failWith(req, 409, 'STCK-E008', 'Se alcanzó el límite de trabajo en progreso: termina o resuelve un ticket antes de iniciar otro', { limit, count });
+  }
   if (current.status === 'closed' && to === 'reopened' && Date.now() - new Date(current.closedAt ?? 0).getTime() > REOPEN_WINDOW_MS) {
     return fail(req, 409, 'STCK-E004', 'Venció el plazo para reabrir el ticket; registra uno nuevo');
   }

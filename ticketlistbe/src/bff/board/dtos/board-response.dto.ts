@@ -7,6 +7,8 @@ import { TICKET_STATUS, TicketResponseSchema } from '../../../modules/tickets/sc
  * agrupadas; cada tarjeta lleva su estado exacto para pintarlo como insignia.
  */
 export const BoardResponseSchema = z.object({
+  /** Límite de trabajo en progreso (WIP) del equipo: tickets «En progreso» ahora y cuántos admite a la vez. */
+  wip: z.object({ status: z.literal('in_progress'), limit: z.number().int(), count: z.number().int() }),
   columns: z.array(
     z.object({
       group: z.enum(STATUS_GROUP_KEYS as [string, ...string[]]),

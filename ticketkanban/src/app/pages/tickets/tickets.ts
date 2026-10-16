@@ -119,6 +119,11 @@ export class Tickets {
     return meta ? { meta, dueAt: ticket.sla.resolutionDueAt } : null;
   }
 
+  /** Tickets «En progreso» que se ven ahora en una columna (cuenta también los movimientos en vuelo). */
+  protected inProgressIn(column: { tickets: readonly TTicket[] }): number {
+    return column.tickets.filter((ticket) => ticket.status === 'in_progress').length;
+  }
+
   protected listId(group: TTicketStatusGroup): string {
     return `board-list-${group}`;
   }
