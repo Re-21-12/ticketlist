@@ -1,10 +1,15 @@
+/* Barra del período: preajustes a la izquierda, rango a la derecha. Todos los controles de la
+   fila comparten `--app-control-height` (44 px) — el motivo del pedido «congruencia entre el
+   tamaño de los campos y los botones»: un `<input type="date">` nativo mide 44 px y un
+   `pButton size="small"` 35 px, y en la misma fila los bordes no emparejan. Por eso aquí los
+   botones NO llevan `size="small"`: 35 px además queda por debajo del objetivo táctil mínimo. */
 .mp {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 0.75rem 1.5rem;
-  margin-bottom: 1rem;
-  padding: 0.75rem 1rem;
+  gap: var(--app-space-3) var(--app-space-6);
+  margin-bottom: var(--app-space-4);
+  padding: var(--app-space-3) var(--app-space-4);
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius);
   background: var(--app-surface);
@@ -12,31 +17,39 @@
 .mp-presets {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--app-space-2);
 }
 .mp-range {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 0.75rem;
+  gap: var(--app-space-3);
 }
+/* Label pegado a su campo (ley de proximidad) y el bloque del campo alineado al fondo de la fila
+   para que las bases de los controles coincidan con las del botón. */
 .mp-field {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--app-space-1);
 }
 .mp-label {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--app-text-muted);
 }
-.mp-date {
-  min-height: 2.75rem;
-  padding: 0 0.75rem;
-  border: 1px solid var(--app-border);
-  border-radius: calc(var(--app-radius) / 1.5);
-  background: var(--app-surface);
-  color: var(--app-text);
-  font: inherit;
+/* El calendario DENTRO del campo (`iconDisplay="input"`), como el resto de la app. `mp-control`
+   fija el ancho para que «Desde» y «Hasta» midan lo mismo: el datepicker crece con su contenido
+   y los dos campos quedaban de anchos distintos. */
+:host ::ng-deep .mp-control {
+  width: 11rem;
+}
+:host ::ng-deep .mp-date {
+  width: 100%;
+  min-width: 0;
+  height: var(--app-control-height);
+}
+.mp-presets .mp-control,
+.mp-range button.mp-control {
+  height: var(--app-control-height);
 }
 .mp-error {
   flex-basis: 100%;
@@ -46,4 +59,9 @@
 }
 .mp-error:empty {
   display: none;
+}
+@media (max-width: 639px) {
+  :host ::ng-deep .mp-control {
+    width: 100%;
+  }
 }

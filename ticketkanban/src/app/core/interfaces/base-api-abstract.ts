@@ -6,7 +6,7 @@ import {
   HttpStatusCode,
   httpResource,
 } from '@angular/common/http';
-import { catchError, map, of, type Observable } from 'rxjs';
+import { catchError, firstValueFrom, map, of, type Observable } from 'rxjs';
 import { suppressErrorToast } from '../interceptors/suppress-error-toast.token';
 import { mapResourceState, type TAsyncState } from './async-state.types';
 import type { IPaginatedResult } from './paginated-result.interface';
@@ -181,6 +181,30 @@ export abstract class BaseApiAbstract<
         map((response) => response.status === HttpStatusCode.Ok),
         catchError(() => of(false)),
       );
+  }
+
+  /**
+   * TODAS las filas del listado actual (misma búsqueda y filtros, sin la página): lo usa «Exportar» para que el reporte
+   * traiga el total y no solo la página que se ve. Pide de a 100 (tope del backend) y se detiene a las 50 páginas.
+   */
+  async fetchAll(): Promise<TResponse[]> {
+    const rows: TResponse[] = [];
+    for (let page = 1; page <= 50; page++) {
+      const raw = await firstValueFrom(
+        this._http.get<IPaginatedResult<unknown>>(this.endpoint, {
+          params: {
+            ...this.$filters(),
+            ...(this.$search() ? { search: this.$search() } : {}),
+            ...(this.$sortBy() ? { sortBy: this.$sortBy(), sortOrder: this.$sortOrder() } : {}),
+            page,
+            take: 100,
+          } as Record<string, string | number | boolean>,
+        }),
+      );
+      rows.push(...raw.data.map((item) => this.parseItem(item)));
+      if (rows.length >= raw.meta.total || raw.data.length === 0) break;
+    }
+    return rows;
   }
 
   reload(): void {

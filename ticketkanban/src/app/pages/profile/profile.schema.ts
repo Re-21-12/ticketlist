@@ -22,7 +22,9 @@ export const SessionInfoSchema = z.object({
 export const SessionListSchema = z.object({ data: z.array(SessionInfoSchema) });
 
 /** Autenticador (TOTP): espejo de `TotpStatusSchema` / `TotpSetupSchema` del backend. */
-export const TotpStatusSchema = z.object({ enabled: z.boolean() });
+export const TotpStatusSchema = z.object({ enabled: z.boolean(), recoveryCodesLeft: z.number().int() });
+/** Códigos de recuperación de un solo uso: el backend los entrega UNA vez (al activar o al generar nuevos). */
+export const RecoveryCodesSchema = z.object({ recoveryCodes: z.array(z.string()) });
 export const TotpSetupSchema = z.object({ secret: z.string(), otpauthUrl: z.string() });
 export const TotpEnableFormSchema = z.object({
   code: z.string().regex(/^\d{6}$/, { error: msg(V.ACCOUNT.CODE_INVALID) }),
@@ -42,6 +44,7 @@ export const NOTIFICATION_TYPES = [
   'TICKET_SURVEY',
   'TICKET_SURVEY_ALERT',
   'ACCOUNT_LOCKED',
+  'ACCOUNT_SECURITY',
 ] as const;
 
 /** Espejo de `NotificationListSchema` del backend. */

@@ -30,6 +30,7 @@ import { TicketPageSchema, type TTicketResponse } from './dtos/ticket-response.d
 import { UpdateTicketDto } from './dtos/update-ticket.dto.js';
 import { TicketCreateSchema, TicketResponseSchema, TicketUpsertSchema } from './schemas/ticket.schema.js';
 import type { TicketEntity } from './ticket.entity.js';
+import { createdAtRange } from './ticket-date-range.js';
 import { TicketsService } from './tickets.service.js';
 
 const UUID_PARAM = { name: 'uuid', schema: { type: 'string', format: 'uuid' } } as const;
@@ -66,16 +67,21 @@ export class TicketsController extends BaseController<
   @ApiProblemResponse(...E401)
   @ApiProblemResponse(...E403)
   override findAll(@Query() query: TicketQueryDto): Promise<IPaginatedResult<TTicketResponse>> {
-    const { status, priority, type, category, department, mine, ...pagination } = query;
+    const { status, priority, type, category, department, mine, assigned, createdFrom, createdTo, ...pagination } = query;
     const me = RequestContext.currentUser();
-    return this.service.findAll(pagination, {
-      ...(mine && me ? { ownerUuid: me.uuid } : {}),
-      ...(status ? { status } : {}),
-      ...(priority ? { priority } : {}),
-      ...(type ? { type } : {}),
-      ...(category ? { category } : {}),
-      ...(department ? { department } : {}),
-    });
+    return this.service.findAll(
+      pagination,
+      {
+        ...(mine && me ? { ownerUuid: me.uuid } : {}),
+        ...(assigned && me ? { assigneeEmail: me.email } : {}),
+        ...(status ? { status } : {}),
+        ...(priority ? { priority } : {}),
+        ...(type ? { type } : {}),
+        ...(category ? { category } : {}),
+        ...(department ? { department } : {}),
+      },
+      createdAtRange(createdFrom, createdTo),
+    );
   }
 
   @Head(':uuid')

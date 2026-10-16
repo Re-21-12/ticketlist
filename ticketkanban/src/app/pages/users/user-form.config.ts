@@ -8,7 +8,7 @@ import { defineForm } from '../../shared/dynamic-form/form-definition.interface'
 import { withBadges } from '../../shared/dynamic-form/utils/with-badges.util';
 import { ROLE_BADGES } from '../../core/casl/role-labels.constants';
 import { toOptions } from '../../shared/dynamic-form/utils/to-options.util';
-import { UserFormSchema } from './user.schema';
+import { CreateUserFormSchema, UserFormSchema } from './user.schema';
 
 export const USER_FORM = defineForm({
   name: 'USER_FORM',
@@ -45,14 +45,33 @@ export const USER_FORM = defineForm({
   ],
 });
 
+/** Alta por la administración: nombre, correo y rol; la contraseña temporal la genera el sistema y se muestra una vez. */
+export const USER_CREATE_FORM = defineForm({
+  name: 'USER_CREATE_FORM',
+  schema: CreateUserFormSchema,
+  fields: [
+    { key: 'name', label: 'Nombre completo', type: FieldType.TEXT, autocomplete: 'off', fullWidth: true },
+    { key: 'email', label: 'Correo', type: FieldType.EMAIL, autocomplete: 'off', fullWidth: true },
+    {
+      key: 'role',
+      label: 'Rol',
+      type: FieldType.SELECT,
+      options: withBadges(toOptions(Object.values(EUserRole), ROLE_LABELS), ROLE_BADGES),
+      hint: 'Al crearla, la persona recibe una contraseña temporal de un solo uso (vence en 72 h) y debe cambiarla al entrar.',
+      fullWidth: true,
+    },
+  ],
+});
+
 export const USER_TABLE: ITableConfig = {
   caption: 'Usuarios',
   subject: 'User',
-  creatable: false,
+  createLabel: 'Nuevo usuario',
   rowLabelField: 'name',
   columns: [
     ...buildTableColumns(USER_FORM.fields),
-    { field: 'emailVerified', header: 'Correo verificado', dataType: 'boolean' },
+    { field: 'totpEnabled', header: 'Autenticador', dataType: 'boolean' },
+    { field: 'mustChangePassword', header: 'Cambio de clave pendiente', dataType: 'boolean', dangerWhenTrue: true },
     { field: 'createdAt', header: 'Alta', dataType: 'datetime' },
   ],
   actions: ['view', 'update'],
@@ -63,5 +82,6 @@ export const USER_CRUD: ICrudConfig<typeof UserFormSchema> = {
   article: 'el',
   table: USER_TABLE,
   form: USER_FORM,
+  createForm: USER_CREATE_FORM,
   rowName: (row) => String(row['name'] ?? row['email'] ?? ''),
 };

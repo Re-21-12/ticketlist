@@ -177,6 +177,26 @@ describe('Cuenta: alta y recuperación (e2e)', () => {
       await signIn('marta@ticketit.dev', DEV_PASSWORD).expect(200);
     });
 
+    it('RNF-07: el bloqueo se levanta SOLO a los 15 minutos (y avisa cuándo); antes, solo lo levanta un administrador', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        for (let i = 0; i < 4; i++) await signIn(ANA, `Mala-${i}-Clave!`).expect(401);
+        const locking = await signIn(ANA, 'Mala-5-Clave!').expect(423);
+        const unlocksAt = new Date(locking.body.context.unlocksAt as string).getTime();
+        expect(unlocksAt - Date.now()).toBe(15 * 60_000);
+
+        vi.setSystemTime(Date.now() + 14 * 60_000);
+        expect((await signIn(ANA, DEV_PASSWORD).expect(423)).body.code).toBe('SAUT-E014'); // a los 14 min sigue bloqueada
+
+        vi.setSystemTime(Date.now() + 2 * 60_000); // 16 min en total
+        await signIn(ANA, DEV_PASSWORD).expect(200);
+        // Con los intentos en cero: hacen falta 5 fallos NUEVOS para volver a bloquearla.
+        for (let i = 0; i < 4; i++) await signIn(ANA, `Mala-${i}-Clave!`).expect(401);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('un acierto reinicia el contador (los fallos deben ser SEGUIDOS)', async () => {
       for (let i = 0; i < 4; i++) await signIn(ANA, `Mala-${i}-Clave!`).expect(401);
       await signIn(ANA, DEV_PASSWORD).expect(200);

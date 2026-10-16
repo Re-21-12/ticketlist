@@ -3,8 +3,8 @@ import { inject, Service, signal } from '@angular/core';
 import { map, type Observable } from 'rxjs';
 import { suppressErrorToast } from '../../core/interceptors/suppress-error-toast.token';
 import { TicketSchema } from '../tickets/ticket.schema';
-import type { TTicket } from '../tickets/ticket.types';
-import { MY_TICKETS_TAKE } from './my-tickets.constants';
+import type { TTicket, TTicketStatus } from '../tickets/ticket.types';
+import { MY_TICKETS_TAKE, type TThreadScope } from './my-tickets.constants';
 import { MyTicketListSchema, TicketEventListSchema, TicketEventSchema } from './my-tickets.schema';
 import type { TTicketEvent } from './my-tickets.types';
 
@@ -16,10 +16,18 @@ export class MyTicketsService {
   private readonly $_uuid = signal<string | undefined>(undefined);
   readonly $uuid = this.$_uuid.asReadonly();
 
-  /** Los tickets que registró quien consulta, con su estado actual. */
-  readonly list = httpResource(() => ({ url: '/api/tickets', params: { mine: 'true', take: String(MY_TICKETS_TAKE) } }), {
-    parse: (raw) => MyTicketListSchema.parse(raw),
-  });
+  /** Alcance del hilo: registrados por mí (solicitante), asignados a mí o todos (equipo). */
+  private readonly $_scope = signal<TThreadScope>('mine');
+  readonly $scope = this.$_scope.asReadonly();
+
+  /** Los tickets del alcance elegido, con su estado actual. */
+  readonly list = httpResource(
+    () => {
+      const scope = this.$_scope();
+      return { url: '/api/tickets', params: { ...(scope === 'mine' ? { mine: 'true' } : scope === 'assigned' ? { assigned: 'true' } : {}), take: String(MY_TICKETS_TAKE) } };
+    },
+    { parse: (raw) => MyTicketListSchema.parse(raw) },
+  );
 
   /** Historial de interacciones del ticket elegido. */
   readonly events = httpResource(
@@ -30,21 +38,25 @@ export class MyTicketsService {
     { parse: (raw) => TicketEventListSchema.parse(raw) },
   );
 
+  setScope(scope: TThreadScope): void {
+    this.$_scope.set(scope);
+  }
+
   select(uuid: string | undefined): void {
     this.$_uuid.set(uuid);
   }
 
   /** Comentario público con su evidencia (ids de adjuntos ya subidos). */
-  comment(uuid: string, body: string, attachmentIds: readonly string[] = []): Observable<TTicketEvent> {
+  comment(uuid: string, body: string, attachmentIds: readonly string[] = [], internal = false): Observable<TTicketEvent> {
     return this._http
-      .post<unknown>(`/api/tickets/${encodeURIComponent(uuid)}/comments`, { body, internal: false, attachmentIds })
+      .post<unknown>(`/api/tickets/${encodeURIComponent(uuid)}/comments`, { body, internal, attachmentIds })
       .pipe(map((raw) => TicketEventSchema.parse(raw)));
   }
 
-  /** «Confirmar cierre» (`closed`) o «Reabrir ticket» (`reopened`, con un motivo opcional). */
-  transition(uuid: string, to: 'closed' | 'reopened', note?: string): Observable<TTicket> {
+  /** Cambio de estado: «Confirmar cierre»/«Reabrir» del solicitante o cualquier paso del equipo (`extra`: la solución y su evidencia). */
+  transition(uuid: string, to: TTicketStatus, note?: string, extra: { resolution?: string; attachmentIds?: string[] } = {}): Observable<TTicket> {
     return this._http
-      .post<unknown>(`/api/tickets/${encodeURIComponent(uuid)}/transitions`, { to, ...(note ? { note } : {}) })
+      .post<unknown>(`/api/tickets/${encodeURIComponent(uuid)}/transitions`, { to, ...(note ? { note } : {}), ...extra })
       .pipe(map((raw) => TicketSchema.parse(raw)));
   }
 

@@ -1,7 +1,7 @@
 .totp-card {
   display: grid;
-  gap: 1rem;
-  padding: 1.5rem;
+  gap: var(--app-space-4);
+  padding: var(--app-space-6);
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius);
   background: var(--app-surface);
@@ -11,10 +11,13 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--app-space-3);
+}
+.totp-head-text {
+  flex: 1 1 18rem;
 }
 .totp-title {
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--app-space-1);
   font-size: 1.125rem;
   font-weight: 600;
 }
@@ -24,16 +27,61 @@
   font-size: 0.875rem;
   color: var(--app-text-muted);
 }
+
+/* Pasos numerados: el número va en un círculo (el texto siempre acompaña, no es solo color). */
 .totp-steps {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--app-space-6);
   margin: 0;
-  padding-left: 1.25rem;
-  font-size: 0.9375rem;
+  padding: 0;
+  list-style: none;
+}
+.totp-step {
+  display: grid;
+  gap: var(--app-space-3);
+}
+.totp-step-title {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-2);
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.totp-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--app-primary);
+  color: var(--app-primary-contrast);
+  font-size: 0.875rem;
+}
+
+/* QR a la izquierda y la clave a la derecha; en pantallas angostas, apilados y centrados. */
+.totp-scan {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-space-6);
+}
+.totp-qr {
+  display: block;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  /* El QR necesita fondo claro para leerse también en modo oscuro. */
+  background: #fff;
+}
+.totp-manual {
+  display: grid;
+  flex: 1 1 16rem;
+  gap: var(--app-space-2);
 }
 .totp-secret {
-  margin: 0.5rem 0 0.25rem;
-  padding: 0.75rem 1rem;
+  margin: 0;
+  padding: var(--app-space-3) var(--app-space-4);
   border: 1px dashed var(--app-border);
   border-radius: var(--app-radius);
   background: var(--app-surface-muted);
@@ -41,20 +89,53 @@
   letter-spacing: 0.05em;
   word-break: break-word;
 }
-.totp-actions {
+.totp-row {
   display: flex;
-  justify-content: flex-end;
-}
-.totp-actions button {
-  min-width: 11rem;
-  justify-content: center;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-space-3);
 }
 
-.totp-qr {
-  display: block;
-  margin: 0.75rem 0;
-  border: 1px solid var(--app-border);
+/* Códigos de recuperación: rejilla de dos columnas con fuente monoespaciada. */
+.totp-codes {
+  display: grid;
+  gap: var(--app-space-3);
+}
+.totp-code-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--app-space-2);
+  margin: 0;
+  padding: var(--app-space-4);
+  border: 1px dashed var(--app-border);
   border-radius: var(--app-radius);
-  /* El QR necesita fondo claro para leerse también en modo oscuro. */
-  background: #fff;
+  background: var(--app-surface-muted);
+  list-style: none;
+}
+.totp-code {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+.totp-ack {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-2);
+  min-height: var(--app-control-height);
+  font-size: 0.9375rem;
+}
+.totp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--app-space-3);
+}
+@media (max-width: 480px) {
+  .totp-scan {
+    justify-content: center;
+  }
+  .totp-code-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

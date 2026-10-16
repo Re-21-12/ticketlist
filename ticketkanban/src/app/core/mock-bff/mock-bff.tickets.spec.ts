@@ -195,4 +195,39 @@ describe('mock BFF · tickets por rol', () => {
     const options = await get<{ data: { value: string; label: string }[] }>('/api/catalogs/ticket-department/options');
     expect(options.data.find((o) => o.value === 'it')?.label).toBe('TI (interno)');
   });
+
+  /**
+   * Rango por FECHA DE REGISTRO (`?createdFrom=&createdTo=`), el filtro de «Hoy» de `/tickets`. El
+   * detalle que importa es el del backend: un `createdTo` de SOLO fecha se lleva al último
+   * milisegundo del día, así que «Hoy» incluye lo registrado hace un minuto.
+   */
+  it('el listado filtra por rango de fecha de registro, con el día completo dentro', async () => {
+    await store.signInAs(EUserRole.ADMIN);
+    const base = { title: 'Filtro por fecha', description: '', type: 'incident', category: 'email', priority: 'medium' };
+    const created = (await send('post', '/api/tickets', base)) as ITicketRow;
+    const day = (offset: number): string => {
+      const date = new Date();
+      date.setUTCDate(date.getUTCDate() + offset);
+      return date.toISOString().slice(0, 10);
+    };
+    const codesIn = async (query: string): Promise<string[]> =>
+      (await get<{ data: { code: string }[] }>(`/api/tickets?take=100&${query}`)).data.map((t) => t.code);
+
+    // «Hoy»: lo recién creado entra; un rango que termina ayer, no.
+    expect(await codesIn(`createdFrom=${day(0)}&createdTo=${day(0)}`)).toContain(created.code);
+    expect(await codesIn(`createdFrom=${day(-1)}&createdTo=${day(-1)}`)).not.toContain(created.code);
+
+    // Rango de varios días: los extremos van dentro, los de afuera no.
+    expect(await codesIn(`createdFrom=${day(-3)}&createdTo=${day(2)}`)).toContain(created.code);
+    expect(await codesIn(`createdFrom=${day(-30)}&createdTo=${day(-3)}`)).not.toContain(created.code);
+
+    // Extremo abierto y rango vacío: sin filtro de fecha no se pierde nada.
+    expect(await codesIn(`createdFrom=${day(0)}`)).toContain(created.code);
+    expect(await codesIn('take=100')).toContain(created.code);
+
+    // Se combina con los otros filtros (no se pisan entre sí).
+    const combined = await codesIn(`priority=medium&createdFrom=${day(0)}&createdTo=${day(0)}`);
+    expect(combined).toContain(created.code);
+    expect(await codesIn(`priority=low&createdFrom=${day(0)}&createdTo=${day(0)}`)).not.toContain(created.code);
+  });
 });

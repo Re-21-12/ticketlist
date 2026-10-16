@@ -220,6 +220,36 @@ describe('Ciclo de vida del ticket (e2e)', () => {
       await post(victor, `/api/tickets/${uuid}/comments`, { body: 'una cosa más' }).expect(201);
     });
 
+    it('reabrir exige el motivo (≥ 3 caracteres): sin él 400 y el ticket sigue «Resuelto»', async () => {
+      const { victor, uuid } = await resolved();
+      expect((await move(victor, uuid, 'reopened').expect(400)).body.code).toBe('CVAL-E001');
+      expect((await move(victor, uuid, 'reopened', { note: 'no' }).expect(400)).body.code).toBe('CVAL-E001');
+      expect(await statusOf(victor, uuid)).toBe('resolved');
+      await move(victor, uuid, 'reopened', { note: 'Sigue sin abrir.' }).expect(200);
+      // El motivo queda en el historial como el cambio de estado.
+      expect((await events(victor, uuid)).some((e) => e.to === 'reopened' && e.body === 'Sigue sin abrir.')).toBe(true);
+    });
+
+    it('la nota de asignación queda en el historial y en el aviso al responsable (por «assign» y por el PATCH del formulario)', async () => {
+      const victor = await login('victor@ticketit.dev');
+      const { uuid } = await create(victor);
+      const sergio = await login('sergio@ticketit.dev');
+      const ana = await login('ana@ticketit.dev');
+      await post(sergio, `/api/tickets/${uuid}/assign`, { assigneeEmail: 'ana@ticketit.dev', note: 'Empieza por revisar el VPN.' }).expect(200);
+      expect((await events(sergio, uuid)).find((e) => e.type === 'ASSIGNED')?.body).toBe('Empieza por revisar el VPN.');
+      expect((await notificationsOf(ana)).some((n) => n.type === 'TICKET_ASSIGNED' && n.message.includes('Nota: Empieza por revisar el VPN.'))).toBe(true);
+
+      // Por el formulario (PATCH): la nota no es un campo del ticket, solo viaja al historial.
+      const second = await create(victor);
+      const ticket = (await sergio.agent.get(`/api/tickets/${second.uuid}`).expect(200)).body as Record<string, unknown>;
+      await sergio.agent.patch(`/api/tickets/${second.uuid}`).set('X-XSRF-TOKEN', sergio.csrf).send({ ...ticket, assigneeEmail: 'ana@ticketit.dev', dueDate: null, assignmentNote: 'Es urgente para RR. HH.' }).expect(200);
+      expect((await events(sergio, second.uuid)).find((e) => e.type === 'ASSIGNED')?.body).toBe('Es urgente para RR. HH.');
+      const after = (await sergio.agent.get(`/api/tickets/${second.uuid}`).expect(200)).body as Record<string, unknown>;
+      expect(after).not.toHaveProperty('assignmentNote');
+      // Un cliente no asigna: su nota se descarta.
+      expect((await post(victor, '/api/tickets/' + second.uuid + '/assign', { assigneeEmail: 'ana@ticketit.dev', note: 'x' }).expect(403)).body.code).toBe('SAUT-E001');
+    });
+
     it('rechazar la solución reabre el ticket y avisa al agente asignado (A3)', async () => {
       const { victor, ana, uuid } = await resolved();
       const reopened = await move(victor, uuid, 'reopened', { note: 'Sigue sin abrir.' }).expect(200);
@@ -234,7 +264,7 @@ describe('Ciclo de vida del ticket (e2e)', () => {
       const repository = app.get(TicketsRepository, { strict: false });
       const ticket = (await repository.findByUuid(uuid))!;
       await repository.update(Object.assign(Object.create(Object.getPrototypeOf(ticket) as object) as typeof ticket, ticket, { closedAt: new Date(Date.now() - 8 * 86_400_000) }));
-      expect((await move(victor, uuid, 'reopened').expect(409)).body.code).toBe('STCK-E004');
+      expect((await move(victor, uuid, 'reopened', { note: 'Volvió a fallar.' }).expect(409)).body.code).toBe('STCK-E004');
     });
 
     it('sin respuesta tras 48 h de «Resuelto» se cierra solo, deja el evento, avisa y abre la encuesta', async () => {

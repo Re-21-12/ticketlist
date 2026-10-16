@@ -1,4 +1,7 @@
 @let data = _config.data!;
+@if (data.summary; as summary) {
+  <app-summary-card class="dfd-summary" [$card]="summary" />
+}
 <app-dynamic-form
   [$definition]="data.definition"
   [$initialData]="data.initialData ?? null"

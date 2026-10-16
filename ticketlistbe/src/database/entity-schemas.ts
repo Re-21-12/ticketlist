@@ -70,6 +70,9 @@ export const UserSchema = defineTable<IStoredUser>({
     totpLastStep: { type: 'int', default: 0 },
     failedLogins: { type: 'int', default: 0 },
     lockedAt: nullable({ type: 'timestamptz' }),
+    mustChangePassword: { type: 'boolean', default: false },
+    recoveryCodes: { type: 'jsonb', default: () => "'[]'" },
+    tempPasswordExpiresAt: nullable({ type: 'timestamptz' }),
   },
   indices: [{ name: 'uq_users_email', columns: ['email'], unique: true }],
 });

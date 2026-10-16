@@ -29,7 +29,9 @@
           ($searchChange)="$searchChange.emit($event)"
           ($create)="$create.emit()"
           ($refresh)="$refresh.emit()"
-        />
+        >
+          <app-list-export [$source]="exportSource" [$disabled]="$totalRecords() === 0" />
+        </app-table-toolbar>
       </div>
     </ng-template>
 
@@ -60,6 +62,8 @@
             [$busy]="$busy()"
             [$allow]="$rowActionAllowed()"
             [$deleteLabel]="config.deleteLabel ?? 'Eliminar'"
+            [$extra]="config.rowActions ?? []"
+            ($extraAction)="$rowAction.emit($event)"
             ($view)="$view.emit($event)"
             ($edit)="$edit.emit($event)"
             ($delete)="$delete.emit($event)"
@@ -75,6 +79,8 @@
             [$busy]="$busy()"
             [$allow]="$rowActionAllowed()"
             [$deleteLabel]="config.deleteLabel ?? 'Eliminar'"
+            [$extra]="config.rowActions ?? []"
+            ($extraAction)="$rowAction.emit($event)"
             ($view)="$view.emit($event)"
             ($edit)="$edit.emit($event)"
             ($delete)="$delete.emit($event)"

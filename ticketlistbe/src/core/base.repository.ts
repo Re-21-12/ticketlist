@@ -73,11 +73,17 @@ export abstract class InMemoryRepository<T extends BaseEntity> implements IBaseR
     filters?: TWhere<T>,
     scope?: TWhere<T>,
     rowFilter?: TRowPredicate<T>,
+    /**
+     * Filtro del recurso que NO se puede expresar con `TWhere` (que es igualdad exacta): rangos de
+     * fecha, comparaciones. El controlador lo arma a partir de la query; si no se pasa, no filtra.
+     */
+    predicate?: TRowPredicate<T>,
   ): Promise<[T[], number]> {
     const matches = this.rows.filter(
       (row) =>
         (pagination.includeDeleted || !row.isDeleted) &&
         (!rowFilter || rowFilter(row)) &&
+        (!predicate || predicate(row)) &&
         this.matches(row, filters) &&
         this.matches(row, scope) &&
         this.matchesSearch(row, pagination.search),

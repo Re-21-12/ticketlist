@@ -53,6 +53,19 @@ export const RecoverWithTotpFormSchema = z
   })
   .refine(...passwordsMatch('newPassword', 'confirmPassword'));
 
+/** Código de recuperación de un solo uso (`XXXX-XXXX`; se tolera sin guion, en minúsculas o con un espacio). */
+export const RecoveryCodeSchema = z.string().regex(/^[A-Za-z0-9]{4}[\s-]?[A-Za-z0-9]{4}$/, { error: msg(V.ACCOUNT.RECOVERY_CODE_INVALID) });
+
+/** «Recuperar con un código de recuperación»: correo + código + contraseña nueva. */
+export const RecoverWithRecoveryCodeFormSchema = z
+  .object({
+    email: EmailSchema,
+    recoveryCode: RecoveryCodeSchema,
+    newPassword: StrongPasswordSchema,
+    confirmPassword: ConfirmPasswordSchema,
+  })
+  .refine(...passwordsMatch('newPassword', 'confirmPassword'));
+
 /** «Recuperar con la contraseña actual»: no se aplica la regla de complejidad a la ACTUAL (puede ser antigua). */
 export const RecoverWithPasswordFormSchema = z
   .object({
@@ -64,7 +77,7 @@ export const RecoverWithPasswordFormSchema = z
   .refine(...passwordsMatch('newPassword', 'confirmPassword'));
 
 /** Formas de recuperar el acceso (mismo orden en que se ofrecen). */
-export const RECOVERY_METHODS = ['email', 'totp', 'current_password'] as const;
+export const RECOVERY_METHODS = ['email', 'totp', 'recovery_code', 'current_password'] as const;
 
 /** Respuesta genérica de sign-up / forgot / resend. `devUrl` (enlace del correo) solo fuera de producción. */
 export const AccountMessageSchema = z.object({

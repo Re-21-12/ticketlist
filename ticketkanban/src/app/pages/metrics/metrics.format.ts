@@ -1,10 +1,10 @@
 import { NO_DATA_TEXT } from './metrics.constants';
 
-/** `Date` → `YYYY-MM-DD` en hora local. */
-export function toIsoDay(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
+/**
+ * `Date` → `YYYY-MM-DD` en hora local. Vive en `shared/date/` porque el filtro de fechas de
+ * tickets necesita exactamente la misma conversión (y la misma trampa de zona horaria).
+ */
+export { toIsoDay } from '../../shared/date/local-date.util';
 
 /** Porcentaje con un decimal; `null` = sin información. */
 export function formatPct(value: number | null): string {

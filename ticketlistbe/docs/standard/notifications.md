@@ -21,6 +21,15 @@ Caso de uso **CU01 «Control de estado y notificaciones por ticket»**: el usuar
 
 Avisan al solicitante: asignación («X atenderá tu solicitud»), «en atención» (solo si lo hace el equipo), «necesitamos más información», escalamiento, resuelto, reabierto por el equipo y cierre automático. **Nadie se notifica a sí mismo**: si el propio solicitante provoca el cambio, `notify()` devuelve `false` y no se registra ningún evento.
 
+**La asignación avisa por los DOS caminos.** Hay dos formas de cambiar «Asignado a» y las dos tienen que avisar al cliente, o se entera por una y no por la otra:
+
+| Camino | Dónde avisa | Mensaje |
+|---|---|---|
+| `POST /api/tickets/:uuid/assign` | `TicketLifecycleService.notifyRequester()` | «X atenderá tu solicitud TCK-###» |
+| `PATCH /api/tickets/:uuid` (campo «Asignado a») | `TicketsService.notifyRequester()` (mismo tipo y mismo evento `NOTIFIED`) | «X atenderá tu solicitud TCK-###» / «Tu solicitud TCK-### quedó sin responsable» |
+
+Ambas se saltan si quien hizo el cambio es el propio solicitante. Cubierto por `ticket-notifications.e2e-spec.ts` («asignar desde el FORMULARIO (PATCH) también avisa al solicitante»).
+
 Los comentarios y las encuestas ya dejan su propio renglón en el historial (`COMMENT_PUBLIC`, `SURVEY_SENT`), por eso no generan un `NOTIFIED` aparte.
 
 ### La encuesta también va al buzón (CU02)

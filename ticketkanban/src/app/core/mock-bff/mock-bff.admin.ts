@@ -1,3 +1,4 @@
+import { CreateUserFormSchema } from '../../pages/users/user.schema';
 import type { HttpRequest, HttpResponse } from '@angular/common/http';
 import type { Observable } from 'rxjs';
 import type { z } from 'zod';
@@ -24,6 +25,11 @@ type TResponse$ = Observable<HttpResponse<unknown>>;
 /** Lo que el administrador del mock necesita saber de una cuenta (la define `mock-bff.handler`). */
 export interface IAdminAccount {
   email: string;
+  password: string;
+  totp: 'off' | 'pending' | 'on';
+  recoveryCodes: string[];
+  mustChange: boolean;
+  tempExpiresAt: string | null;
   name: string;
   verified: boolean;
   disabled: boolean;
@@ -42,6 +48,8 @@ export interface IMockHelpers {
   forbidden(req: HttpRequest<unknown>): Observable<never>;
   can(action: string, subject: string): boolean;
   accounts(): IAdminAccount[];
+  /** Crea una cuenta con una contraseña temporal de un solo uso (alta por un administrador). */
+  createAccount(input: { name: string; email: string; role: EUserRole; tempPassword: string; ttlMs: number }): IAdminAccount;
   /** Cierra la sesión del mock si es la de esa cuenta. */
   endSessionOf(email: string): void;
   currentEmail(): string | null;
@@ -231,9 +239,9 @@ function seedCatalogs(): { catalogs: ICatalog[]; items: ICatalogItem[] } {
       ['admin', 'Administración', 'pi-briefcase', 'secondary'],
     ]],
     ['ticket-status', 'Estado de ticket', 'Ciclo de vida del ticket (los códigos son fijos).', [
-      ['new', 'Nuevo', 'pi-inbox', 'info'],
+      ['new', 'Abierto', 'pi-inbox', 'info'],
       ['assigned', 'Asignado', 'pi-user-plus', 'info'],
-      ['in_progress', 'En atención', 'pi-clock', 'warn'],
+      ['in_progress', 'En progreso', 'pi-clock', 'warn'],
       ['pending_customer', 'Pendiente del cliente', 'pi-hourglass', 'secondary'],
       ['escalated', 'Escalado (N2/N3)', 'pi-angle-double-up', 'danger'],
       ['resolved', 'Resuelto', 'pi-check', 'success'],
@@ -420,7 +428,7 @@ const byNewest = <T extends { createdAt: string }>(rows: T[]): T[] =>
   [...rows].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
 const ITEM = (collection: string) => new RegExp(`^/api/${collection}/([\\w-]+)$`);
-const USERS_ITEM = /^\/api\/users\/([\w-]+)(\/role|\/status)?$/;
+const USERS_ITEM = /^\/api\/users\/([\w-]+)(\/role|\/status|\/reset-password|\/reset-totp)?$/;
 const CATALOG_PATH = /^\/api\/catalogs\/([a-z][a-z0-9-]*)(?:\/(options)|\/items(?:\/([\w-]+))?)?$/;
 const RELATIONSHIP_PATH = /^\/api\/relationships\/([\w-]+)(\/grants)?$/;
 const RELATIONSHIP_ADMIN_PATH = /^\/api\/relationships\/admin(?:\/([\w-]+))?$/;
@@ -432,6 +440,25 @@ const toAdminUser = (account: IAdminAccount) => ({
   locked: !!account.lockedAt,
   lockedAt: account.lockedAt,
   createdAt: account.createdAt,
+  totpEnabled: account.totp === 'on',
+  mustChangePassword: account.mustChange,
+});
+
+/** Contraseña temporal del mock: 16 caracteres con mayúscula, minúscula, dígito y símbolo, sin ambiguos (como la del backend). */
+function tempPassword(): string {
+  const sets = ['ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnpqrstuvwxyz', '23456789', '#?!@$%*+-'];
+  const all = sets.join('');
+  const pick = (chars: string): string => chars[crypto.getRandomValues(new Uint32Array(1))[0]! % chars.length] as string;
+  const chars = [...sets.map(pick)];
+  while (chars.length < 16) chars.push(pick(all));
+  return chars.sort(() => crypto.getRandomValues(new Uint8Array(1))[0]! - 128).join('');
+}
+
+const TEMP_PASSWORD_TTL_MS = 72 * 60 * 60 * 1000;
+const credentialOf = (account: IAdminAccount, password: string) => ({
+  user: toAdminUser(account),
+  tempPassword: password,
+  expiresAt: new Date(Date.now() + TEMP_PASSWORD_TTL_MS).toISOString(),
 });
 
 /**
@@ -468,7 +495,37 @@ function users(req: HttpRequest<unknown>, url: URL, h: IMockHelpers): TResponse$
       .map(toAdminUser);
     return h.ok(paginate(rows, url));
   }
+  // Alta por un administrador: contraseña temporal de un solo uso (se ve una vez).
+  if (req.method === 'POST' && !match) {
+    if (!h.can('create', 'User')) return h.forbidden(req);
+    const parsed = CreateUserFormSchema.safeParse(req.body);
+    if (!parsed.success) return h.invalid(req, parsed.error);
+    const email = parsed.data.email.toLowerCase();
+    if (h.accounts().some((a) => a.email === email)) return h.fail(req, 409, 'SUSR-E001', 'Ya existe una cuenta con ese correo');
+    const password = tempPassword();
+    const created = h.createAccount({ name: parsed.data.name, email, role: parsed.data.role, tempPassword: password, ttlMs: TEMP_PASSWORD_TTL_MS });
+    return h.ok(credentialOf(created, password), 201);
+  }
   const account = h.accounts().find((a) => a.shell.user.uuid === match?.[1]);
+  if (req.method === 'POST' && (match?.[2] === '/reset-password' || match?.[2] === '/reset-totp')) {
+    if (!h.can('update', 'User')) return h.forbidden(req);
+    if (!account) return h.fail(req, 404, 'SUSR-E002', 'Usuario no encontrado');
+    if (account.email === h.currentEmail()) return h.fail(req, 409, 'SUSR-E003', 'No puedes cambiar tu propio rol ni deshabilitar tu propia cuenta');
+    if (match[2] === '/reset-totp') {
+      account.totp = 'off';
+      account.recoveryCodes = [];
+      h.endSessionOf(account.email);
+      return h.ok(toAdminUser(account));
+    }
+    const password = tempPassword();
+    account.password = password;
+    account.mustChange = true;
+    account.tempExpiresAt = new Date(Date.now() + TEMP_PASSWORD_TTL_MS).toISOString();
+    account.failedLogins = 0;
+    account.lockedAt = null;
+    h.endSessionOf(account.email);
+    return h.ok(credentialOf(account, password));
+  }
   if (req.method === 'GET') {
     if (!h.can('read', 'User')) return h.forbidden(req);
     return account ? h.ok(toAdminUser(account)) : h.fail(req, 404, 'SUSR-E002', 'Usuario no encontrado');

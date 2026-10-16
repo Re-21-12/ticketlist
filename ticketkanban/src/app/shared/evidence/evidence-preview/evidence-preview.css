@@ -1,0 +1,55 @@
+.ep {
+  display: grid;
+  gap: var(--app-space-3);
+}
+/* El visor no scrollea solo: su alto es acotado para que el diálogo y la página no crezcan sin
+   límite. El scroll por dentro usa la barra ya tematizada de `styles.css`. */
+.ep-media,
+.ep-frame {
+  display: block;
+  width: 100%;
+  max-height: 62vh;
+  object-fit: contain;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface-muted);
+}
+.ep-media {
+  margin-inline: auto;
+}
+.ep-fallback {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-2);
+  margin: 0;
+  padding: var(--app-space-6) var(--app-space-4);
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius);
+  color: var(--app-text-muted);
+  text-align: center;
+  justify-content: center;
+}
+.ep-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-space-2);
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+.ep-readonly {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--app-space-1);
+}
+.ep-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--app-space-2);
+}
+/* El `pButton` en un `<a>` no trae la altura por defecto del preset si no se le da la clase de
+   tamaño; se le fija la MISMA altura que el resto de controles (44 px). */
+:host ::ng-deep .ep-download {
+  height: var(--app-control-height);
+}

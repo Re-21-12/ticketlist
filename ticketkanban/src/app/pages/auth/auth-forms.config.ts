@@ -3,6 +3,7 @@ import { defineForm } from '../../shared/dynamic-form/form-definition.interface'
 import {
   ForgotPasswordFormSchema,
   RecoverWithPasswordFormSchema,
+  RecoverWithRecoveryCodeFormSchema,
   RecoverWithTotpFormSchema,
   ResetPasswordFormSchema,
   SignInFormSchema,
@@ -141,6 +142,25 @@ export const RECOVER_TOTP_FORM = defineForm({
       placeholder: '123456',
       autocomplete: 'one-time-code',
       hint: 'Los 6 dígitos que muestra tu app (Google Authenticator, Authy, 1Password…). Cambian cada 30 segundos.',
+      fullWidth: true,
+    },
+    ...NEW_PASSWORD_FIELDS,
+  ],
+});
+
+/** Recuperar con un código de recuperación de un solo uso (los que se muestran al activar el autenticador). */
+export const RECOVER_CODE_FORM = defineForm({
+  name: 'RECOVER_CODE_FORM',
+  schema: RecoverWithRecoveryCodeFormSchema,
+  fields: [
+    EMAIL_FIELD,
+    {
+      key: 'recoveryCode',
+      label: 'Código de recuperación',
+      type: FieldType.TEXT,
+      placeholder: 'ABCD-EFGH',
+      autocomplete: 'off',
+      hint: 'Uno de los 10 códigos que guardaste al activar el autenticador. Cada uno sirve una sola vez.',
       fullWidth: true,
     },
     ...NEW_PASSWORD_FIELDS,

@@ -17,6 +17,7 @@ import { mockBffInterceptor } from './core/mock-bff/mock-bff.interceptor';
 import { skipTransitionIfReducedMotion } from './core/motion/view-transition.util';
 import { SessionStore } from './core/session/session.store';
 import { initialThemePreset } from './core/theme/primary-preset.util';
+import { ThemePaletteService } from './core/theme/theme-palette.service';
 import { ThemeService } from './core/theme/theme.service';
 
 /**
@@ -63,6 +64,11 @@ export const appConfig: ApplicationConfig = {
     // Instancia ThemeService al arrancar (sincroniza la clase `.app-dark` con lo guardado).
     provideAppInitializer(() => {
       inject(ThemeService);
+    }),
+    // Publica la rampa tonal del color de marca (`--app-shade-*`) para barras y medidores, y se
+    // vuelve a escribir cada vez que la persona elige otro color en /appearance.
+    provideAppInitializer(() => {
+      inject(ThemePaletteService);
     }),
   ],
 };

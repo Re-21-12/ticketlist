@@ -4,27 +4,20 @@
     <span class="ev-hint">{{ typesText }}. Hasta {{ maxFiles }} archivos; videos de hasta {{ maxVideo }}.</span>
   </div>
 
-  @if ($attachments().length > 0) {
-    <ul class="ev-list" aria-label="Archivos adjuntos">
-      @for (attachment of $attachments(); track attachment.id) {
-        <li class="ev-chip">
-          <i [class]="'pi ' + kindMeta[attachment.kind].icon" aria-hidden="true"></i>
-          <span class="ev-name">{{ attachment.name }}</span>
-          <span class="ev-meta">
-            {{ kindMeta[attachment.kind].label }} · {{ format.bytes(attachment.size) }}
-            @if (attachment.durationSeconds !== null) { · {{ format.duration(attachment.durationSeconds) }} }
-          </span>
-          <button type="button" class="ev-remove" [attr.aria-label]="'Quitar ' + attachment.name" (click)="remove(attachment.id)">
-            <i class="pi pi-times" aria-hidden="true"></i>
-          </button>
-        </li>
-      }
-    </ul>
-  }
-
-  <!-- El `input` real queda oculto a la vista pero accesible por teclado; la etiqueta hace de botón. -->
-  <div class="ev-pick" [class.ev-pick--disabled]="!$canAdd()">
+  <!-- Zona de arrastrar y soltar (patrón de wallet-api). El botón abre el selector de archivos:
+       es la alternativa ACCESIBLE al arrastre (funciona con Enter y Espacio). El input real queda
+       oculto a la vista y recibe los archivos soltados. -->
+  <div
+    class="ev-dropzone-wrap"
+    [class.ev-dropzone-wrap--over]="$dragOver()"
+    [class.ev-dropzone-wrap--disabled]="!$canAdd()"
+    (dragenter)="onDragEnter($event)"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+  >
     <input
+      #fileInput
       class="ev-input"
       type="file"
       multiple
@@ -33,11 +26,74 @@
       [disabled]="!$canAdd()"
       (change)="onPick($event)"
     />
-    <label class="ev-add" [for]="$inputId()">
-      <i [class]="$busy() ? 'pi pi-spin pi-spinner' : 'pi pi-paperclip'" aria-hidden="true"></i>
-      {{ $busy() ? 'Subiendo…' : 'Adjuntar archivos' }}
-    </label>
+    <button type="button" class="ev-dropzone" [disabled]="!$canAdd()" (click)="openPicker()">
+      <i class="ev-dropzone-icon" [class]="$busy() ? 'pi pi-spin pi-spinner' : 'pi pi-cloud-upload'" aria-hidden="true"></i>
+      <span class="ev-dropzone-text">
+        <span class="ev-dropzone-title">
+          {{ $busy() ? 'Subiendo…' : 'Arrastra los archivos aquí o haz clic para elegirlos' }}
+        </span>
+        <span class="ev-dropzone-sub">{{ dropzoneHint }}</span>
+      </span>
+    </button>
   </div>
+
+  <!-- Los que faltan por subir: se validan al elegirlos y se ven aquí ANTES de subirlos. -->
+  @if ($drafts().length > 0) {
+    <ul class="ev-list" aria-label="Archivos pendientes de subir">
+      @for (draft of $drafts(); track draft.token) {
+        <li class="ev-chip">
+          <button type="button" class="ev-peek" [attr.aria-label]="'Vista previa de ' + draft.name" (click)="previewDraft(draft)">
+            <i [class]="'pi ' + kindMeta[draft.kind].icon" aria-hidden="true"></i>
+          </button>
+          <span class="ev-name">{{ draft.name }}</span>
+          <span class="ev-meta">{{ kindMeta[draft.kind].label }} · {{ format.bytes(draft.size) }}</span>
+          <span class="ev-badge">
+            <i class="pi pi-clock" aria-hidden="true"></i>
+            Pendiente
+          </span>
+          <button
+            type="button"
+            class="ev-remove"
+            [attr.aria-label]="'Quitar ' + draft.name"
+            (click)="removeDraft(draft.token)"
+          >
+            <i class="pi pi-times" aria-hidden="true"></i>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+
+  <!-- Los que ya están en el bucket: forman parte del envío. -->
+  @if ($attachments().length > 0) {
+    <ul class="ev-list" aria-label="Archivos adjuntos">
+      @for (attachment of $attachments(); track attachment.id) {
+        <li class="ev-chip">
+          <button
+            type="button"
+            class="ev-peek"
+            [attr.aria-label]="'Vista previa de ' + attachment.name"
+            (click)="previewAttachment(attachment)"
+          >
+            <i [class]="'pi ' + kindMeta[attachment.kind].icon" aria-hidden="true"></i>
+          </button>
+          <span class="ev-name">{{ attachment.name }}</span>
+          <span class="ev-meta">
+            {{ kindMeta[attachment.kind].label }} · {{ format.bytes(attachment.size) }}
+            @if (attachment.durationSeconds !== null) { · {{ format.duration(attachment.durationSeconds) }} }
+          </span>
+          <button
+            type="button"
+            class="ev-remove"
+            [attr.aria-label]="'Quitar ' + attachment.name"
+            (click)="remove(attachment.id)"
+          >
+            <i class="pi pi-times" aria-hidden="true"></i>
+          </button>
+        </li>
+      }
+    </ul>
+  }
 
   <ul class="ev-errors" role="alert">
     @for (message of $errors(); track message) {
@@ -45,3 +101,10 @@
     }
   </ul>
 </div>
+
+<!-- Un solo visor para los tres formatos, y también para lo que aún no se ha subido. -->
+<app-evidence-preview
+  #previewDialog
+  [$ticketUuid]="$ticketUuid()"
+  [$attachments]="$attachments()"
+/>

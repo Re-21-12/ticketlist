@@ -7,6 +7,7 @@ import {
   TICKET_COMPLEXITY,
   TICKET_PRIORITY,
   TICKET_TYPE,
+  ReopenReasonFormSchema,
   TicketQuickCreateSchema,
   TicketResolveFormSchema,
   TicketUpsertSchema,
@@ -119,6 +120,15 @@ const TICKET_FIELDS: IFieldConfig<TKey>[] = [
     fullWidth: true,
   },
   {
+    key: 'assignmentNote',
+    label: 'Nota de asignación',
+    type: FieldType.TEXTAREA,
+    rows: 3,
+    placeholder: 'Instrucciones para quien recibe el caso (opcional)',
+    hint: 'Queda en el historial del ticket y le llega a la persona asignada en su aviso.',
+    fullWidth: true,
+  },
+  {
     key: 'notifyReporter',
     label: 'Notificar al solicitante',
     type: FieldType.TOGGLE,
@@ -138,7 +148,7 @@ const TICKET_SECTIONS = [
     label: 'Urgencia y plan',
     fieldKeys: ['priority', 'complexity', 'estimateHours', 'dueDate'],
   },
-  { key: 'people', label: 'Personas', fieldKeys: ['assigneeEmail', 'notifyReporter'] },
+  { key: 'people', label: 'Personas', fieldKeys: ['assigneeEmail', 'assignmentNote', 'notifyReporter'] },
 ] as const satisfies readonly { key: string; label: string; fieldKeys: readonly TKey[] }[];
 
 /** Formulario del EQUIPO (modal): stepper de 3 pasos; fija complejidad, estimación y responsable. */
@@ -160,8 +170,24 @@ export const TICKET_CUSTOMER_FORM = defineForm({
   layout: 'stepper',
   sections: TICKET_SECTIONS.map((section) => ({ ...section, fieldKeys: [...section.fieldKeys] })),
   fields: TICKET_FIELDS.map((field) =>
-    ['complexity', 'estimateHours', 'dueDate', 'assigneeEmail'].includes(field.key) ? teamOnly(field) : field,
+    ['complexity', 'estimateHours', 'dueDate', 'assigneeEmail', 'assignmentNote'].includes(field.key) ? teamOnly(field) : field,
   ),
+});
+
+/** Diálogo «Reabrir ticket»: el motivo es obligatorio (la pantalla «Solución no satisfactoria» del diseño). */
+export const TICKET_REOPEN_FORM = defineForm({
+  name: 'TICKET_REOPEN_FORM',
+  schema: ReopenReasonFormSchema,
+  fields: [
+    {
+      key: 'reason',
+      label: '¿Por qué continúa el problema?',
+      type: FieldType.TEXTAREA,
+      rows: 4,
+      hint: 'Cuéntale al equipo qué sigue fallando. Se guarda en el historial y se avisa a quien atendía el caso.',
+      fullWidth: true,
+    },
+  ],
 });
 
 /** Modal «Resolver»: documentar la solución es obligatorio para poder resolver (el requerimiento: «se documentará»). */

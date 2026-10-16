@@ -77,6 +77,10 @@ export const VALIDATION_ERRORS = {
       messageEs: 'Documenta la solución para poder resolver el ticket',
       messageEn: 'Document the solution to resolve the ticket',
     },
+    REOPEN_REASON_REQUIRED: {
+      messageEs: 'Cuéntanos por qué el problema continúa para poder reabrir el ticket',
+      messageEn: 'Tell us why the problem continues to reopen the ticket',
+    },
     SURVEY_SCORE: {
       messageEs: 'Elige una calificación de 1 a 5',
       messageEn: 'Choose a rating from 1 to 5',
@@ -104,6 +108,10 @@ export const VALIDATION_ERRORS = {
     CODE_INVALID: {
       messageEs: 'Escribe el código de 6 dígitos de tu autenticador',
       messageEn: 'Enter the 6-digit code from your authenticator',
+    },
+    RECOVERY_CODE_INVALID: {
+      messageEs: 'Escribe un código de recuperación con el formato XXXX-XXXX',
+      messageEn: 'Enter a recovery code in the XXXX-XXXX format',
     },
   },
 
@@ -150,6 +158,18 @@ export const VALIDATION_ERRORS = {
       messageEn: 'The period cannot exceed {max} days',
     },
   },
+  /** Filtros de tickets (`modules/tickets/dtos/ticket-query.dto.ts`). */
+  TCK: {
+    DATE_RANGE_ORDER: {
+      messageEs: 'La fecha final del filtro no puede ser anterior a la inicial',
+      messageEn: 'The filter end date cannot be before the start date',
+    },
+    DATE_RANGE_TOO_LONG: {
+      messageEs: 'El filtro no puede abarcar más de {max} días',
+      messageEn: 'The filter cannot span more than {max} days',
+    },
+  },
+
   /** Tareas programadas (`modules/jobs/jobs.schema.ts`). */
   JOB: {
     CRON_INVALID: {

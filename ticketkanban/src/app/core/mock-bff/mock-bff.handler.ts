@@ -7,7 +7,7 @@ import { EUserRole } from '../casl/ability.enum';
 import { ResetPasswordFormSchema, SignUpFormSchema } from '../../pages/auth/auth.schema';
 import { ChangePasswordFormSchema, TotpEnableFormSchema } from '../../pages/profile/profile.schema';
 import { SurveyFormSchema } from '../../pages/tickets/ticket.schema';
-import { RecoverWithPasswordFormSchema, RecoverWithTotpFormSchema } from '../../pages/auth/auth.schema';
+import { RecoverWithPasswordFormSchema, RecoverWithRecoveryCodeFormSchema, RecoverWithTotpFormSchema } from '../../pages/auth/auth.schema';
 import type { IProblemDetails, IProblemFieldError } from '../interfaces/problem-details.interface';
 import {
   TicketBaseSchema,
@@ -66,10 +66,28 @@ interface IMockUser {
   /** Intentos fallidos seguidos de inicio de sesión; `lockedAt` ≠ null = bloqueada hasta que un administrador la desbloquee. */
   failedLogins: number;
   lockedAt: string | null;
+  /** Contraseña TEMPORAL entregada por un administrador: hay que cambiarla antes de usar nada más. */
+  mustChange: boolean;
+  /** Vigencia de la temporal (`null` = no hay una vigente). */
+  tempExpiresAt: string | null;
+  /** Códigos de recuperación AÚN sin usar (en claro: es un mock; el backend guarda solo su huella). */
+  recoveryCodes: string[];
 }
 
 /** Intentos fallidos seguidos que bloquean la cuenta (`LOGIN_MAX_ATTEMPTS` del backend). */
 const MAX_FAILED_LOGINS = 5;
+/** RNF-07: el bloqueo se levanta SOLO a los 15 minutos (un administrador puede levantarlo antes). */
+const LOCK_MS = 15 * 60_000;
+
+/** Levanta los bloqueos ya vencidos (como `UsersRepository.lockActive` del backend), con los intentos en cero. */
+function sweepLocks(): void {
+  for (const user of db.users) {
+    if (user.lockedAt && Date.now() - new Date(user.lockedAt).getTime() >= LOCK_MS) {
+      user.lockedAt = null;
+      user.failedLogins = 0;
+    }
+  }
+}
 
 /** Código TOTP que acepta el mock (en el backend sale del secreto y el reloj, RFC 6238). */
 export const MOCK_TOTP_CODE = '123456';
@@ -99,6 +117,9 @@ function seedUsers(): IMockUser[] {
     totp: 'off' as const,
     failedLogins: 0,
     lockedAt: null,
+    mustChange: false,
+    tempExpiresAt: null,
+    recoveryCodes: [],
   }));
 }
 
@@ -167,7 +188,8 @@ interface IMockNotification {
     | 'TICKET_STATUS_CHANGED'
     | 'TICKET_COMMENTED'
     | 'TICKET_REOPENED'
-    | 'ACCOUNT_LOCKED';
+    | 'ACCOUNT_LOCKED'
+    | 'ACCOUNT_SECURITY';
   message: string;
   resourceType: 'Ticket' | 'Relationship' | null;
   resourceUuid: string | null;
@@ -200,6 +222,7 @@ export function handleMockBff(req: HttpRequest<unknown>): Observable<HttpRespons
 
 function dispatch(req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> {
   const url = new URL(req.urlWithParams, 'http://mock');
+  sweepLocks();
 
   if (req.method === 'POST' && url.pathname === '/api/auth/sign-in') return signIn(req);
   if (req.method === 'POST' && url.pathname === '/api/auth/sign-out') {
@@ -213,6 +236,12 @@ function dispatch(req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> 
   // Todo lo demás es privado, igual que `SessionAuthGuard`.
   if (!db.session) return fail(req, 401, 'SAUT-E002', 'Debes iniciar sesión');
 
+  // Contraseña TEMPORAL pendiente: solo el shell, el cambio de contraseña y cerrar sesión (SAUT-E015 para lo demás).
+  if (findUser(db.session.user.email)?.mustChange) {
+    const allowed = (req.method === 'GET' && url.pathname === '/api/bff/shell') || (req.method === 'PATCH' && url.pathname === '/api/auth/password');
+    if (!allowed) return fail(req, 403, 'SAUT-E015', 'Debes cambiar tu contraseña temporal antes de continuar');
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/bff/shell') {
     // Se reconstruye en cada carga, como el backend: un cambio de rol, permisos o menú rige desde aquí.
     const account = findUser(db.session.user.email);
@@ -221,7 +250,7 @@ function dispatch(req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> 
       return fail(req, 401, 'SAUT-E002', 'Debes iniciar sesión');
     }
     db.session = buildShell(account.shell.user);
-    return ok(db.session);
+    return ok({ ...db.session, mustChangePassword: account.mustChange });
   }
   if (req.method === 'GET' && url.pathname === '/api/bff/board') {
     // Los estados son variaciones de tres columnas (mismo agrupamiento que `STATUS_GROUPS` del backend).
@@ -273,28 +302,35 @@ function signIn(req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> {
   const { email, password } = (req.body ?? {}) as { email?: string; password?: string };
   const user = findUser(email);
   // Cuenta bloqueada: ni se mira la contraseña; solo un administrador la desbloquea (CU07 A3).
-  if (user?.lockedAt) return lockedResponse(req);
+  if (user?.lockedAt) return lockedResponse(req, user);
   // Una cuenta deshabilitada responde igual que una contraseña incorrecta (no se revela su estado).
   if (!user || user.disabled || user.password !== password) {
     if (user && !user.disabled && ++user.failedLogins >= MAX_FAILED_LOGINS) {
       user.lockedAt = new Date().toISOString();
-      return lockedResponse(req);
+      return lockedResponse(req, user);
     }
-    return fail(req, 401, 'SAUT-E004', 'Correo o contraseña incorrectos');
+    return fail(req, 401, 'SAUT-E004', 'Correo electrónico o contraseña incorrectos');
   }
   user.failedLogins = 0;
+  // Una contraseña temporal vencida ya no sirve para entrar: hay que pedir otra a la administración.
+  if (user.mustChange && user.tempExpiresAt && new Date(user.tempExpiresAt).getTime() < Date.now()) {
+    return fail(req, 401, 'SAUT-E016', 'La contraseña temporal venció. Pide a un administrador una nueva');
+  }
   if (!user.verified) return fail(req, 403, 'SAUT-E008', 'Verifica tu correo antes de iniciar sesión');
   db.session = buildShell(user.shell.user);
   db.sessions = seedSessions();
   // Los avisos de demostración se reinician; los generados por cambios de tickets (con destinatario) se conservan.
   db.notifications = [...seedNotifications(), ...db.notifications.filter((n) => n.recipientUuid)];
-  return ok(db.session);
+  return ok({ ...db.session, mustChangePassword: user.mustChange });
 }
 
 /** 423 con la información de contacto de los administradores (a quién pedirle el desbloqueo). */
-function lockedResponse(req: HttpRequest<unknown>): Observable<never> {
+function lockedResponse(req: HttpRequest<unknown>, user: IMockUser): Observable<never> {
   const contacts = db.users.filter((u) => u.shell.user.role === EUserRole.ADMIN && !u.disabled).map((u) => ({ name: u.name, email: u.email }));
-  return failWith(req, 423, 'SAUT-E014', 'Tu cuenta está bloqueada por demasiados intentos fallidos. Comunícate con un administrador para desbloquearla', { contacts });
+  return failWith(req, 423, 'SAUT-E014', 'Tu cuenta está bloqueada por demasiados intentos fallidos. Se desbloquea sola a los 15 minutos o un administrador puede desbloquearla antes', {
+    contacts,
+    unlocksAt: new Date(new Date(user.lockedAt ?? Date.now()).getTime() + LOCK_MS).toISOString(),
+  });
 }
 
 // ── Alta de cuenta y recuperación (PÚBLICOS: no hay sesión todavía) ─────────────────────────────
@@ -334,6 +370,9 @@ function handlePublicAuth(req: HttpRequest<unknown>, url: URL): Observable<HttpR
         totp: 'off',
         failedLogins: 0,
         lockedAt: null,
+        mustChange: false,
+        tempExpiresAt: null,
+        recoveryCodes: [],
       });
       return accountReply('Cuenta creada. Ya puedes iniciar sesión.');
     }
@@ -363,7 +402,9 @@ function handlePublicAuth(req: HttpRequest<unknown>, url: URL): Observable<HttpR
       const checked =
         method === 'totp'
           ? RecoverWithTotpFormSchema.safeParse({ email: body['email'], code: body['code'], newPassword: body['newPassword'], confirmPassword: body['newPassword'] })
-          : method === 'current_password'
+          : method === 'recovery_code'
+            ? RecoverWithRecoveryCodeFormSchema.safeParse({ email: body['email'], recoveryCode: body['recoveryCode'], newPassword: body['newPassword'], confirmPassword: body['newPassword'] })
+            : method === 'current_password'
             ? RecoverWithPasswordFormSchema.safeParse({ email: body['email'], currentPassword: body['currentPassword'], newPassword: body['newPassword'], confirmPassword: body['newPassword'] })
             : null;
       if (!checked) return fail(req, 400, 'CVAL-E001', 'Datos inválidos', [fieldError('method', 'Método de recuperación desconocido')]);
@@ -371,12 +412,20 @@ function handlePublicAuth(req: HttpRequest<unknown>, url: URL): Observable<HttpR
       const verified =
         !!user &&
         !user.disabled &&
-        (method === 'totp' ? user.totp === 'on' && body['code'] === MOCK_TOTP_CODE : user.password === body['currentPassword']);
+        (method === 'totp'
+          ? user.totp === 'on' && body['code'] === MOCK_TOTP_CODE
+          : method === 'recovery_code'
+            ? user.totp === 'on' && user.recoveryCodes.includes(normalizeCode(String(body['recoveryCode'])))
+            : user.password === body['currentPassword']);
       if (!verified || !user || user.lockedAt) return fail(req, 401, 'SAUT-E010', 'Los datos de verificación no son correctos');
       if (method === 'current_password' && body['newPassword'] === user.password) {
         return fail(req, 422, 'SAUT-E007', 'La nueva contraseña debe ser distinta de la actual');
       }
       user.password = body['newPassword'] as string;
+      user.mustChange = false;
+      user.tempExpiresAt = null;
+      // Un código de recuperación sirve UNA vez.
+      if (method === 'recovery_code') user.recoveryCodes = user.recoveryCodes.filter((code) => code !== normalizeCode(String(body['recoveryCode'])));
       if (db.session?.user.email === user.email) db.session = null; // se cierran todas sus sesiones
       return ok(null, 204);
     }
@@ -501,10 +550,26 @@ function handleProfile(req: HttpRequest<unknown>, url: URL): Observable<HttpResp
   return null;
 }
 
+/** `abcd efgh` = `ABCD-EFGH` (mismo criterio que el backend). */
+const normalizeCode = (code: string): string => {
+  const flat = code.replace(/[\s-]/g, '').toUpperCase();
+  return `${flat.slice(0, 4)}-${flat.slice(4)}`;
+};
+
+/** 10 códigos distintos `XXXX-XXXX` (alfabeto sin 0/O, 1/I/L). Solo mock: el aleatorio no necesita ser criptográfico. */
+function newRecoveryCodes(): string[] {
+  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const pick = (): string => alphabet[Math.floor(Math.random() * alphabet.length)] as string;
+  const part = (): string => Array.from({ length: 4 }, pick).join('');
+  const codes = new Set<string>();
+  while (codes.size < 10) codes.add(`${part()}-${part()}`);
+  return [...codes];
+}
+
 function handleTotp(req: HttpRequest<unknown>, pathname: string): Observable<HttpResponse<unknown>> {
   const account = findUser(db.session?.user.email);
   if (!account) return fail(req, 401, 'SAUT-E002', 'Necesitas iniciar sesión');
-  if (req.method === 'GET' && pathname === '/api/auth/totp') return ok({ enabled: account.totp === 'on' });
+  if (req.method === 'GET' && pathname === '/api/auth/totp') return ok({ enabled: account.totp === 'on', recoveryCodesLeft: account.recoveryCodes.length });
   const body = (req.body ?? {}) as { code?: string; currentPassword?: string };
   if (req.method === 'POST' && pathname === '/api/auth/totp/setup') {
     if (account.totp === 'on') return fail(req, 409, 'SAUT-E013', 'El autenticador ya está activado');
@@ -517,11 +582,19 @@ function handleTotp(req: HttpRequest<unknown>, pathname: string): Observable<Htt
     if (account.totp !== 'pending') return fail(req, 409, 'SAUT-E012', 'No hay una configuración del autenticador en curso');
     if (body.code !== MOCK_TOTP_CODE) return fail(req, 422, 'SAUT-E011', 'El código del autenticador no es correcto');
     account.totp = 'on';
-    return ok(null, 204);
+    account.recoveryCodes = newRecoveryCodes();
+    return ok({ recoveryCodes: [...account.recoveryCodes] });
+  }
+  if (req.method === 'POST' && pathname === '/api/auth/totp/recovery-codes') {
+    if (account.totp !== 'on') return fail(req, 409, 'SAUT-E017', 'El autenticador no está activado');
+    if (body.currentPassword !== account.password) return fail(req, 422, 'SAUT-E006', 'La contraseña actual no es correcta');
+    account.recoveryCodes = newRecoveryCodes();
+    return ok({ recoveryCodes: [...account.recoveryCodes] });
   }
   if (req.method === 'POST' && pathname === '/api/auth/totp/disable') {
     if (body.currentPassword !== account.password) return fail(req, 422, 'SAUT-E006', 'La contraseña actual no es correcta');
     account.totp = 'off';
+    account.recoveryCodes = [];
     return ok(null, 204);
   }
   return fail(req, 405, 'NEST-E405', 'Método no permitido');
@@ -601,6 +674,9 @@ function changePassword(req: HttpRequest<unknown>): Observable<HttpResponse<unkn
     return fail(req, 422, 'SAUT-E007', 'La nueva contraseña debe ser distinta de la actual');
   }
   account.password = body.newPassword as string;
+  // Una contraseña que la persona ELIGE sustituye a la temporal.
+  account.mustChange = false;
+  account.tempExpiresAt = null;
   db.sessions = db.sessions.filter((s) => s.current);
   return ok(null, 204);
 }
@@ -627,6 +703,27 @@ const adminHelpers: IMockHelpers = {
   forbidden,
   can: (action, subjectName) => ability().can(action, subjectName as never),
   accounts: () => db.users,
+  createAccount: (input) => {
+    const shell = buildViewerShell(input.name, input.email);
+    const account: IMockUser = {
+      email: input.email,
+      name: input.name,
+      password: input.tempPassword,
+      verified: true,
+      disabled: false,
+      createdAt: new Date().toISOString(),
+      shell,
+      totp: 'off',
+      failedLogins: 0,
+      lockedAt: null,
+      mustChange: true,
+      tempExpiresAt: new Date(Date.now() + input.ttlMs).toISOString(),
+      recoveryCodes: [],
+    };
+    account.shell.user.role = input.role;
+    db.users.push(account);
+    return account;
+  },
   endSessionOf: (email) => {
     if (db.session?.user.email === email) db.session = null;
   },
@@ -730,6 +827,28 @@ function present(t: TStoredTicket) {
   };
 }
 
+/**
+ * Espejo de `ticketlistbe/src/modules/tickets/ticket-date-range.ts`: rango por FECHA DE REGISTRO,
+ * extremos INCLUSIVOS y con el mismo detalle — un `createdTo` de solo fecha (`YYYY-MM-DD`) se lleva
+ * al último milisegundo del día, para que «Hoy» no deje fuera lo registrado hace un minuto.
+ * Devuelve `undefined` sin rango, para no comparar fila por fila sin motivo.
+ */
+function mockCreatedAtRange(
+  from: string | null,
+  to: string | null,
+): ((createdAt: string) => boolean) | undefined {
+  const bare = /^\d{4}-\d{2}-\d{2}$/;
+  const start = from ? new Date(from).getTime() : null;
+  const end = to ? (bare.test(to) ? new Date(`${to}T00:00:00.000Z`).getTime() + 86_399_999 : new Date(to).getTime()) : null;
+  if (start === null && end === null) return undefined;
+  return (createdAt: string) => {
+    const at = new Date(createdAt).getTime();
+    if (start !== null && at < start) return false;
+    if (end !== null && at > end) return false;
+    return true;
+  };
+}
+
 function listTickets(url: URL): Observable<HttpResponse<unknown>> {
   const page = Number(url.searchParams.get('page') ?? 1);
   const take = Number(url.searchParams.get('take') ?? 10);
@@ -738,11 +857,18 @@ function listTickets(url: URL): Observable<HttpResponse<unknown>> {
   const only = (key: 'status' | 'priority' | 'type' | 'category' | 'department') => url.searchParams.get(key);
   // «Mis tickets» (CU01): solo los que registró quien consulta.
   const mine = url.searchParams.get('mine') === 'true' ? db.session?.user.uuid : null;
+  // Hilo de soporte: solo lo que tiene ASIGNADO quien consulta.
+  const assignedTo = url.searchParams.get('assigned') === 'true' ? db.session?.user.email : null;
+  // Rango por fecha de REGISTRO (`?createdFrom=&createdTo=`), igual que el backend: los extremos van
+  // dentro y un `createdTo` de solo fecha llega al último milisegundo del día («Hoy» completo).
+  const createdAtRange = mockCreatedAtRange(url.searchParams.get('createdFrom'), url.searchParams.get('createdTo'));
   const matches = visibleTickets().filter(
     (t) =>
       (!mine || t.ownerUuid === mine) &&
+      (!assignedTo || t.assigneeEmail === assignedTo) &&
       (!search || [t.code, t.title, t.assigneeEmail].some((v) => String(v ?? '').toLowerCase().includes(search))) &&
-      (['status', 'priority', 'type', 'category', 'department'] as const).every((key) => !only(key) || t[key] === only(key)),
+      (['status', 'priority', 'type', 'category', 'department'] as const).every((key) => !only(key) || t[key] === only(key)) &&
+      (!createdAtRange || createdAtRange(t.createdAt)),
   );
   const data = matches.slice((page - 1) * take, page * take).map(present);
   return ok({ data, meta: { total: matches.length, page, take } });
@@ -780,8 +906,12 @@ function createTicket(req: HttpRequest<unknown>): Observable<HttpResponse<unknow
     reopenCount: 0,
     createdAt: new Date().toISOString(),
   };
+  // La nota de asignación no es un campo del ticket: va al historial y al aviso (solo la toma el equipo).
+  const createNote = team ? (parsed.data.assignmentNote?.trim() ?? '') : '';
+  delete (ticket as unknown as Record<string, unknown>)['assignmentNote'];
   db.tickets = [...db.tickets, ticket];
   recordEvent(ticket, { type: 'CREATED', actor: 'customer' });
+  if (assigneeEmail) onAssigned(null, ticket, createNote);
   return ok(present(ticket), 201);
 }
 
@@ -828,8 +958,9 @@ function ticketItem(
       status,
       attendedSince: status === 'assigned' && current.status !== 'assigned' ? new Date().toISOString() : current.attendedSince,
     };
+    delete (updated as unknown as Record<string, unknown>)['assignmentNote'];
     db.tickets = db.tickets.map((t) => (t.uuid === uuid ? updated : t));
-    if (updated.assigneeEmail && updated.assigneeEmail !== current.assigneeEmail) onAssigned(current, updated);
+    if (updated.assigneeEmail && updated.assigneeEmail !== current.assigneeEmail) onAssigned(current, updated, team ? (parsed.data.assignmentNote?.trim() ?? '') : '');
     return ok(present(updated));
   }
   if (req.method === 'DELETE') {
@@ -933,10 +1064,11 @@ function notifyRequester(ticket: TStoredTicket, message: string): void {
   recordEvent(ticket, { type: 'NOTIFIED', actor: 'system', body: message });
 }
 
-function onAssigned(before: TStoredTicket, after: TStoredTicket): void {
+function onAssigned(before: TStoredTicket | null, after: TStoredTicket, note = ''): void {
   const assignee = findUser(after.assigneeEmail);
-  recordEvent(after, { type: 'ASSIGNED', actor: 'staff', assignee: after.assigneeEmail, body: before.assigneeEmail ? `Antes: ${before.assigneeEmail}` : null });
-  if (assignee) notifyUser(assignee.shell.user.uuid, 'TICKET_ASSIGNED', `Te asignaron ${after.code} «${after.title}»`, after);
+  const body = [note, before?.assigneeEmail ? `Antes: ${before.assigneeEmail}` : ''].filter(Boolean).join(' · ');
+  recordEvent(after, { type: 'ASSIGNED', actor: 'staff', assignee: after.assigneeEmail, body: body || null });
+  if (assignee) notifyUser(assignee.shell.user.uuid, 'TICKET_ASSIGNED', `Te asignaron ${after.code} «${after.title}»${note ? `. Nota: ${note}` : ''}`, after);
   notifyRequester(after, `${assignee?.name ?? after.assigneeEmail} atenderá tu solicitud ${after.code}`);
 }
 

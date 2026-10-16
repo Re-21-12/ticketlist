@@ -39,7 +39,7 @@ export class AuthSessionService {
     await this.rateLimit.assertAllowed(rule);
 
     // Cuenta bloqueada: ni siquiera se mira la contraseña. Solo un administrador la desbloquea (CU07, A3).
-    if (this.usersRepository.isLocked(email)) throw this.lockedError();
+    if (this.usersRepository.isLocked(email)) throw this.lockedError(email);
 
     const user = this.usersRepository.verifyCredentials(email, password);
     if (!user) {
@@ -47,12 +47,16 @@ export class AuthSessionService {
       // El intento que alcanza el máximo BLOQUEA la cuenta (si existe) y avisa a los administradores.
       if (this.usersRepository.registerFailedLogin(email, this.env.LOGIN_MAX_ATTEMPTS)) {
         this.notifyAdmins(email);
-        throw this.lockedError();
+        throw this.lockedError(email);
       }
       throw new CustomBusinessException(ERROR_CODES.AUT.INVALID_CREDENTIALS);
     }
     this.usersRepository.clearFailedLogins(user.uuid);
     // Recién DESPUÉS de acertar la contraseña se dice que falta verificar: quien no la sabe no aprende nada.
+    // Una contraseña temporal vencida ya no sirve para entrar: hay que pedir otra a la administración.
+    if (this.usersRepository.passwordChangeState(user.uuid).expired) {
+      throw new CustomBusinessException(ERROR_CODES.AUT.TEMP_PASSWORD_EXPIRED);
+    }
     if (!this.usersRepository.isEmailVerified(user.uuid)) {
       throw new CustomBusinessException(ERROR_CODES.AUT.EMAIL_NOT_VERIFIED);
     }
@@ -81,9 +85,10 @@ export class AuthSessionService {
   }
 
   /** 423 con la información de contacto de la administración (a quién pedirle el desbloqueo). */
-  private lockedError(): CustomBusinessException {
+  private lockedError(email: string): CustomBusinessException {
     const contacts = this.usersRepository.listByRole(EUserRole.ADMIN).map(({ name, email }) => ({ name, email }));
-    return new CustomBusinessException(ERROR_CODES.AUT.ACCOUNT_LOCKED, { contacts });
+    const unlocksAt = this.usersRepository.unlocksAt(email)?.toISOString();
+    return new CustomBusinessException(ERROR_CODES.AUT.ACCOUNT_LOCKED, { contacts, ...(unlocksAt ? { unlocksAt } : {}) });
   }
 
   private notifyAdmins(email: string): void {

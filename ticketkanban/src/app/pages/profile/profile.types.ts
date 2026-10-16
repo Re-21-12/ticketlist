@@ -8,6 +8,7 @@ import type {
   SessionListSchema,
   TotpDisableFormSchema,
   TotpEnableFormSchema,
+  RecoveryCodesSchema,
   TotpSetupSchema,
 } from './profile.schema';
 
@@ -17,6 +18,7 @@ export type TNotification = z.output<typeof NotificationSchema>;
 export type TNotificationList = z.output<typeof NotificationListSchema>;
 export type TChangePasswordForm = z.output<typeof ChangePasswordFormSchema>;
 export type TTotpSetup = z.output<typeof TotpSetupSchema>;
+export type TRecoveryCodes = z.output<typeof RecoveryCodesSchema>;
 export type TTotpEnableForm = z.output<typeof TotpEnableFormSchema>;
 export type TTotpDisableForm = z.output<typeof TotpDisableFormSchema>;
 export type TAvatar = z.output<typeof AvatarSchema>;

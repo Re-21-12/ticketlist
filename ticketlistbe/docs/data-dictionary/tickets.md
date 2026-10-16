@@ -85,6 +85,21 @@ Reglas de métricas y SLA: [metrics.md](../standard/metrics.md).
 
 Cuerpos de seguimiento: `POST /:uuid/transitions` acepta `attachmentIds` (evidencia de la solución, ≤ 5) además de `to`, `note` y `resolution`; `POST /:uuid/survey` exige `resolved` (boolean), `score` (1–5) y `comment` opcional.
 
+### Filtros de `GET /api/tickets` (`TicketFilterSchema`)
+
+| Query | Efecto |
+|---|---|
+| `status` · `priority` · `type` · `category` · `department` | igualdad exacta (enum o código del catálogo) |
+| `mine=true` | solo los que registró quien consulta |
+| `assigned=true` | solo los que tiene asignados quien consulta |
+| `createdFrom` · `createdTo` | rango por **fecha de registro** (`createdAt`), extremos INCLUSIVOS |
+
+`createdFrom`/`createdTo` aceptan `YYYY-MM-DD` o una fecha con hora/desplazamiento; sin hora se
+interpretan en **UTC** (como el período de métricas) y un `createdTo` de solo fecha se lleva al
+**último milisegundo del día**, para que «Hoy» incluya todo el día. `final < inicial` o un rango de
+más de 366 días son 400 `CVAL-E001` (`TCK.DATE_RANGE_ORDER` / `TCK.DATE_RANGE_TOO_LONG`). El
+predicado vive en `ticket-date-range.ts`; sin los dos parámetros no se filtra por fecha.
+
 > Mensaje resultante y `code` de cada regla: [error-catalog.md §4.2](../standard/error-catalog.md).
 
 ## Errores del módulo

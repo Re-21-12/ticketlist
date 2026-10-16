@@ -21,6 +21,7 @@ export const NOTIFICATION_TYPES = [
   'TICKET_SURVEY_ALERT',
   /** Una cuenta se bloqueó por intentos fallidos: aviso a los administradores para desbloquearla. */
   'ACCOUNT_LOCKED',
+  'ACCOUNT_SECURITY',
 ] as const;
 
 export const NotificationResponseSchema = z.object({

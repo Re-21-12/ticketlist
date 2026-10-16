@@ -1,4 +1,5 @@
-import { activeFilterCount, EMPTY_TICKET_FILTERS, filterTickets, serverFilters } from './ticket-filter.util';
+import { describe, expect, it } from 'vitest';
+import { activeFilterCount, dateRangeError, EMPTY_TICKET_FILTERS, filterTickets, serverFilters } from './ticket-filter.util';
 import type { TTicket } from './ticket.types';
 
 const make = (over: Partial<TTicket>): TTicket =>
@@ -19,10 +20,10 @@ const make = (over: Partial<TTicket>): TTicket =>
   }) as TTicket;
 
 const tickets = [
-  make({ code: 'TCK-001' }),
-  make({ code: 'TCK-002', title: 'Nómina no abre', department: 'hr', priority: 'low', category: 'software', assigneeEmail: '', assigneeName: null, ownerUuid: 'me', status: 'new' }),
-  make({ code: 'TCK-003', title: 'Correo caído', department: 'finance', sla: { resolutionStatus: 'breached' } as TTicket['sla'] }),
-  make({ code: 'TCK-004', status: 'closed', sla: { resolutionStatus: 'breached' } as TTicket['sla'] }),
+  make({ code: 'TCK-001', createdAt: new Date('2026-10-03T09:00:00.000Z') }),
+  make({ code: 'TCK-002', title: 'Nómina no abre', department: 'hr', priority: 'low', category: 'software', assigneeEmail: '', assigneeName: null, ownerUuid: 'me', status: 'new', createdAt: new Date('2026-10-01T18:00:00.000Z') }),
+  make({ code: 'TCK-003', title: 'Correo caído', department: 'finance', sla: { resolutionStatus: 'breached' } as TTicket['sla'], createdAt: new Date('2026-10-03T23:59:00.000Z') }),
+  make({ code: 'TCK-004', status: 'closed', sla: { resolutionStatus: 'breached' } as TTicket['sla'], createdAt: new Date('2026-09-28T12:00:00.000Z') }),
 ];
 const me = { uuid: 'me', email: 'victor@ticketit.dev' };
 const codes = (filters: Partial<typeof EMPTY_TICKET_FILTERS>) => filterTickets(tickets, { ...EMPTY_TICKET_FILTERS, ...filters }, me).map((t) => t.code);
@@ -55,6 +56,53 @@ describe('filterTickets', () => {
   it('los criterios se combinan (Y)', () => {
     expect(codes({ department: 'finance', priority: 'high' })).toEqual(['TCK-003']);
     expect(codes({ department: 'hr', priority: 'high' })).toEqual([]);
+  });
+});
+
+/**
+ * El detalle que este filtro tiene que cumplir y que `new Date()` no da solo: un rango de SOLO FECHA
+ * incluye el día COMPLETO, para que «Hoy» no se quede fuera lo registrado hace un minuto (mismo
+ * criterio que `ticket-date-range.ts` del backend, con el extremo final en el último milisegundo).
+ */
+describe('filtro por fecha de registro', () => {
+  it('«Hoy» incluye todo lo del día, hasta el último instante', () => {
+    expect(codes({ createdFrom: '2026-10-03', createdTo: '2026-10-03' })).toEqual(['TCK-001', 'TCK-003']);
+    expect(codes({ createdFrom: '2026-10-01', createdTo: '2026-10-01' })).toEqual(['TCK-002']);
+  });
+
+  it('un rango de varios días: los extremos van dentro y los de afuera no', () => {
+    expect(codes({ createdFrom: '2026-09-28', createdTo: '2026-10-01' })).toEqual(['TCK-002', 'TCK-004']);
+  });
+
+  it('un extremo abierto filtra hacia atrás o hacia adelante', () => {
+    expect(codes({ createdFrom: '2026-10-03' })).toEqual(['TCK-001', 'TCK-003']);
+    expect(codes({ createdTo: '2026-10-01' })).toEqual(['TCK-002', 'TCK-004']);
+  });
+
+  it('se combina con los otros criterios', () => {
+    expect(codes({ department: 'finance', createdFrom: '2026-10-03', createdTo: '2026-10-03' })).toEqual(['TCK-003']);
+    expect(codes({ department: 'hr', createdFrom: '2026-10-03', createdTo: '2026-10-03' })).toEqual([]);
+  });
+
+  it('los dos extremos cuentan como UN criterio activo', () => {
+    expect(activeFilterCount({ ...EMPTY_TICKET_FILTERS, createdFrom: '2026-10-01', createdTo: '2026-10-03' })).toBe(1);
+    expect(activeFilterCount({ ...EMPTY_TICKET_FILTERS, createdFrom: '2026-10-01', department: 'hr' })).toBe(2);
+  });
+
+  it('el rango va al servidor (los dos parámetros)', () => {
+    expect(serverFilters({ ...EMPTY_TICKET_FILTERS, createdFrom: '2026-10-01', createdTo: '2026-10-03' })).toEqual({
+      createdFrom: '2026-10-01',
+      createdTo: '2026-10-03',
+    });
+    expect(serverFilters({ ...EMPTY_TICKET_FILTERS, createdFrom: '2026-10-01', mine: true })).toEqual({ createdFrom: '2026-10-01' });
+  });
+
+  it('avisa antes de consultar si el rango no sirve (final ≥ inicial y ≤ 366 días)', () => {
+    expect(dateRangeError('', '')).toBeNull();
+    expect(dateRangeError('2026-10-01', '')).toBeNull();
+    expect(dateRangeError('2026-10-01', '2026-10-03')).toBeNull();
+    expect(dateRangeError('2026-10-03', '2026-10-01')).toBe('La fecha final no puede ser anterior a la inicial');
+    expect(dateRangeError('2020-01-01', '2026-10-03')).toContain('366');
   });
 });
 

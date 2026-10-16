@@ -36,12 +36,18 @@ export class ResetPasswordDto extends createZodDto(ResetPasswordSchema) {}
 /** Código de 6 dígitos de la app autenticadora. */
 export const TotpCodeSchema = z.string({ error: msg(V.ACCOUNT.CODE_INVALID) }).regex(/^\d{6}$/, { error: msg(V.ACCOUNT.CODE_INVALID) });
 
+/** Código de recuperación de un solo uso: `XXXX-XXXX` (se tolera sin guion, en minúsculas o con espacios). */
+export const RecoveryCodeSchema = z
+  .string({ error: msg(V.ACCOUNT.RECOVERY_CODE_INVALID) })
+  .regex(/^[A-Za-z0-9]{4}[\s-]?[A-Za-z0-9]{4}$/, { error: msg(V.ACCOUNT.RECOVERY_CODE_INVALID) });
+
 /**
  * Recuperar con un SEGUNDO FACTOR en vez del enlace del correo: el código del autenticador (TOTP) o la
  * contraseña actual. En ambos la persona elige la contraseña nueva (el sistema nunca fabrica una).
  */
 export const RecoverPasswordSchema = z.discriminatedUnion('method', [
   z.strictObject({ method: z.literal('totp'), email: EmailSchema, code: TotpCodeSchema, newPassword: StrongPasswordSchema }),
+  z.strictObject({ method: z.literal('recovery_code'), email: EmailSchema, recoveryCode: RecoveryCodeSchema, newPassword: StrongPasswordSchema }),
   z.strictObject({
     method: z.literal('current_password'),
     email: EmailSchema,
@@ -54,10 +60,11 @@ export const RecoverPasswordSchema = z.discriminatedUnion('method', [
  * (la unión discriminada por `method`) sigue siendo la fuente de validación.
  */
 interface IRecoverPasswordBody {
-  method: 'totp' | 'current_password';
+  method: 'totp' | 'recovery_code' | 'current_password';
   email: string;
   newPassword: string;
   code?: string;
+  recoveryCode?: string;
   currentPassword?: string;
 }
 const RecoverPasswordBase = createZodDto(RecoverPasswordSchema) as unknown as {
@@ -77,7 +84,10 @@ export class TotpDisableDto extends createZodDto(TotpDisableSchema) {}
 
 /** Alta del autenticador: el secreto (para escribirlo a mano) y la URL `otpauth://` (para el QR). Se muestra UNA vez. */
 export const TotpSetupSchema = z.object({ secret: z.string(), otpauthUrl: z.string() });
-export const TotpStatusSchema = z.object({ enabled: z.boolean() });
+export const TotpStatusSchema = z.object({ enabled: z.boolean(), recoveryCodesLeft: z.number().int() });
+
+/** Códigos de recuperación recién generados: se muestran UNA vez (en la base solo queda su huella). */
+export const RecoveryCodesSchema = z.object({ recoveryCodes: z.array(z.string()) });
 
 /** Respuesta genérica (anti-enumeración): igual exista o no la cuenta. `devUrl` solo fuera de producción. */
 export const AccountMessageSchema = z.object({

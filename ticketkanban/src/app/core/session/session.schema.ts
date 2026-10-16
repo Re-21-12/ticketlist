@@ -39,6 +39,8 @@ export const ShellSchema = z.object({
     avatarIcon: z.string().nullable(),
     avatarColor: z.string().nullable(),
   }),
+  /** Entró con una contraseña TEMPORAL (la dio un administrador): hay que cambiarla antes de usar nada más. */
+  mustChangePassword: z.boolean().default(false),
   abilityRules: z.array(AbilityRuleSchema),
   menu: z.array(NavItemSchema),
 });

@@ -14,6 +14,8 @@ export const ShellResponseSchema = z.object({
     avatarIcon: z.string().nullable(),
     avatarColor: z.string().nullable(),
   }),
+  /** Entró con una contraseña temporal: el front debe llevar a la pantalla de cambio antes que a cualquier otra. */
+  mustChangePassword: z.boolean().default(false),
   abilityRules: z.array(
     z.object({
       action: z.enum(EAbility),

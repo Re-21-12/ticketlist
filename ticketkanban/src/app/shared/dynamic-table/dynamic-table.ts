@@ -4,12 +4,14 @@ import { SkeletonModule } from '@openng/optimus-ui/skeleton';
 import { TableModule } from '@openng/optimus-ui/table';
 import type { TableLazyLoadEvent } from '@openng/optimus-ui/types/table';
 import type { AppAbility } from '../../core/casl/casl.types';
-import type { ITableConfig, ITablePage, TTableAction, TTableRow } from './dynamic-table.interface';
+import type { IRowActionEvent, ITableConfig, ITablePage, TTableAction, TTableRow } from './dynamic-table.interface';
 import { RowActions } from './row-actions/row-actions';
 import { TableCell } from './table-cell/table-cell';
 import { TableEmptyState } from './table-empty-state/table-empty-state';
 import { TableRowCard } from './table-row-card/table-row-card';
+import { ListExport } from '../export/list-export';
 import { TableToolbar } from './table-toolbar/table-toolbar';
+import { buildExportTable } from './utils/build-export';
 import { resolveRowId } from './utils/cell-format';
 
 let nextTableId = 0;
@@ -25,7 +27,7 @@ let nextTableId = 0;
  */
 @Component({
   selector: 'app-dynamic-table',
-  imports: [TableModule, SkeletonModule, TableToolbar, TableCell, RowActions, TableRowCard, TableEmptyState],
+  imports: [TableModule, SkeletonModule, ListExport, TableToolbar, TableCell, RowActions, TableRowCard, TableEmptyState],
   templateUrl: './dynamic-table.html',
   styleUrl: './dynamic-table.css',
 })
@@ -40,6 +42,8 @@ export class DynamicTable {
   readonly $take = input(10);
   readonly $loading = input(false);
   readonly $busy = input(false);
+  /** Trae TODAS las filas para exportar (si no, se exporta la página visible). */
+  readonly $exportFetch = input<(() => Promise<TTableRow[]>) | null>(null);
 
   readonly $pageChange = output<ITablePage>();
   readonly $searchChange = output<string>();
@@ -48,6 +52,8 @@ export class DynamicTable {
   readonly $view = output<TTableRow>();
   readonly $edit = output<TTableRow>();
   readonly $delete = output<TTableRow>();
+  /** Una acción propia de la pantalla sobre una fila (`config.rowActions`). */
+  readonly $rowAction = output<IRowActionEvent>();
 
   protected readonly $canCreate = computed(
     () => this.$config().creatable !== false && this._abilityService.can('create', this.$config().subject),
@@ -62,6 +68,14 @@ export class DynamicTable {
   /** # + columnas + acciones (colspan del estado vacío y de la card mobile). */
   protected readonly $colspan = computed(() => this.$config().columns.length + 2);
   protected readonly $skeletonRows = computed(() => Array.from({ length: Math.min(this.$take(), 5) }, (_, i) => i));
+
+  /** Arma el reporte con las MISMAS columnas y textos que la grilla; con `$exportFetch` trae el total, no solo la página. */
+  protected readonly exportSource = async () => {
+    const fetch = this.$exportFetch();
+    const rows = fetch ? await fetch() : this.$rows();
+    const config = this.$config();
+    return buildExportTable(config.caption, config.columns, rows);
+  };
 
   protected rowLabel(row: TTableRow): string {
     return String(row[this.$config().rowLabelField ?? 'code'] ?? row['code'] ?? row[this.$rowIdField()] ?? '');

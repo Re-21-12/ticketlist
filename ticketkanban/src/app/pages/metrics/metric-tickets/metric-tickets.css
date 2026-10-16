@@ -3,6 +3,7 @@
   font-size: 0.875rem;
   color: var(--app-text-muted);
 }
+/* Scroll en los dos ejes; el tope de alto lo pone `app-scroll-panel` en el HTML. */
 .mt-scroll {
   overflow-x: auto;
 }
@@ -41,4 +42,9 @@
 .mt-num {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+.mt-export {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--app-space-2);
 }

@@ -104,6 +104,7 @@ export class AccountRecoveryService {
   async recoverPassword(
     dto:
       | { method: 'totp'; email: string; code: string; newPassword: string }
+      | { method: 'recovery_code'; email: string; recoveryCode: string; newPassword: string }
       | { method: 'current_password'; email: string; currentPassword: string; newPassword: string },
     req: Request,
   ): Promise<void> {
@@ -119,6 +120,9 @@ export class AccountRecoveryService {
     }
     if (dto.method === 'totp') {
       verified = !!user && this.usersRepository.consumeTotp(user.uuid, dto.code, Date.now());
+    } else if (dto.method === 'recovery_code') {
+      // Un código de recuperación sirve UNA vez (se consume al usarlo).
+      verified = !!user && this.usersRepository.consumeRecoveryCode(user.uuid, dto.recoveryCode);
     } else {
       // `verifyCredentials` gasta el mismo tiempo exista o no la cuenta.
       verified = !!this.usersRepository.verifyCredentials(dto.email, dto.currentPassword);

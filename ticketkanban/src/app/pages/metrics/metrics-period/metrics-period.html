@@ -4,7 +4,7 @@
       <button
         type="button"
         pButton
-        size="small"
+        class="mp-control"
         [severity]="_store.$presetDays() === preset.days ? 'primary' : 'secondary'"
         [outlined]="_store.$presetDays() !== preset.days"
         [attr.aria-pressed]="_store.$presetDays() === preset.days"
@@ -18,13 +18,41 @@
   <form class="mp-range" (submit)="$event.preventDefault(); apply()">
     <div class="mp-field">
       <label class="mp-label" for="mp-from">Desde</label>
-      <input id="mp-from" type="date" class="mp-date" [value]="$from()" [max]="$to()" (input)="$from.set(value($event))" />
+      <p-datepicker
+        inputId="mp-from"
+        styleClass="mp-control"
+        inputStyleClass="mp-date"
+        [ngModel]="$from()"
+        [ngModelOptions]="{ standalone: true }"
+        (ngModelChange)="$from.set($event)"
+        dateFormat="dd/mm/yy"
+        [showIcon]="true"
+        iconDisplay="input"
+        [showButtonBar]="true"
+        [readonlyInput]="true"
+        [maxDate]="$maxFrom()"
+        appendTo="body"
+      />
     </div>
     <div class="mp-field">
       <label class="mp-label" for="mp-to">Hasta</label>
-      <input id="mp-to" type="date" class="mp-date" [value]="$to()" [min]="$from()" (input)="$to.set(value($event))" />
+      <p-datepicker
+        inputId="mp-to"
+        styleClass="mp-control"
+        inputStyleClass="mp-date"
+        [ngModel]="$to()"
+        [ngModelOptions]="{ standalone: true }"
+        (ngModelChange)="$to.set($event)"
+        dateFormat="dd/mm/yy"
+        [showIcon]="true"
+        iconDisplay="input"
+        [showButtonBar]="true"
+        [readonlyInput]="true"
+        [minDate]="$minTo()"
+        appendTo="body"
+      />
     </div>
-    <button type="submit" pButton size="small" severity="secondary" [outlined]="true" [disabled]="!$dirty()">
+    <button type="submit" pButton class="mp-control" severity="secondary" [outlined]="true" [disabled]="!$dirty()">
       <i pButtonIcon class="pi pi-calendar" aria-hidden="true"></i>
       <span pButtonLabel>Aplicar rango</span>
     </button>

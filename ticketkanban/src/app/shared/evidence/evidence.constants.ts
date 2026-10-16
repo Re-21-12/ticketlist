@@ -38,6 +38,17 @@ export const EVIDENCE_ACCEPT = Object.keys(KIND_BY_EXTENSION)
 
 export const EVIDENCE_TYPES_TEXT = 'Imágenes, PDF, Excel, CSV, texto y videos cortos (MP4, MOV, WebM)';
 
+/**
+ * Tipo MIME de cada familia. Solo se usa cuando el navegador NO lo reporta (`file.type === ''`),
+ * que pasa con algunas extensiones antiguas: el visor decide el formato por el MIME, así que sin
+ * este respaldo un `.csv` sin tipo caería en «no se puede mostrar».
+ */
+export const EVIDENCE_MIME_BY_KIND: Record<TAttachmentKind, string> = {
+  image: 'image/*',
+  document: 'application/octet-stream',
+  video: 'video/*',
+};
+
 export const kindOfExtension = (extension: string): TAttachmentKind | null => KIND_BY_EXTENSION[extension.toLowerCase()] ?? null;
 
 /** Ícono y nombre de cada familia (el texto acompaña siempre al ícono). */

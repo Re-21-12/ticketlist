@@ -1,3 +1,4 @@
+import { AllowPasswordChangePending } from './session/allow-password-change-pending.decorator.js';
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Req } from '@nestjs/common';
 import { ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -13,6 +14,7 @@ import { RateLimit } from '../../core/rate-limit/rate-limit.decorator.js';
 import {
   TotpDisableDto,
   TotpDisableSchema,
+  RecoveryCodesSchema,
   TotpEnableDto,
   TotpEnableSchema,
   TotpSetupSchema,
@@ -39,6 +41,7 @@ export class AccountSecurityController {
   ) {}
 
   @Patch('password')
+  @AllowPasswordChangePending()
   @HttpCode(HttpStatus.NO_CONTENT)
   // Por IP además del límite por cuenta del servicio: frena una ráfaga repartida entre cuentas.
   @RateLimit({ limit: 20, windowSeconds: 900 })
@@ -70,15 +73,27 @@ export class AccountSecurityController {
   }
 
   @Post('totp/enable')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @RateLimit({ limit: 20, windowSeconds: 900 })
   @ApiZodBody(TotpEnableSchema)
-  @ApiResponse({ status: 204, description: 'Autenticador activado' })
+  @ApiZodResponse(200, RecoveryCodesSchema, 'Autenticador activado; trae los códigos de recuperación (se muestran UNA vez)')
   @ApiProblemResponse(409, 'SAUT-E012 · No hay una configuración en curso')
   @ApiProblemResponse(422, 'SAUT-E011 · El código no es correcto')
   @ApiProblemResponse(429, 'SRTL-E001 · Demasiados intentos fallidos')
-  async enableTotp(@Body() dto: TotpEnableDto): Promise<void> {
-    await this.security.enableTotp(this.me(), dto.code);
+  enableTotp(@Body() dto: TotpEnableDto): Promise<{ recoveryCodes: string[] }> {
+    return this.security.enableTotp(this.me(), dto.code);
+  }
+
+  @Post('totp/recovery-codes')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 20, windowSeconds: 900 })
+  @ApiZodBody(TotpDisableSchema)
+  @ApiZodResponse(200, RecoveryCodesSchema, 'Códigos NUEVOS de un solo uso; los anteriores dejan de valer')
+  @ApiProblemResponse(409, 'SAUT-E017 · El autenticador no está activado')
+  @ApiProblemResponse(422, 'SAUT-E006 · La contraseña actual no es correcta')
+  @ApiProblemResponse(429, 'SRTL-E001 · Demasiados intentos fallidos')
+  regenerateRecoveryCodes(@Body() dto: TotpDisableDto): Promise<{ recoveryCodes: string[] }> {
+    return this.security.regenerateRecoveryCodes(this.me(), dto.currentPassword);
   }
 
   @Post('totp/disable')

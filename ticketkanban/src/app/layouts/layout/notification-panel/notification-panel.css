@@ -26,6 +26,9 @@
   font-size: 0.75rem;
   font-weight: 600;
 }
+/* Tope de alto y scroll con el scroll tematizado de `styles.css`: el popover muestra 5 avisos y nunca
+   crece con ellos. Su alto propio es más corto que el de una tarjeta (`.app-scroll-list`): son filas
+   de dos líneas, no fichas. */
 .np-list {
   display: flex;
   flex-direction: column;
@@ -33,6 +36,7 @@
   margin: 0;
   padding: 0.25rem 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
 }
 .np-item {

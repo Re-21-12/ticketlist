@@ -5,12 +5,13 @@ import { MessageModule } from '@openng/optimus-ui/message';
 import { firstValueFrom } from 'rxjs';
 import { readProblem } from '../../../core/interfaces/problem-details.interface';
 import { DynamicForm } from '../../../shared/dynamic-form/dynamic-form';
-import { FORGOT_PASSWORD_FORM, RECOVER_PASSWORD_FORM, RECOVER_TOTP_FORM } from '../auth-forms.config';
+import { FORGOT_PASSWORD_FORM, RECOVER_CODE_FORM, RECOVER_PASSWORD_FORM, RECOVER_TOTP_FORM } from '../auth-forms.config';
 import { AuthService } from '../auth.service';
 import type {
   TAccountMessage,
   TForgotPasswordForm,
   TRecoverWithPasswordForm,
+  TRecoverWithRecoveryCodeForm,
   TRecoverWithTotpForm,
   TRecoveryMethod,
 } from '../auth.types';
@@ -38,6 +39,12 @@ const OPTIONS: readonly IRecoveryOption[] = [
     lead: 'Usa el código de 6 dígitos de tu app autenticadora (TOTP) y elige una contraseña nueva. Solo si ya activaste el autenticador en Mi perfil → Seguridad.',
   },
   {
+    method: 'recovery_code',
+    label: 'Código de recuperación',
+    icon: 'pi-ticket',
+    lead: 'Si perdiste tu teléfono, usa uno de los 10 códigos de recuperación que guardaste al activar el autenticador. Cada código sirve una sola vez.',
+  },
+  {
     method: 'current_password',
     label: 'Contraseña actual',
     icon: 'pi-key',
@@ -60,7 +67,7 @@ export class ForgotPassword {
   private readonly _authService = inject(AuthService);
 
   protected readonly options = OPTIONS;
-  protected readonly forms = { email: FORGOT_PASSWORD_FORM, totp: RECOVER_TOTP_FORM, current_password: RECOVER_PASSWORD_FORM };
+  protected readonly forms = { email: FORGOT_PASSWORD_FORM, totp: RECOVER_TOTP_FORM, recovery_code: RECOVER_CODE_FORM, current_password: RECOVER_PASSWORD_FORM };
   protected readonly $method = signal<TRecoveryMethod>('email');
   protected readonly $lead = computed(() => OPTIONS.find((option) => option.method === this.$method())?.lead ?? '');
   protected readonly $submitting = signal(false);
@@ -87,6 +94,10 @@ export class ForgotPassword {
 
   protected onRecoverTotp(value: TRecoverWithTotpForm): Promise<void> {
     return this.recover({ method: 'totp', email: value.email, code: value.code, newPassword: value.newPassword });
+  }
+
+  protected onRecoverCode(value: TRecoverWithRecoveryCodeForm): Promise<void> {
+    return this.recover({ method: 'recovery_code', email: value.email, recoveryCode: value.recoveryCode, newPassword: value.newPassword });
   }
 
   protected onRecoverPassword(value: TRecoverWithPasswordForm): Promise<void> {

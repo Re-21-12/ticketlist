@@ -11,18 +11,42 @@
   gap: 0.375rem;
   max-width: 18rem;
 }
+/* La miniatura es un BOTÓN: abre el visor de solo lectura (teclado y lector de pantalla), igual que
+   el de la imagen. Los estilos de botón se neutralizan para que se vea como la imagen de antes. */
 .al-thumb {
   display: block;
   overflow: hidden;
+  padding: 0;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius);
   background: var(--app-surface-muted);
+  color: var(--app-text-muted);
+  cursor: pointer;
+  transition: border-color var(--app-motion-fast, 150ms);
+}
+.al-thumb:hover {
+  border-color: var(--app-primary);
 }
 .al-thumb img {
   display: block;
   width: 100%;
   max-height: 11rem;
   object-fit: cover;
+}
+/* Un documento no tiene miniatura: se muestra su ícono, el nombre de la familia y «Ver», para que
+   quede claro que la ficha SÍ se puede mirar y no hay que descargarla. */
+.al-thumb--doc {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--app-space-2);
+  min-height: 5.5rem;
+  padding: var(--app-space-3);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.al-thumb--doc > i {
+  font-size: 1.5rem;
 }
 .al-video {
   width: 100%;

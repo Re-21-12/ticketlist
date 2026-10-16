@@ -121,7 +121,7 @@ Reglas de negocio y autorización por registro (`BaseService.assertCan`) o por t
 | `SAUT-E001` | 403 | `ERROR_CODES.AUT.FORBIDDEN` | No tienes permisos suficientes para esto | You don't have enough permissions for this |
 | `SAUT-E002` | 401 | `ERROR_CODES.AUT.UNAUTHENTICATED` | Necesitas iniciar sesión | You need to sign in |
 | `SAUT-E003` | 403 | `ERROR_CODES.AUT.CSRF_MISMATCH` | Token CSRF inválido o ausente | Invalid or missing CSRF token |
-| `SAUT-E004` | 401 | `ERROR_CODES.AUT.INVALID_CREDENTIALS` | Credenciales inválidas | Invalid credentials |
+| `SAUT-E004` | 401 | `ERROR_CODES.AUT.INVALID_CREDENTIALS` | Correo electrónico o contraseña incorrectos | Incorrect email or password |
 | `SAUT-E005` | 401 | `ERROR_CODES.AUT.SESSION_EXPIRED` | Tu sesión expiró, vuelve a iniciar sesión | Your session expired, sign in again |
 | `SAUT-E006` | 422 | `ERROR_CODES.AUT.CURRENT_PASSWORD_INVALID` | La contraseña actual no es correcta | The current password is not correct |
 | `SAUT-E007` | 422 | `ERROR_CODES.AUT.PASSWORD_UNCHANGED` | La nueva contraseña debe ser distinta de la actual | The new password must be different from the current one |
@@ -130,7 +130,10 @@ Reglas de negocio y autorización por registro (`BaseService.assertCan`) o por t
 | `SAUT-E010` | 401 | `ERROR_CODES.AUT.RECOVERY_INVALID` | Los datos de verificación no son correctos | The verification data is not correct |
 | `SAUT-E011` | 422 | `ERROR_CODES.AUT.TOTP_CODE_INVALID` | El código del autenticador no es correcto | The authenticator code is not correct |
 | `SAUT-E012` | 409 | `ERROR_CODES.AUT.TOTP_NOT_PENDING` | No hay una configuración del autenticador en curso | There is no authenticator setup in progress |
-| `SAUT-E014` | 423 | `ERROR_CODES.AUT.ACCOUNT_LOCKED` | Tu cuenta está bloqueada por demasiados intentos fallidos. Comunícate con un administrador para desbloquearla | Your account is locked after too many failed attempts. Contact an administrator to unlock it |
+| `SAUT-E014` | 423 | `ERROR_CODES.AUT.ACCOUNT_LOCKED` | Tu cuenta está bloqueada por demasiados intentos fallidos. Se desbloquea sola a los 15 minutos o un administrador puede desbloquearla antes | Your account is locked after too many failed attempts. It unlocks by itself after 15 minutes, or an administrator can unlock it sooner |
+| `SAUT-E015` | 403 | `ERROR_CODES.AUT.PASSWORD_CHANGE_REQUIRED` | Debes cambiar tu contraseña temporal antes de continuar | You must change your temporary password before continuing |
+| `SAUT-E016` | 401 | `ERROR_CODES.AUT.TEMP_PASSWORD_EXPIRED` | La contraseña temporal venció. Pide a un administrador una nueva | The temporary password expired. Ask an administrator for a new one |
+| `SAUT-E017` | 409 | `ERROR_CODES.AUT.TOTP_NOT_ENABLED` | El autenticador no está activado | The authenticator is not enabled |
 | `SAUT-E013` | 409 | `ERROR_CODES.AUT.TOTP_ALREADY_ENABLED` | El autenticador ya está activado | The authenticator is already enabled |
 | `SUSR-E001` | 409 | `ERROR_CODES.USR.EMAIL_TAKEN` | Ya existe una cuenta con ese correo | An account with that email already exists |
 | `SUSR-E002` | 404 | `ERROR_CODES.USR.NOT_FOUND` | Usuario no encontrado | User not found |
@@ -197,11 +200,13 @@ Errores no mapeados. `NEST-E<status>` lo genera el filtro para `HttpException` d
 | `VALIDATION_ERRORS.PAGINATION.MAX_TAKE` | `max` | Máximo {max} registros por página | At most {max} records per page |
 | `VALIDATION_ERRORS.TICKET.OTHER_CATEGORY_DETAIL_REQUIRED` | — | Describe la categoría | Describe the category |
 | `VALIDATION_ERRORS.TICKET.RESOLUTION_REQUIRED` | — | Documenta la solución para poder resolver el ticket | Document the solution to resolve the ticket |
+| `VALIDATION_ERRORS.TICKET.REOPEN_REASON_REQUIRED` | — | Cuéntanos por qué el problema continúa para poder reabrir el ticket | Tell us why the problem continues to reopen the ticket |
 | `VALIDATION_ERRORS.TICKET.SURVEY_SCORE` | — | Elige una calificación de 1 a 5 | Choose a rating from 1 to 5 |
 | `VALIDATION_ERRORS.PASSWORD.CURRENT_REQUIRED` | — | Ingresa tu contraseña actual | Enter your current password |
 | `VALIDATION_ERRORS.PASSWORD.MISSING` | `missing` | Agrega: {missing} | Add: {missing} |
 | `VALIDATION_ERRORS.ACCOUNT.TOKEN_REQUIRED` | — | El enlace no es válido | The link is not valid |
 | `VALIDATION_ERRORS.ACCOUNT.CODE_INVALID` | — | Escribe el código de 6 dígitos de tu autenticador | Enter the 6-digit code from your authenticator |
+| `VALIDATION_ERRORS.ACCOUNT.RECOVERY_CODE_INVALID` | — | Escribe un código de recuperación con el formato XXXX-XXXX | Enter a recovery code in the XXXX-XXXX format |
 | `VALIDATION_ERRORS.RELATIONSHIP.GRANTS_REQUIRED` | — | Indica al menos un recurso a compartir | Specify at least one resource to share |
 | `VALIDATION_ERRORS.RELATIONSHIP.CONSENT_REQUIRED` | — | Debes aceptar el consentimiento para compartir tus datos | You must accept the consent to share your data |
 | `VALIDATION_ERRORS.ADMIN.INVALID_KEY` | — | Usa solo minúsculas, números y guiones (empieza con una letra) | Use only lowercase letters, numbers and hyphens (start with a letter) |
@@ -210,6 +215,8 @@ Errores no mapeados. `NEST-E<status>` lo genera el filtro para `HttpException` d
 | `VALIDATION_ERRORS.ADMIN.INVALID_CODE` | — | Usa solo mayúsculas, números y guion bajo (empieza con una letra) | Use only uppercase letters, numbers and underscores (start with a letter) |
 | `VALIDATION_ERRORS.METRICS.PERIOD_ORDER` | — | La fecha final no puede ser anterior a la inicial | The end date cannot be before the start date |
 | `VALIDATION_ERRORS.METRICS.PERIOD_TOO_LONG` | `max` | El período no puede superar {max} días | The period cannot exceed {max} days |
+| `VALIDATION_ERRORS.TCK.DATE_RANGE_ORDER` | — | La fecha final del filtro no puede ser anterior a la inicial | The filter end date cannot be before the start date |
+| `VALIDATION_ERRORS.TCK.DATE_RANGE_TOO_LONG` | `max` | El filtro no puede abarcar más de {max} días | The filter cannot span more than {max} days |
 | `VALIDATION_ERRORS.JOB.CRON_INVALID` | — | La expresión cron no es válida: usa 5 campos (minuto hora día mes día-de-la-semana), por ejemplo */10 * * * * | The cron expression is not valid: use 5 fields (minute hour day month weekday), for example */10 * * * * |
 <!-- error-catalog:generated:end -->
 
@@ -249,6 +256,7 @@ Schema: `src/modules/tickets/schemas/ticket.schema.ts` (`TicketCreateSchema` / `
 | `body` | `.max(2000)` | `too_big` | `GENERIC.MAX_LENGTH` `{field: 'El comentario', max: 2000}` | El comentario no debe superar 2000 caracteres |
 | `to` | `enum(TICKET_STATUS)` | `invalid_value` | `GENERIC.REQUIRED_SELECTION` `{field: 'un estado'}` | Selecciona un estado |
 | `resolution` | refine: obligatoria (≥ 3 caracteres) si `to = 'resolved'` | `custom` | `TICKET.RESOLUTION_REQUIRED` | Documenta la solución para poder resolver el ticket |
+| `note` | refine: obligatoria (≥ 3 caracteres) si `to = 'reopened'` | `custom` | `TICKET.REOPEN_REASON_REQUIRED` | Cuéntanos por qué el problema continúa para poder reabrir el ticket |
 | `resolved` | `boolean()` (obligatorio) | `invalid_type` | `GENERIC.REQUIRED_SELECTION` `{field: 'si se resolvió el problema'}` | Selecciona si se resolvió el problema |
 | `score` | `number().int().min(1).max(5)` (tipo) | `invalid_type` | `TICKET.SURVEY_SCORE` | Elige una calificación de 1 a 5 |
 | `score` | `number().int().min(1).max(5)` (límite) | `too_big` | `TICKET.SURVEY_SCORE` | Elige una calificación de 1 a 5 |
@@ -279,6 +287,13 @@ Schema: `src/modules/jobs/jobs.schema.ts` (`JobUpdateSchema`).
 | `search` | `string().trim().max(100)` | `too_big` | — | — |
 | `sortOrder` | `enum(['ASC','DESC'])` | `invalid_value` | — | — |
 | `status` / `priority` | enums del contrato (opcionales) | `invalid_value` | — | — |
+| `createdFrom` / `createdTo` | `union([iso.datetime({offset}), iso.date()])` (opcionales) | `invalid_format` | `GENERIC.IS_DATE` | Fecha inválida |
+| `createdTo` | refine: no anterior a `createdFrom` | `custom` | `TCK.DATE_RANGE_ORDER` | La fecha final del filtro no puede ser anterior a la inicial |
+| `createdTo` | refine: rango ≤ 366 días | `custom` | `TCK.DATE_RANGE_TOO_LONG` `{max: 366}` | El filtro no puede abarcar más de 366 días |
+
+`createdFrom`/`createdTo` filtra por **fecha de registro** (`createdAt`), ambos extremos INCLUSIVOS y
+un `createdTo` de solo fecha llega al último milisegundo del día (`ticket-date-range.ts`), para que
+«Hoy» incluya todo el día. Sin los dos, el listado no filtra por fecha.
 
 #### `UuidParamDto` (`:uuid` en rutas)
 
@@ -371,6 +386,7 @@ La validación del DTO corre ANTES del servicio: una contraseña débil devuelve
 | Campo | Regla (Zod) | `code` | Clave del catálogo | Mensaje resultante |
 |---|---|---|---|---|
 | `code` | `regex(/^\d{6}$/)` (solo `method = totp`) | `invalid_format` | `ACCOUNT.CODE_INVALID` | Escribe el código de 6 dígitos de tu autenticador |
+| `recoveryCode` | `regex(/^[A-Za-z0-9]{4}[\s-]?[A-Za-z0-9]{4}$/)` (solo `method = recovery_code`) | `invalid_format` | `ACCOUNT.RECOVERY_CODE_INVALID` | Escribe un código de recuperación con el formato XXXX-XXXX |
 | `currentPassword` | `min(1)` (solo `method = current_password`) | `too_small` | `PASSWORD.CURRENT_REQUIRED` | Ingresa tu contraseña actual |
 | `newPassword` | `min(8)` · `max(128)` · complejidad | `too_small` · `too_big` · `custom` | las mismas tres claves de `SignUpDto.password` | (ver `SignUpDto`) |
 
@@ -401,7 +417,10 @@ La validación del DTO corre ANTES del servicio: una contraseña débil devuelve
 | `STCK-E007` | `TicketsService.toEntity` · `mergeEntity` | El `department` no es un elemento ACTIVO del catálogo `ticket-department` (se revalida solo si cambia) |
 | `SAUT-E009` | `AccountRecoveryService.verifyEmail` · `resetPassword` | El token no existe, ya se usó o venció (24 h verificación, 45 min restablecer) |
 | `SAUT-E010` | `AccountRecoveryService.recoverPassword` | Código TOTP o contraseña actual incorrectos, cuenta inexistente o sin autenticador: MISMA respuesta en todos (anti-enumeración) |
-| `SAUT-E014` | `AuthSessionService.signIn` | Cuenta bloqueada tras `LOGIN_MAX_ATTEMPTS` (5) intentos fallidos seguidos: 423 con `context.contacts` (nombre y correo de los administradores). Solo un administrador la desbloquea |
+| `SAUT-E014` | `AuthSessionService.signIn` | Cuenta bloqueada tras `LOGIN_MAX_ATTEMPTS` (5) intentos fallidos seguidos: 423 con `context.contacts` (nombre y correo de los administradores) y `context.unlocksAt`. Se desbloquea sola a los `LOGIN_LOCK_MINUTES` (15) o antes por un administrador |
+| `SAUT-E015` | `SessionAuthGuard` | Hay una contraseña TEMPORAL (entregada por un administrador) pendiente de cambio: solo el shell, `PATCH /api/auth/password` y el cierre de sesión (`@AllowPasswordChangePending()`) responden; todo lo demás 403 |
+| `SAUT-E016` | `AuthSessionService.signIn`, `SessionAuthGuard` | La contraseña temporal (72 h) venció: ya no sirve para entrar y hay que pedir otra a la administración (la sesión abierta se destruye) |
+| `SAUT-E017` | `AccountSecurityService.regenerateRecoveryCodes` | Se pidieron códigos de recuperación sin tener el autenticador activo |
 | `SAUT-E011` | `AccountSecurityService.enableTotp` | El código con que se confirma el alta del autenticador no coincide |
 | `SAUT-E012` | `AccountSecurityService.enableTotp` | Se confirma sin haber pedido antes `totp/setup` |
 | `SAUT-E013` | `AccountSecurityService.setupTotp` | El autenticador ya está activado |

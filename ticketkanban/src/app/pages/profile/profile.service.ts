@@ -6,10 +6,11 @@ import {
   NotificationListSchema,
   NotificationSchema,
   SessionListSchema,
+  RecoveryCodesSchema,
   TotpSetupSchema,
   TotpStatusSchema,
 } from './profile.schema';
-import type { IChangePasswordRequest, TAvatar, TNotification, TTotpSetup } from './profile.types';
+import type { IChangePasswordRequest, TAvatar, TNotification, TRecoveryCodes, TTotpSetup } from './profile.types';
 
 /**
  * Acceso HTTP de «Mi perfil»: SOLO transporte + validación Zod de la respuesta. El estado de pantalla
@@ -35,8 +36,14 @@ export class ProfileService {
     return this._http.post<unknown>('/api/auth/totp/setup', null).pipe(map((raw) => TotpSetupSchema.parse(raw)));
   }
 
-  enableTotp(code: string): Observable<void> {
-    return this._http.post<void>('/api/auth/totp/enable', { code });
+  /** Confirma el alta con un código; responde los códigos de recuperación (se muestran UNA vez). */
+  enableTotp(code: string): Observable<TRecoveryCodes> {
+    return this._http.post<unknown>('/api/auth/totp/enable', { code }).pipe(map((raw) => RecoveryCodesSchema.parse(raw)));
+  }
+
+  /** Códigos NUEVOS (los anteriores dejan de valer); exige la contraseña actual. */
+  regenerateRecoveryCodes(currentPassword: string): Observable<TRecoveryCodes> {
+    return this._http.post<unknown>('/api/auth/totp/recovery-codes', { currentPassword }).pipe(map((raw) => RecoveryCodesSchema.parse(raw)));
   }
 
   disableTotp(currentPassword: string): Observable<void> {

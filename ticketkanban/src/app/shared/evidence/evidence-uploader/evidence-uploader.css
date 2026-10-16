@@ -1,10 +1,10 @@
 .ev {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--app-space-2);
 }
 .ev-head {
   display: grid;
-  gap: 0.125rem;
+  gap: var(--app-space-1);
 }
 .ev-title {
   font-size: 0.875rem;
@@ -18,10 +18,85 @@
   font-size: 0.8125rem;
   color: var(--app-text-muted);
 }
+
+/* ── Zona de arrastrar y soltar (patrón de wallet-api) ───────────────────────────────────────────
+   Zona completa pulsable con límite visual claro (borde discontinuo), estados de hover y de
+   arrastre que resaltan borde y fondo, y los formatos/topes dentro. El botón es real (teclado y
+   lector de pantalla); el input oculto es quien recibe los archivos. */
+.ev-dropzone-wrap {
+  border-radius: var(--app-radius);
+  transition:
+    border-color var(--app-motion-fast, 150ms),
+    background-color var(--app-motion-fast, 150ms);
+}
+.ev-dropzone-wrap--over .ev-dropzone {
+  border-color: var(--app-primary);
+  background: color-mix(in srgb, var(--app-primary) 8%, transparent);
+}
+.ev-dropzone-wrap--disabled .ev-dropzone {
+  cursor: not-allowed;
+}
+.ev-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.ev-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--app-space-2);
+  width: 100%;
+  padding: var(--app-space-6) var(--app-space-4);
+  border: 2px dashed var(--app-border);
+  border-radius: var(--app-radius);
+  background: transparent;
+  color: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--app-motion-fast, 150ms),
+    background-color var(--app-motion-fast, 150ms);
+}
+.ev-dropzone:hover:not(:disabled) {
+  border-color: var(--app-primary);
+  background: color-mix(in srgb, var(--app-primary) 8%, transparent);
+}
+.ev-dropzone-icon {
+  font-size: 2rem;
+  color: var(--app-text-muted);
+  transition: color var(--app-motion-fast, 150ms);
+}
+.ev-dropzone:hover:not(:disabled) .ev-dropzone-icon,
+.ev-dropzone-wrap--over .ev-dropzone-icon {
+  color: var(--app-primary);
+}
+.ev-dropzone-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+}
+.ev-dropzone-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--app-text);
+}
+.ev-dropzone-sub {
+  max-width: 44ch;
+  font-size: 0.75rem;
+  color: var(--app-text-muted);
+}
+
+/* ── Fichas de archivo ──────────────────────────────────────────────────────────────────────────
+   El archivo elegido o subido se colapsa en una ficha aparte de la zona (ícono + nombre +
+   tamaño + acción SIEMPRE en línea, nunca debajo del texto). */
 .ev-list,
 .ev-errors {
   display: grid;
-  gap: 0.375rem;
+  gap: var(--app-space-1);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -30,15 +105,28 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.5rem 0.375rem 0.75rem;
+  gap: var(--app-space-2);
+  padding: var(--app-space-1) var(--app-space-2) var(--app-space-1) var(--app-space-3);
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius);
   background: var(--app-surface-muted);
   font-size: 0.875rem;
 }
-.ev-chip > i {
+.ev-peek {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   color: var(--app-primary);
+  cursor: pointer;
+}
+.ev-peek:hover {
+  background: var(--app-surface);
 }
 .ev-name {
   min-width: 0;
@@ -49,58 +137,37 @@
   font-size: 0.8125rem;
   color: var(--app-text-muted);
 }
-.ev-remove {
+.ev-badge {
   display: inline-flex;
   align-items: center;
+  gap: var(--app-space-1);
+  padding: 0 var(--app-space-2);
+  border-radius: 999px;
+  background: var(--app-surface);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--app-text-muted);
+}
+.ev-remove {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
   justify-content: center;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
   margin-left: auto;
   border: 0;
-  border-radius: 0.5rem;
+  border-radius: 50%;
   background: transparent;
   color: var(--app-text-muted);
   cursor: pointer;
+  transition:
+    background-color var(--app-motion-fast, 150ms),
+    color var(--app-motion-fast, 150ms);
 }
 .ev-remove:hover {
-  background: var(--app-surface);
+  background: color-mix(in srgb, var(--app-danger) 12%, transparent);
   color: var(--app-danger);
-}
-.ev-pick {
-  position: relative;
-}
-.ev-input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-.ev-add {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 2.75rem;
-  padding: 0 1rem;
-  border: 1px dashed var(--app-border);
-  border-radius: var(--app-radius);
-  background: var(--app-surface);
-  color: var(--app-text);
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.ev-add:hover {
-  border-color: var(--app-primary);
-}
-/* El foco está en el input oculto: se dibuja en la etiqueta que hace de botón. */
-.ev-input:focus-visible + .ev-add {
-  outline: 2px solid var(--app-focus-ring);
-  outline-offset: 2px;
-}
-.ev-pick--disabled .ev-add {
-  cursor: not-allowed;
-  opacity: 0.6;
 }
 .ev-errors {
   font-size: 0.8125rem;

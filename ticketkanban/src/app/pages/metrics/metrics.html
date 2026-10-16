@@ -36,7 +36,10 @@
 
 <!-- ── Colaboradores ──────────────────────────────────────────────────────────────────────── -->
 <section class="mx-section" aria-labelledby="mx-agents-title">
-  <h2 id="mx-agents-title" class="mx-h2">Desempeño por colaborador</h2>
+  <div class="mx-head">
+    <h2 id="mx-agents-title" class="mx-h2">Desempeño por colaborador</h2>
+    <app-list-export [$table]="$agentExport()" [$label]="'Exportar reporte'" />
+  </div>
   <p class="mx-muted">
     Se muestra siempre con el tamaño de la muestra: con pocos tickets, un porcentaje no sirve para comparar. Úsalo
     para coaching, no como ranking.
@@ -53,8 +56,8 @@
       @if ($agentRows().length === 0) {
         <p class="mx-muted" role="status">Todavía no hay colaboradores con tickets asignados.</p>
       } @else {
-        <div class="mx-scroll" role="region" aria-label="Desempeño por colaborador" tabindex="0">
-          <table class="mx-table">
+        <div class="mx-scroll app-scroll-panel" role="region" aria-label="Desempeño por colaborador" tabindex="0">
+          <table class="mx-table app-zebra">
             <caption class="sr-only">
               Indicadores de cada colaborador en el período, con el tamaño de la muestra entre paréntesis
             </caption>
@@ -168,8 +171,8 @@
             @if (problems.categories.length === 0) {
               <p class="mx-muted">No hay tickets en el período.</p>
             } @else {
-              <div class="mx-scroll" role="region" aria-label="Problemas por categoría" tabindex="0">
-                <table class="mx-table">
+              <div class="mx-scroll app-scroll-panel" role="region" aria-label="Problemas por categoría" tabindex="0">
+                <table class="mx-table app-zebra">
                   <caption class="sr-only">Cantidad, incumplimiento de SLA, reapertura y tiempo medio por categoría</caption>
                   <thead>
                     <tr>
@@ -218,7 +221,8 @@
             @if (problems.recurring.length === 0) {
               <p class="mx-muted">No hay incidencias recurrentes.</p>
             } @else {
-              <ul class="mx-list">
+              <!-- Con tope y scroll (`.app-scroll-list`): pueden ser decenas de filas. -->
+              <ul class="mx-list app-scroll-list">
                 @for (r of problems.recurring; track r.requester + r.category) {
                   <li>
                     <strong>{{ r.requester }}</strong> · {{ r.categoryLabel }} · {{ r.count }} tickets
@@ -234,7 +238,7 @@
             @if (problems.lowScores.length === 0) {
               <p class="mx-muted">No hay calificaciones bajas en el período.</p>
             } @else {
-              <ul class="mx-list">
+              <ul class="mx-list app-scroll-list">
                 @for (s of problems.lowScores; track s.code) {
                   <li>
                     <strong>{{ s.code }}</strong> · {{ s.score }} / 5 · {{ s.assignee ?? 'Sin responsable' }}

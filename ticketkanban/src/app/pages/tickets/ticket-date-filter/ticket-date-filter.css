@@ -1,0 +1,60 @@
+/* Filtro de fechas de `/tickets`. El botón de la barra mide `--app-control-height` (no lleva
+   `size="small"`: comparte fila con los selects) y el contenido vive en un `p-popover`, que se
+   adjunta al `body` — por eso estas reglas son de su contenido y no del toolbar. */
+.tdf-trigger {
+  min-width: 9rem;
+}
+
+/* Ancho FIJO, no solo mínimo: los cinco atajos en una fila se llevarían el popover a 512 px, y con
+   el calendario dentro eso es un desplegable más ancho que la mitad de la pantalla. Con 19 rem los
+   atajos caen en dos filas y el calendario de rango sigue entrando sin recorte. */
+.tdf-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+  width: 19rem;
+}
+.tdf-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1);
+}
+.tdf-preset {
+  /* Objetivo táctil mínimo (WCAG 2.5.8): los atajos son botones, no enlaces de texto. */
+  min-height: var(--app-control-height);
+  font-size: 0.875rem;
+}
+/* Label pegado a su campo (ley de proximidad). */
+.tdf-label {
+  color: var(--app-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.tdf-control,
+.tdf-input {
+  width: 100%;
+}
+.tdf-error {
+  margin: 0;
+  color: var(--app-danger);
+  font-size: 0.875rem;
+}
+.tdf-clear {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-1);
+  align-self: flex-start;
+  min-height: var(--app-control-height);
+  padding: var(--app-space-1) var(--app-space-2);
+  border: 0;
+  border-radius: var(--app-control-radius);
+  background: transparent;
+  color: var(--app-text-muted);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.tdf-clear:hover {
+  background: var(--app-surface-muted);
+  color: var(--app-text);
+}

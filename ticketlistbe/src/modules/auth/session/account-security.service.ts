@@ -4,6 +4,7 @@ import { ERROR_CODES } from '../../../common/codes/error-codes.js';
 import { CustomBusinessException } from '../../../core/exceptions/app.exception.js';
 import { RateLimitService, type IRateLimitRule } from '../../../core/rate-limit/rate-limit.service.js';
 import { UsersRepository } from '../../users/users.repository.js';
+import { generateRecoveryCodes } from './recovery-codes.util.js';
 import { generateTotpSecret, otpauthUrl } from './totp.util.js';
 import { SessionIndexService } from './session-index.service.js';
 import type { ISessionUser } from './session-user.interface.js';
@@ -20,8 +21,8 @@ export class AccountSecurityService {
     private readonly sessionIndex: SessionIndexService,
   ) {}
 
-  totpStatus(user: ISessionUser): { enabled: boolean } {
-    return { enabled: this.usersRepository.isTotpEnabled(user.uuid) };
+  totpStatus(user: ISessionUser): { enabled: boolean; recoveryCodesLeft: number } {
+    return { enabled: this.usersRepository.isTotpEnabled(user.uuid), recoveryCodesLeft: this.usersRepository.recoveryCodesLeft(user.uuid) };
   }
 
   /** Genera el secreto y lo deja PENDIENTE: no protege nada hasta confirmarlo con un código (`enableTotp`). */
@@ -35,7 +36,7 @@ export class AccountSecurityService {
   }
 
   /** Confirma el alta: el código demuestra que la app ya tiene el secreto. */
-  async enableTotp(user: ISessionUser, code: string): Promise<void> {
+  async enableTotp(user: ISessionUser, code: string): Promise<{ recoveryCodes: string[] }> {
     const rule: IRateLimitRule = { key: `totp-enable:${user.uuid}`, ...CHANGE_PASSWORD_LIMIT };
     await this.rateLimit.assertAllowed(rule);
     if (!this.usersRepository.pendingTotpSecret(user.uuid)) {
@@ -48,6 +49,25 @@ export class AccountSecurityService {
     }
     this.usersRepository.activateTotp(user.uuid, step);
     await this.rateLimit.reset(rule);
+    // Al activarlo nacen los códigos de un solo uso: la única vez que se muestran en claro.
+    const recoveryCodes = generateRecoveryCodes();
+    this.usersRepository.issueRecoveryCodes(user.uuid, recoveryCodes);
+    return { recoveryCodes };
+  }
+
+  /** Genera códigos NUEVOS (los anteriores dejan de valer). Exige la contraseña actual y el autenticador activo. */
+  async regenerateRecoveryCodes(user: ISessionUser, currentPassword: string): Promise<{ recoveryCodes: string[] }> {
+    const rule: IRateLimitRule = { key: `pwd-change:${user.uuid}`, ...CHANGE_PASSWORD_LIMIT };
+    await this.rateLimit.assertAllowed(rule);
+    if (!this.usersRepository.isTotpEnabled(user.uuid)) throw new CustomBusinessException(ERROR_CODES.AUT.TOTP_NOT_ENABLED);
+    if (!this.usersRepository.verifyPassword(user.uuid, currentPassword)) {
+      await this.rateLimit.recordFailure(rule);
+      throw new CustomBusinessException(ERROR_CODES.AUT.CURRENT_PASSWORD_INVALID);
+    }
+    await this.rateLimit.reset(rule);
+    const recoveryCodes = generateRecoveryCodes();
+    this.usersRepository.issueRecoveryCodes(user.uuid, recoveryCodes);
+    return { recoveryCodes };
   }
 
   /** Quitar el autenticador exige la contraseña actual (una sesión robada no puede desactivarlo). */

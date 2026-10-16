@@ -127,9 +127,9 @@ export class CatalogsRepository implements OnModuleInit {
       ['admin', 'Administración', 'pi-briefcase', 'secondary'],
     ]).map((item) => ({ ...item, system: item.code === 'it' })),
     ...items('ticket-status', [
-      ['new', 'Nuevo', 'pi-inbox', 'info'],
+      ['new', 'Abierto', 'pi-inbox', 'info'],
       ['assigned', 'Asignado', 'pi-user-plus', 'info'],
-      ['in_progress', 'En atención', 'pi-clock', 'warn'],
+      ['in_progress', 'En progreso', 'pi-clock', 'warn'],
       ['pending_customer', 'Pendiente del cliente', 'pi-hourglass', 'secondary'],
       ['escalated', 'Escalado (N2/N3)', 'pi-angle-double-up', 'danger'],
       ['resolved', 'Resuelto', 'pi-check', 'success'],

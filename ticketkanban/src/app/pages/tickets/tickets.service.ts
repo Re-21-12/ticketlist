@@ -42,6 +42,11 @@ export class TicketsService extends BaseApiAbstract<TTicket, TTicketRequest, TTi
     return super.update(uuid, toRequest(dto) as TTicketUpsert);
   }
 
+  /** Un ticket por su uuid (una sola vez, sin tocar el `item` reactivo): lo usa el resumen de cierre. */
+  fetchOne(uuid: string): Observable<TTicket> {
+    return this._http.get<unknown>(`${this.endpoint}/${encodeURIComponent(uuid)}`).pipe(map((raw) => this.parseItem(raw)));
+  }
+
   /** Cambia el estado (`POST /:uuid/transitions`): el único camino para mover un ticket de estado. */
   /** Estado de la encuesta del ticket (solo quien lo solicitó): `pending` se puede responder. */
   survey(uuid: string): Observable<TSurveyState> {

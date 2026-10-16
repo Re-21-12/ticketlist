@@ -1,0 +1,93 @@
+@let target = $target();
+
+<p-dialog
+  [visible]="!!target"
+  (visibleChange)="$event ? null : close()"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [dismissableMask]="true"
+  [style]="{ width: 'min(60rem, 94vw)' }"
+  [header]="target ? 'Vista previa · ' + target.name : ''"
+  appendTo="body"
+>
+  @if (target; as file) {
+    <div class="ep">
+      <!-- Solo lectura: sin `contenteditable`, sin forms y sin `allow-scripts`… el PDF va en el
+           visor nativo del navegador, que no expone edición (la descarga es el botón de abajo). -->
+      @switch (file.kind) {
+        @case ('image') {
+          @if (file.url) {
+            <img class="ep-media" [src]="file.url" [alt]="'Evidencia: ' + file.name" />
+          } @else {
+            <p class="ep-fallback">
+              <i class="pi pi-image" aria-hidden="true"></i>
+              Este archivo aún no tiene una copia local para mostrar; cuando termine de subir se podrá ver aquí.
+            </p>
+          }
+        }
+        @case ('video') {
+          @if (file.url) {
+            <video
+              class="ep-media"
+              controls
+              preload="metadata"
+              [src]="file.url"
+              [attr.aria-label]="'Video: ' + file.name"
+            ></video>
+          } @else {
+            <p class="ep-fallback">
+              <i class="pi pi-video" aria-hidden="true"></i>
+              Este archivo aún no tiene una copia local para mostrar; cuando termine de subir se podrá ver aquí.
+            </p>
+          }
+        }
+        @case ('document') {
+          @if ($isPdf() && file.url) {
+            <iframe class="ep-frame" [src]="file.url" [title]="'Documento: ' + file.name"></iframe>
+          } @else {
+            <p class="ep-fallback">
+              <i class="pi pi-file" aria-hidden="true"></i>
+              @if (file.url) {
+                Este formato ({{ file.mimeType }}) no se puede mostrar aquí; descárgalo para abrirlo.
+              } @else {
+                Este archivo aún no tiene una copia local para mostrar; cuando termine de subir se podrá ver aquí.
+              }
+            </p>
+          }
+        }
+      }
+
+      <p class="ep-meta">
+        <span>{{ kindMeta[file.kind].label }}</span>
+        <span aria-hidden="true">·</span>
+        <span>{{ format.bytes(file.size) }}</span>
+        @if (file.durationSeconds !== null) {
+          <span aria-hidden="true">·</span>
+          <span>{{ format.duration(file.durationSeconds) }}</span>
+        }
+        <span aria-hidden="true">·</span>
+        <span class="ep-readonly">
+          <i class="pi pi-eye" aria-hidden="true"></i>
+          Solo lectura
+        </span>
+      </p>
+
+      @if (file.url) {
+        <div class="ep-actions">
+          <a
+            pButton
+            class="ep-download"
+            severity="secondary"
+            [outlined]="true"
+            [href]="file.url"
+            [attr.download]="downloadName(file)"
+          >
+            <i pButtonIcon class="pi pi-download" aria-hidden="true"></i>
+            <span pButtonLabel>Descargar</span>
+          </a>
+        </div>
+      }
+    </div>
+  }
+</p-dialog>

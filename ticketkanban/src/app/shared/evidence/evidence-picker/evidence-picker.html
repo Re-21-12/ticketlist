@@ -1,0 +1,43 @@
+<div class="ep">
+  <div class="ep-head">
+    <span class="ep-title">Evidencia <span class="ep-optional">(opcional)</span></span>
+    <span class="ep-hint">Capturas, informes o videos cortos que ayuden a diagnosticar. Se suben al crear el ticket.</span>
+  </div>
+
+  <div
+    class="ep-wrap"
+    [class.ep-wrap--over]="$over()"
+    (dragenter)="onDragEnter($event)"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+  >
+    <input #fileInput class="ep-input" type="file" multiple [id]="$inputId()" [accept]="accept" [disabled]="!$canAdd()" (change)="onPick($event)" />
+    <button type="button" class="ep-drop" [disabled]="!$canAdd()" (click)="openPicker()">
+      <i class="pi pi-cloud-upload ep-drop-icon" aria-hidden="true"></i>
+      <span class="ep-drop-title">Arrastra los archivos aquí o haz clic para elegirlos</span>
+      <span class="ep-drop-sub">{{ hint }}</span>
+    </button>
+  </div>
+
+  @if ($files().length > 0) {
+    <ul class="ep-list" aria-label="Archivos que se adjuntarán">
+      @for (entry of $files(); track entry.id) {
+        <li class="ep-chip">
+          <i [class]="'pi ' + kindMeta[entry.kind].icon" aria-hidden="true"></i>
+          <span class="ep-name">{{ entry.file.name }}</span>
+          <span class="ep-meta">{{ kindMeta[entry.kind].label }} · {{ format.bytes(entry.file.size) }}</span>
+          <button type="button" class="ep-remove" [attr.aria-label]="'Quitar ' + entry.file.name" (click)="remove(entry.id)">
+            <i class="pi pi-times" aria-hidden="true"></i>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+
+  <ul class="ep-errors" role="alert">
+    @for (message of $errors(); track message) {
+      <li>{{ message }}</li>
+    }
+  </ul>
+</div>

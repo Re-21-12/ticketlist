@@ -46,6 +46,8 @@ export class SignIn {
   protected readonly $resending = signal(false);
   /** Cuenta bloqueada por intentos fallidos: a quién pedirle el desbloqueo (administradores). */
   protected readonly $lockedContacts = signal<{ name: string; email: string }[] | null>(null);
+  /** Hora en que la cuenta bloqueada se desbloquea sola (15 min, RNF-07); `null` si solo la libera un administrador. */
+  protected readonly $unlocksAt = signal<string | null>(null);
 
   /** Solo desarrollo (`environment.devSignIn`): entrar con un usuario sembrado de un clic. */
   protected readonly devRoles = environment.devSignIn
@@ -56,6 +58,7 @@ export class SignIn {
     this.$submitting.set(true);
     this.$unverifiedEmail.set(null);
     this.$lockedContacts.set(null);
+    this.$unlocksAt.set(null);
     try {
       await this._sessionStore.signIn(value);
       await this.goToDestination();
@@ -65,6 +68,8 @@ export class SignIn {
       if (problem?.code === 'SAUT-E014') {
         const contacts = problem.context?.['contacts'];
         this.$lockedContacts.set(Array.isArray(contacts) ? (contacts as { name: string; email: string }[]) : []);
+        const unlocksAt = problem.context?.['unlocksAt'];
+        this.$unlocksAt.set(typeof unlocksAt === 'string' ? new Date(unlocksAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) : null);
       }
       // El resto (401, 429…) ya lo avisó `errorInterceptor`.
     } finally {

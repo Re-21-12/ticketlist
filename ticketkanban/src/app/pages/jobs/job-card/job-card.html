@@ -5,37 +5,57 @@
       <h2 [id]="'jc-title-' + job.key" class="jc-title">{{ job.name }}</h2>
       <p class="jc-desc">{{ job.description }}</p>
     </div>
-    <label class="jc-switch" [for]="'jc-enabled-' + job.key">
-      <input
-        type="checkbox"
-        role="switch"
-        class="jc-switch-input"
-        [id]="'jc-enabled-' + job.key"
-        [checked]="$enabled()"
-        (change)="toggle($event)"
+    <!-- Interruptor de optimus-ui con su ETIQUETA visible al lado: el estado («Activada» /
+         «Desactivada») se lee sin depender del color (WCAG 1.4.1) y el control es alcanzable con
+         el teclado (antes era un checkbox nativo dibujado a mano). -->
+    <div class="jc-switch">
+      <p-toggleswitch
+        [inputId]="'jc-enabled-' + job.key"
+        [ngModel]="$enabled()"
+        (ngModelChange)="setEnabled($event)"
       />
-      <span class="jc-switch-text">{{ $enabled() ? 'Activada' : 'Desactivada' }}</span>
-    </label>
+      <label class="jc-switch-text" [for]="'jc-enabled-' + job.key">
+        {{ $enabled() ? 'Activada' : 'Desactivada' }}
+      </label>
+    </div>
   </header>
 
   <div class="jc-form">
     <div class="jc-field">
       <label class="jc-label" [for]="'jc-preset-' + job.key">¿Cada cuánto corre?</label>
-      <select class="jc-control" [id]="'jc-preset-' + job.key" [value]="$presetId()" (change)="pickPreset($event)">
-        @for (preset of presets; track preset.id) {
-          <option [value]="preset.id" [selected]="preset.id === $presetId()">{{ preset.label }}</option>
-        }
-      </select>
+      <!-- Autocomplete de optimus-ui con desplegable: se ven las 7 frecuencias y además se puede
+           escribir para filtrar (`completeOnFocus` + `dropdown`). Antes era un `<select>` nativo.
+           Mismo contrato que el SELECT del formulario dinámico: `suggestions` + `completeMethod`,
+           y el modelo es el objeto del preajuste, no su id. -->
+      <p-autocomplete
+        [inputId]="'jc-preset-' + job.key"
+        class="jc-control"
+        inputStyleClass="jc-input"
+        [ngModel]="$presetOption()"
+        (ngModelChange)="pickPreset($event)"
+        [suggestions]="$presetSuggestions()"
+        (completeMethod)="filterPresets($event)"
+        optionLabel="label"
+        [dropdown]="true"
+        dropdownMode="blank"
+        [completeOnFocus]="true"
+        [forceSelection]="true"
+        [showClear]="false"
+        placeholder="Elige una frecuencia"
+        appendTo="body"
+      />
     </div>
 
     <div class="jc-field">
       <label class="jc-label" [for]="'jc-cron-' + job.key">Expresión cron <span class="jc-muted">(zona UTC−6)</span></label>
       <input
+        pInputText
         type="text"
-        class="jc-control jc-mono"
+        class="jc-input jc-mono"
         [id]="'jc-cron-' + job.key"
         [value]="$cron()"
         [readOnly]="!$isCustom()"
+        [class.jc-readonly]="!$isCustom()"
         spellcheck="false"
         autocomplete="off"
         [attr.aria-invalid]="$cronError() ? 'true' : null"
@@ -50,17 +70,17 @@
     @if ($usesHours()) {
       <div class="jc-field">
         <label class="jc-label" [for]="'jc-hours-' + job.key">Cerrar tras (horas sin respuesta)</label>
-        <input
-          type="number"
+        <p-inputnumber
+          [inputId]="'jc-hours-' + job.key"
           class="jc-control"
-          [id]="'jc-hours-' + job.key"
+          inputStyleClass="jc-input"
+          [ngModel]="$hours()"
+          (ngModelChange)="setHours($event)"
           [min]="hoursMin"
           [max]="hoursMax"
-          step="1"
-          [value]="$hours()"
-          [attr.aria-invalid]="$hoursError() ? 'true' : null"
-          [attr.aria-describedby]="'jc-hours-help-' + job.key"
-          (input)="setHours($event)"
+          [step]="1"
+          [showButtons]="true"
+          [useGrouping]="false"
         />
         <p [id]="'jc-hours-help-' + job.key" class="jc-help" [class.jc-help--error]="$hoursError() !== null">
           {{ $hoursError() ?? 'Un ticket «Resuelto» sin respuesta del solicitante se cierra pasado este plazo (por defecto 48 h).' }}

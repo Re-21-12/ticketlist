@@ -14,7 +14,8 @@
 <div class="ms-lower">
   <section class="ms-panel" aria-labelledby="ms-counts-title">
     <h3 id="ms-counts-title" class="ms-title">Tickets del período</h3>
-    <ul class="ms-counts">
+    <!-- Con tope y scroll (`.app-scroll-list`): pueden ser muchas categorías/estados. -->
+    <ul class="ms-counts app-scroll-list">
       @for (item of $counts(); track item.key) {
         <li [class.ms-alert]="item.alert">
           <i [class]="'pi ' + item.icon" aria-hidden="true"></i>

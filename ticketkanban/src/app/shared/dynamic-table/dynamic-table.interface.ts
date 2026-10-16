@@ -22,6 +22,23 @@ export interface ITableColumn {
   badge?: boolean;
 }
 
+/** Acción propia de una pantalla en cada fila (además de ver/editar/eliminar): p. ej. «Clave temporal» en usuarios. */
+export interface IRowAction {
+  id: string;
+  label: string;
+  /** Clase de PrimeIcons (`pi-key`). */
+  icon: string;
+  severity?: 'info' | 'warn' | 'danger' | 'secondary';
+  /** Veto por fila (p. ej. no sobre la propia cuenta). Se suma al permiso CASL de `update`. */
+  visible?: (row: TTableRow) => boolean;
+}
+
+/** Lo que emite una acción propia: cuál y sobre qué fila. */
+export interface IRowActionEvent {
+  id: string;
+  row: TTableRow;
+}
+
 export interface ITablePage {
   page: number;
   take: number;
@@ -48,4 +65,6 @@ export interface ITableConfig {
   creatable?: boolean;
   /** Texto del botón de alta (default «Nuevo»). */
   createLabel?: string;
+  /** Acciones propias de la pantalla por fila; exigen el permiso `update` sobre el subject. */
+  rowActions?: IRowAction[];
 }

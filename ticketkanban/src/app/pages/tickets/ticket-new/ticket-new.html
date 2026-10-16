@@ -14,5 +14,7 @@
     [$singleColumn]="true"
     [$submitLabel]="'Crear ticket'"
     ($submitted)="create($event)"
-  />
+  >
+    <app-evidence-picker formExtra [($files)]="$files" [$disabled]="_ticketsStore.$saving()" />
+  </app-dynamic-form>
 </app-form-split>

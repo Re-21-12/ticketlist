@@ -1,6 +1,6 @@
 import { Component, input, output } from '@angular/core';
 import type { TSubjects } from '../../../core/casl/casl.types';
-import type { ITableColumn, TTableAction, TTableRow } from '../dynamic-table.interface';
+import type { IRowAction, IRowActionEvent, ITableColumn, TTableAction, TTableRow } from '../dynamic-table.interface';
 import { RowActions } from '../row-actions/row-actions';
 import { TableCell } from '../table-cell/table-cell';
 
@@ -26,7 +26,10 @@ export class TableRowCard {
   readonly $deleteLabel = input('Eliminar');
   readonly $allow = input<(action: TTableAction, row: TTableRow) => boolean>(() => true);
 
+  readonly $extra = input<IRowAction[]>([]);
+
   readonly $view = output<TTableRow>();
+  readonly $extraAction = output<IRowActionEvent>();
   readonly $edit = output<TTableRow>();
   readonly $delete = output<TTableRow>();
 }

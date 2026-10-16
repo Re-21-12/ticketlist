@@ -1,0 +1,59 @@
+.sc {
+  display: grid;
+  gap: var(--app-space-3);
+  padding: var(--app-space-4);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface-muted);
+}
+.sc-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--app-space-3);
+}
+.sc-icon {
+  font-size: 1.5rem;
+  color: var(--app-success);
+}
+.sc-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.sc-subtitle {
+  margin: var(--app-space-1) 0 0;
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+.sc-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--app-space-3);
+  margin: 0;
+}
+.sc-fact dt {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--app-text-muted);
+}
+.sc-fact dd {
+  margin: var(--app-space-1) 0 0;
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+.sc-note {
+  padding-top: var(--app-space-3);
+  border-top: 1px solid var(--app-border);
+}
+.sc-note-label {
+  margin: 0 0 var(--app-space-1);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--app-text-muted);
+}
+.sc-note-text {
+  margin: 0;
+  font-size: 0.9375rem;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

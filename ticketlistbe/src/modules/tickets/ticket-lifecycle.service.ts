@@ -159,11 +159,11 @@ export class TicketLifecycleService {
     if (ticket.status === 'new') {
       this.history.record({ ticket: updated, type: 'STATUS_CHANGED', actor: 'staff', from: 'new', to: 'assigned' });
     }
-    this.history.record({ ticket: updated, type: 'ASSIGNED', actor: 'staff', assignee: assignee.email, body: previous ? `Antes: ${previous}` : null });
+    this.history.record({ ticket: updated, type: 'ASSIGNED', actor: 'staff', assignee: assignee.email, body: [dto.note, previous ? `Antes: ${previous}` : null].filter(Boolean).join(' · ') || null });
     this.notifications.notify({
       recipientUuid: assignee.uuid,
       type: 'TICKET_ASSIGNED',
-      message: `Te asignaron ${ticket.code} «${ticket.title}»`,
+      message: `Te asignaron ${ticket.code} «${ticket.title}»${dto.note ? `. Nota: ${dto.note}` : ''}`,
       resourceType: 'Ticket',
       resourceUuid: ticket.uuid,
     });

@@ -1,0 +1,67 @@
+<div class="tdf">
+  <button
+    type="button"
+    pButton
+    [severity]="$active() ? 'primary' : 'secondary'"
+    [outlined]="!$active()"
+    class="tdf-trigger"
+    aria-haspopup="dialog"
+    [attr.aria-label]="'Filtrar por fecha de registro. ' + $label()"
+    (click)="panel.toggle($event)"
+  >
+    <i pButtonIcon class="pi pi-calendar" aria-hidden="true"></i>
+    <span pButtonLabel>{{ $label() }}</span>
+  </button>
+
+  <p-popover #panel>
+    <section class="tdf-panel" aria-label="Filtro por fecha de registro">
+      <div class="tdf-presets" role="group" aria-label="Períodos rápidos">
+        @for (preset of presets; track preset.id) {
+          <button
+            type="button"
+            pButton
+            class="tdf-preset"
+            [severity]="$appliedKey() === preset.id ? 'primary' : 'secondary'"
+            [outlined]="$appliedKey() !== preset.id"
+            [attr.aria-pressed]="$appliedKey() === preset.id"
+            (click)="pickPreset(preset.id, panel)"
+          >
+            <span pButtonLabel>{{ preset.label }}</span>
+          </button>
+        }
+      </div>
+
+      <label class="tdf-label" for="tdf-range">Desde – hasta</label>
+      <!-- Calendario dentro del panel y pegado al input (`iconDisplay="input"`); el input es de
+           solo lectura porque la fecha se elige en el calendario, no escribiéndola. -->
+      <p-datepicker
+        inputId="tdf-range"
+        styleClass="tdf-control"
+        inputStyleClass="tdf-input"
+        [ngModel]="$picker()"
+        (ngModelChange)="pickRange($event)"
+        [ngModelOptions]="{ standalone: true }"
+        selectionMode="range"
+        dateFormat="dd/mm/yy"
+        [readonlyInput]="true"
+        [showIcon]="true"
+        iconDisplay="input"
+        [showButtonBar]="true"
+        [minDate]="$minDate()"
+        [maxDate]="$maxDate()"
+        appendTo="body"
+      />
+
+      @if ($error(); as message) {
+        <p class="tdf-error" role="alert">{{ message }}</p>
+      }
+
+      @if ($active()) {
+        <button type="button" class="tdf-clear" (click)="clear(panel)">
+          <i class="pi pi-filter-slash" aria-hidden="true"></i>
+          Quitar el filtro de fechas
+        </button>
+      }
+    </section>
+  </p-popover>
+</div>

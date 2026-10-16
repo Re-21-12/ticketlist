@@ -81,12 +81,28 @@ describe('Mis tickets (CU02)', () => {
     expect(root.querySelector('.mt-confirm')?.textContent).toContain('48 horas');
   }, 90_000);
 
-  it('A3: «Reabrir ticket» lo pasa a «Reabierto», queda en el historial y deja de pedir confirmación', async () => {
+  it('A3: «Reabrir ticket» pide el MOTIVO (obligatorio) en un diálogo con la solución a la vista y solo entonces reabre', async () => {
     const uuid = await resolvedTicketOfVictor();
-    const { root } = await open(uuid);
+    const { fixture, root } = await open(uuid);
     button(root, 'Reabrir ticket')?.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain('¿Por qué continúa el problema?'), WAIT);
+    // La tarjeta muestra el ticket y la solución que se está rechazando.
+    expect(document.body.querySelector('app-summary-card')?.textContent).toContain('Se reinició el portal.');
+
+    const dialog = document.body.querySelector('.p-dialog') as HTMLElement;
+    // Sin motivo no se envía: el ticket sigue «Resuelto».
+    (dialog.querySelector('form') as HTMLFormElement).requestSubmit();
+    await fixture.whenStable();
+    expect(root.querySelector('.mt-confirm')).not.toBeNull();
+
+    const reason = dialog.querySelector<HTMLTextAreaElement>('textarea') as HTMLTextAreaElement;
+    reason.value = 'Sigue sin abrir el portal.';
+    reason.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    (dialog.querySelector('form') as HTMLFormElement).requestSubmit();
     await vi.waitFor(() => expect(root.querySelector('.mt-confirm')).toBeNull(), WAIT);
     await vi.waitFor(() => expect(root.querySelector('.mt-timeline')?.textContent).toContain('Reabierto'), WAIT);
+    expect(root.querySelector('.mt-timeline')?.textContent).toContain('Sigue sin abrir el portal.'); // el motivo queda en el historial
   }, 90_000);
 
   it('«Confirmar cierre» lo pasa a «Cerrado»: ya no admite comentarios', async () => {
@@ -100,6 +116,15 @@ describe('Mis tickets (CU02)', () => {
     // dejar la apertura del modal a medias cuando termina la prueba.
     await vi.waitFor(() => expect(document.body.textContent).toContain('¿Se resolvió tu problema?'), WAIT);
     expect(document.body.textContent).toContain('Sí, se resolvió');
+    // El resumen del cierre va JUNTO a la encuesta: ID, fechas, quién atendió y la solución.
+    const card = document.body.querySelector('.p-dialog app-summary-card')?.textContent ?? '';
+    expect(card).toContain('ha sido cerrado');
+    expect(card).toContain('Fecha de apertura');
+    expect(card).toContain('Fecha de cierre');
+    expect(card).toContain('Atendido por');
+    expect(card).toContain('Se reinició el portal.');
+    // Y el detalle del ticket cerrado conserva la misma tarjeta.
+    expect(root.querySelector('app-summary-card')?.textContent).toContain('Fecha de cierre');
   }, 90_000);
 
   it('A1: el historial dice que no se modifica y «Editar» sobre un comentario propio muestra el rechazo', async () => {

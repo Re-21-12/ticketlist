@@ -3,6 +3,7 @@ import { ERROR_CODES } from '../../common/codes/error-codes.js';
 import { RequestContext } from '../../core/context/request-context.js';
 import { CustomBusinessException } from '../../core/exceptions/app.exception.js';
 import { CaslAbilityFactory } from '../../modules/auth/casl/casl-ability.factory.js';
+import { UsersRepository } from '../../modules/users/users.repository.js';
 import { MenuItemsRepository } from '../../modules/menu-items/menu-items.repository.js';
 import { ShellResponseSchema, type TShellResponse } from './dtos/shell-response.dto.js';
 
@@ -15,6 +16,7 @@ export class ShellService {
   constructor(
     private readonly abilityFactory: CaslAbilityFactory,
     private readonly menuItems: MenuItemsRepository,
+    private readonly usersRepository: UsersRepository,
   ) {}
 
   getShell(): TShellResponse {
@@ -22,6 +24,7 @@ export class ShellService {
     if (!user) throw new CustomBusinessException(ERROR_CODES.AUT.FORBIDDEN);
     return ShellResponseSchema.parse({
       user,
+      mustChangePassword: this.usersRepository.passwordChangeState(user.uuid).required,
       abilityRules: this.abilityFactory.rulesFor(user),
       // El catálogo es administrable (`/api/menu-items`); QUIÉN ve cada ítem lo decide CASL en el front.
       menu: this.menuItems.findActiveOrdered().map((item) => ({

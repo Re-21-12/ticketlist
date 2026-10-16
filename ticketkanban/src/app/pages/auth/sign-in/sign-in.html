@@ -34,8 +34,12 @@
     styleClass="auth-note"
     role="alert"
   >
-    Tu cuenta está <strong>bloqueada</strong> por demasiados intentos fallidos. Para desbloquearla
-    comunícate con un administrador:
+    Tu cuenta está <strong>bloqueada</strong> por demasiados intentos fallidos.
+    @if ($unlocksAt(); as time) {
+      Se desbloquea sola a las <strong>{{ time }}</strong> (15 minutos); si no quieres esperar, pide a un administrador que la desbloquee:
+    } @else {
+      Para desbloquearla comunícate con un administrador:
+    }
   </p-message>
   <ul class="locked-contacts" aria-label="Contacto de los administradores">
     @for (contact of contacts; track contact.email) {

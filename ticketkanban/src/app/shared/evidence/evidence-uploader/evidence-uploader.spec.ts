@@ -37,6 +37,10 @@ describe('EvidenceUploader', () => {
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  /** Los pendientes son los que aún no terminaron de subir; los adjuntos, los que ya están en el bucket. */
+  const pending = (root: HTMLElement) => root.querySelectorAll('ul[aria-label="Archivos pendientes de subir"] li');
+  const attached = (root: HTMLElement) => root.querySelectorAll('ul[aria-label="Archivos adjuntos"] li');
+
   it('indica los tipos admitidos y los topes', () => {
     const { root } = render();
     expect(root.textContent).toContain('Imágenes, PDF, Excel, CSV');
@@ -45,15 +49,49 @@ describe('EvidenceUploader', () => {
     expect(root.querySelector('input[type=file]')?.getAttribute('accept')).toContain('.mp4');
   });
 
+  it('zona de arrastrar y soltar: el mismo camino que el selector de archivos', () => {
+    const { root } = render();
+    const zone = root.querySelector('.ev-dropzone') as HTMLButtonElement;
+    // El botón es la alternativa accesible al arrastre: se puede llegar con Enter y Espacio.
+    expect(zone.tagName).toBe('BUTTON');
+    expect(zone.textContent).toContain('Arrastra los archivos aquí');
+    // El <input> real es el que recibe los archivos (también los soltados).
+    expect(root.querySelector('input[type=file]')?.hasAttribute('multiple')).toBe(true);
+  });
+
+  it('lista lo elegido como pendiente antes de subirlo y luego como adjunto', async () => {
+    const { fixture, root } = render();
+    pick(root, [new File([new Uint8Array(100)], 'despues.png')]);
+    // Al instante se ve el archivo con su «Pendiente»: la persona no espera a ciegas.
+    await vi.waitFor(() => expect(pending(root).length).toBe(1), WAIT);
+    expect(pending(root)[0].querySelector('.ev-badge')?.textContent).toContain('Pendiente');
+    expect(attached(root).length).toBe(0);
+    await vi.waitFor(() => expect(attached(root).length).toBe(1), WAIT);
+    expect(pending(root).length).toBe(0);
+    expect(fixture.componentInstance.$attachments().map((a) => a.kind)).toEqual(['image']);
+  });
+
   it('sube lo que cumple, lo lista como adjunto y permite quitarlo', async () => {
     const { fixture, root } = render();
     pick(root, [new File([new Uint8Array(100)], 'despues.png'), new File([new Uint8Array(100)], 'informe.pdf')]);
-    await vi.waitFor(() => expect(root.querySelectorAll('.ev-chip').length).toBe(2), WAIT);
+    await vi.waitFor(() => expect(fixture.componentInstance.$attachments().length).toBe(2), WAIT);
     expect(fixture.componentInstance.$attachments().map((a) => a.kind)).toEqual(['image', 'document']);
+    expect(root.querySelectorAll('.ev-chip').length).toBe(2);
     expect(root.querySelector('.ev-errors')?.textContent?.trim()).toBe('');
     (root.querySelector('.ev-remove') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(root.querySelectorAll('.ev-chip').length).toBe(1);
+  });
+
+  it('un pendiente se puede quitar antes de que termine de subir', async () => {
+    const { fixture, root } = render();
+    pick(root, [new File([new Uint8Array(100)], 'foto.png')]);
+    await vi.waitFor(() => expect(pending(root).length).toBe(1), WAIT);
+    (pending(root)[0].querySelector('.ev-remove') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(pending(root).length).toBe(0);
+    // Aun así se sube: quitar de la lista no cancela la subida en curso.
+    await vi.waitFor(() => expect(fixture.componentInstance.$attachments().length).toBe(1), WAIT);
   });
 
   it('A2: un archivo de un tipo no admitido o demasiado grande se rechaza con el motivo y NO se sube', async () => {
@@ -68,7 +106,7 @@ describe('EvidenceUploader', () => {
   it('no pasa de 5 archivos por vez', async () => {
     const { root } = render();
     pick(root, Array.from({ length: 6 }, (_, i) => new File([new Uint8Array(10)], `foto-${i}.png`)));
-    await vi.waitFor(() => expect(root.querySelectorAll('.ev-chip').length).toBe(5), { timeout: 15_000, interval: 100 });
-    expect(root.querySelector('.ev-errors')?.textContent).toContain('Solo se pueden adjuntar 5 archivos');
+    await vi.waitFor(() => expect(root.querySelector('.ev-errors')?.textContent).toContain('Solo se pueden adjuntar 5 archivos'), { timeout: 15_000, interval: 100 });
+    expect(root.querySelectorAll('.ev-chip').length).toBe(5);
   }, 30_000);
 });

@@ -7,7 +7,7 @@ import { DialogService } from '@openng/optimus-ui/dynamicdialog';
 import type { z } from 'zod';
 import { confirmDelete } from '../confirm/confirm-delete.util';
 import { DynamicTable } from '../dynamic-table/dynamic-table';
-import type { ITablePage, TTableRow } from '../dynamic-table/dynamic-table.interface';
+import type { IRowActionEvent, ITablePage, TTableRow } from '../dynamic-table/dynamic-table.interface';
 import { FormDialogService } from '../form-dialog/form-dialog.service';
 import type { ICrudConfig, ICrudService } from './crud-page.interface';
 
@@ -53,6 +53,12 @@ export class CrudPage {
   protected readonly $loading = computed(() => this.$_state().kind === 'loading');
   protected readonly $failed = computed(() => this.$_state().kind === 'error');
 
+  /** Para «Exportar»: trae TODO el listado (misma búsqueda), no solo la página. `null` si el servicio no lo sabe. */
+  protected readonly $exportFetch = computed(() => {
+    const service = this.$service();
+    return service.fetchAll ? () => service.fetchAll!() : null;
+  });
+
   protected onPage({ page, take }: ITablePage): void {
     this.$service().setPage(page);
     this.$service().setTake(take);
@@ -62,7 +68,7 @@ export class CrudPage {
     const config = this.$config();
     void this._formDialogService.open({
       header: `Nuev${config.article === 'la' ? 'a' : 'o'} ${config.entity}`,
-      definition: config.form,
+      definition: config.createForm ?? config.form,
       initialData: config.createDefaults ?? null,
       submitLabel: 'Crear',
       submitting: this.$saving,
@@ -70,6 +76,11 @@ export class CrudPage {
       onSubmit: (value) =>
         void this.save(() => firstValueFrom(this.$service().create(value as never)), this.done('cread')),
     });
+  }
+
+  /** Una acción propia de la pantalla (p. ej. «Clave temporal»): la resuelve `config.onRowAction`. */
+  protected onRowAction({ id, row }: IRowActionEvent): void {
+    this.$config().onRowAction?.(id, row);
   }
 
   protected onEdit(row: TTableRow): void {

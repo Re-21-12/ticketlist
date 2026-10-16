@@ -41,6 +41,7 @@ export class FormDialogService {
         onSubmit: options.onSubmit as TDynamicFormDialogData['onSubmit'],
         submitting,
         optionsByField: options.optionsByField,
+        summary: options.summary,
       };
 
       this._ref = this._dialogService.open(DynamicFormDialog, {

@@ -86,14 +86,42 @@ Sin datos de demostración (`SEED_DEMO_DATA=false`, el valor por defecto en `pro
 
 El registro público (`POST /api/auth/sign-up`) deja la cuenta **activa y verificada al instante** (siempre `VIEWER`): no se envía correo ni hay enlace de verificación. `verify-email` y `resend-verification` siguen existiendo por compatibilidad pero no hacen falta (no hay cuentas sin verificar).
 
-## Bloqueo por intentos fallidos (CU07, A3)
+## Códigos de recuperación del autenticador
 
-`failedLogins` (intentos seguidos fallidos; un acierto lo reinicia) y `lockedAt`. Al llegar a `LOGIN_MAX_ATTEMPTS` (5) la cuenta queda
-**bloqueada**: todo inicio de sesión responde 423 `SAUT-E014` con la información de contacto de los administradores (`context.contacts`)
-y NO se mira la contraseña; tampoco se recupera con TOTP/contraseña actual. Se avisa a los administradores (`ACCOUNT_LOCKED`).
-**Solo un administrador la desbloquea**: `PATCH /api/users/:uuid/status` con `{ disabled, locked: false }` (el vista administrativa trae
-`locked` y `lockedAt`). Compromiso conocido: quien adivina un correo puede bloquear esa cuenta (denegación de servicio dirigida) y el
-423 confirma que el correo existe; es lo que pide el requisito, y el límite por IP y por cuenta de `/api/auth/sign-in` sigue vigente.
+- Al activar el autenticador se generan 10 códigos `XXXX-XXXX` (alfabeto sin 0/O/1/I/L, CSPRNG). Se muestran **una sola vez** en la respuesta de
+  `POST /api/auth/totp/enable`; en `users.recovery_codes` solo se guardan huellas HMAC-SHA256 con `TOTP_ENCRYPTION_KEY`.
+- `POST /api/auth/recover-password` con `{ method: 'recovery_code', email, recoveryCode, newPassword }` consume el código (sirve UNA vez; se
+  tolera minúsculas, sin guion o con espacio) y cierra todas las sesiones. Cualquier fallo es la misma respuesta (`SAUT-E010`).
+- `POST /api/auth/totp/recovery-codes` `{ currentPassword }` genera 10 nuevos e invalida los anteriores (409 `SAUT-E017` si no hay autenticador).
+  `GET /api/auth/totp` devuelve `{ enabled, recoveryCodesLeft }`. Desactivar el autenticador (o `reset-totp` del administrador) los borra.
+
+## Cuentas por la administración (alta, contraseña temporal, TOTP)
+
+Sin correo (no hay SMTP) la administración entrega las credenciales en persona:
+
+- `POST /api/users` `{ name, email, role }` (ADMIN, `User`/`create`): crea la cuenta con una contraseña TEMPORAL de 16 caracteres (CSPRNG, sin
+  caracteres ambiguos) y la devuelve **una sola vez** junto con `expiresAt` (72 h). Solo se guarda el hash. Correo repetido → 409 `SUSR-E001`.
+- `POST /api/users/:uuid/reset-password` (ADMIN): contraseña temporal nueva, cierra todas sus sesiones, quita el bloqueo/intentos y
+  obliga a cambiarla. No sobre la propia cuenta (409 `SUSR-E003`: para eso está «Mi perfil»).
+- `POST /api/users/:uuid/reset-totp` (ADMIN): quita el autenticador (perdió el teléfono), cierra sus sesiones y le deja un aviso `ACCOUNT_SECURITY`.
+- Con una temporal vigente (`mustChangePassword`, columna `must_change_password`; vigencia `temp_password_expires_at`) la sesión solo puede ver
+  el shell (que trae `mustChangePassword: true`), `PATCH /api/auth/password` y cerrar sesión; todo lo demás es 403 `SAUT-E015`. Al elegir
+  una contraseña propia (cambio, recuperación) el estado se limpia. Vencida la temporal → 401 `SAUT-E016`.
+- La vista administrativa suma `totpEnabled` y `mustChangePassword` (nunca hash ni sal).
+
+## Bloqueo por intentos fallidos (CU07 A3 · RNF-07)
+
+Tras `LOGIN_MAX_ATTEMPTS` (5) fallos de inicio de sesión SEGUIDOS la cuenta queda **bloqueada**: todo inicio de sesión responde 423
+`SAUT-E014` con `context.contacts` (administradores) y `context.unlocksAt` (hora en que se desbloquea sola). Un acierto antes del quinto
+fallo reinicia el contador.
+
+- **Automático:** pasados `LOGIN_LOCK_MINUTES` (15 por defecto; `0` desactiva el desbloqueo automático) el bloqueo se levanta SOLO y los intentos
+  vuelven a cero (`UsersRepository.lockActive`). Es lo que exige el RNF-07 («bloquear 15 minutos y luego permitir intentarlo de nuevo»).
+- **Manual:** un administrador lo libera antes con `PATCH /api/users/:uuid/status` `{ disabled, locked: false }` (la vista administrativa trae
+  `locked` y `lockedAt`; `locked` ya descuenta un bloqueo vencido).
+- Mientras dura, ni siquiera se mira la contraseña. La clave temporal (`reset-password`) también quita el bloqueo.
+- Compromiso conocido: quien adivina un correo puede bloquear esa cuenta durante 15 minutos (denegación dirigida); al desbloquearse sola ya no
+  hace falta que la administración intervenga. Credenciales incorrectas responden `SAUT-E004` «Correo electrónico o contraseña incorrectos».
 
 ## Autenticador (TOTP, segundo factor de recuperación)
 

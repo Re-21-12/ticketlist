@@ -2,6 +2,7 @@ import { CustomBusinessException } from '../../core/exceptions/app.exception.js'
 import { CatalogsService } from '../catalogs/catalogs.service.js';
 import { sanitizeRichText } from '../../core/sanitize/rich-text.js';
 import { randomUUID } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Injectable } from '@nestjs/common';
 import type * as z from 'zod';
 import { ERROR_CODES } from '../../common/codes/error-codes.js';
@@ -57,18 +58,39 @@ export class TicketsService extends BaseService<TicketEntity, TTicketResponse, T
     super(repository, abilityFactory);
   }
 
+  /**
+   * La nota de asignación de la petición en curso (no es un campo del ticket: va al historial y al aviso). Los hooks
+   * `onCreated`/`onUpdated` no ven el DTO, así que viaja por el contexto asíncrono de esa misma petición.
+   */
+  private readonly assignmentNotes = new AsyncLocalStorage<string | null>();
+
+  override create(dto: TCreate): Promise<TTicketResponse> {
+    return this.assignmentNotes.run(this.teamNote(dto.assignmentNote), () => super.create(dto));
+  }
+
+  override update(uuid: string, dto: TUpdate): Promise<TTicketResponse> {
+    return this.assignmentNotes.run(this.teamNote(dto.assignmentNote), () => super.update(uuid, dto));
+  }
+
+  /** Solo el equipo asigna: la nota de un solicitante se descarta. */
+  private teamNote(note: string | undefined): string | null {
+    const user = RequestContext.currentUser();
+    const team = this.history.isTeamMember(user) && user?.role !== EUserRole.AUDITOR;
+    return team && note ? note : null;
+  }
+
   /** Aviso a quien quedó asignado (al crear con responsable o al cambiarlo). */
   protected override onCreated(created: TicketEntity): void {
     // Historial: el registro del solicitante y, si ya trae responsable, su asignación.
     this.history.record({ ticket: created, type: 'CREATED', actor: 'customer', status: created.status, at: created.createdAt });
     if (created.assigneeEmail) {
-      this.history.record({ ticket: created, type: 'ASSIGNED', actor: 'staff', assignee: created.assigneeEmail });
+      this.history.record({ ticket: created, type: 'ASSIGNED', actor: 'staff', assignee: created.assigneeEmail, body: this.assignmentNotes.getStore() ?? null });
     }
     this.notifyAssignee(created);
   }
 
   /**
-   * - Cambió el responsable → aviso al nuevo.
+   * - Cambió el responsable → aviso al nuevo Y al solicitante.
    * - Quien editó es ALTERNANTE del titular y la concesión tiene `notifyTitular` → aviso al titular
    *   (misma tabla de relaciones que autoriza, sin lógica paralela).
    */
@@ -77,8 +99,9 @@ export class TicketsService extends BaseService<TicketEntity, TTicketResponse, T
       this.history.record({ ticket: after, type: 'STATUS_CHANGED', actor: 'staff', from: before.status, to: after.status });
     }
     if (before.assigneeEmail !== after.assigneeEmail) {
-      if (after.assigneeEmail) this.history.record({ ticket: after, type: 'ASSIGNED', actor: 'staff', assignee: after.assigneeEmail });
+      if (after.assigneeEmail) this.history.record({ ticket: after, type: 'ASSIGNED', actor: 'staff', assignee: after.assigneeEmail, body: this.assignmentNotes.getStore() ?? null });
       this.notifyAssignee(after);
+      this.notifyRequester(after);
     }
 
     const actor = this.getActor();
@@ -104,10 +127,36 @@ export class TicketsService extends BaseService<TicketEntity, TTicketResponse, T
     this.notificationsService.notify({
       recipientUuid: assignee.uuid,
       type: 'TICKET_ASSIGNED',
-      message: `Te asignaron ${ticket.code} «${ticket.title}»`,
+      message: `Te asignaron ${ticket.code} «${ticket.title}»${this.assignmentNotes.getStore() ? `. Nota: ${this.assignmentNotes.getStore()}` : ''}`,
       resourceType: 'Ticket',
       resourceUuid: ticket.uuid,
     });
+  }
+
+  /**
+   * El solicitante también se entera de a quién se le pasó su ticket.
+   *
+   * `POST /api/tickets/:uuid/assign` ya lo avisaba (`TicketLifecycleService.notifyRequester`), pero
+   * cambiar «Asignado a» desde el formulario del ticket va por el PATCH y ese camino no avisaba: el
+   * cliente veía su ticket sin responsable y sin ningún aviso. Los dos caminos escriben el mismo
+   * tipo (`TICKET_STATUS_CHANGED`) y dejan el evento `NOTIFIED` en el historial, para que la bandeja
+   * y «Mis tickets» lo cuenten igual. No se avisa a quien hizo el cambio ni cuando el PATCH se
+   * limita a quitar al responsable sin poner a nadie.
+   */
+  private notifyRequester(ticket: TicketEntity): void {
+    if (this.getActor() === ticket.ownerUuid) return;
+    const next = ticket.assigneeEmail ? this.usersRepository.findByEmail(ticket.assigneeEmail) : null;
+    const message = next
+      ? `${next.name} atenderá tu solicitud ${ticket.code}`
+      : `Tu solicitud ${ticket.code} quedó sin responsable`;
+    const sent = this.notificationsService.notify({
+      recipientUuid: ticket.ownerUuid,
+      type: 'TICKET_STATUS_CHANGED',
+      message,
+      resourceType: 'Ticket',
+      resourceUuid: ticket.uuid,
+    });
+    if (sent) this.history.record({ ticket, type: 'NOTIFIED', actor: 'system', actorUser: null, body: message });
   }
 
   /** El departamento debe ser un elemento activo del catálogo (los administra la organización, no un enum fijo). */
@@ -119,13 +168,14 @@ export class TicketsService extends BaseService<TicketEntity, TTicketResponse, T
 
   protected toEntity(dto: TCreate, createdBy: string): TicketEntity {
     this.assertDepartment(dto.department);
+    const { assignmentNote: _assignmentNote, ...fields } = dto;
     // Quien solo es solicitante (cliente) clasifica su caso, pero no asigna, ni estima, ni fija la complejidad:
     // eso es del equipo (CU05: la clasificación la completa el soporte).
     const team = this.history.isTeamMember(RequestContext.currentUser()) && RequestContext.currentUser()?.role !== EUserRole.AUDITOR;
     const assigneeEmail = team ? dto.assigneeEmail : '';
     const policy = policyFor(dto.priority, dto.type);
     return Object.assign(new TicketEntity(), {
-      ...dto,
+      ...fields,
       description: sanitizeRichText(dto.description),
       assigneeEmail,
       complexity: team ? (dto.complexity ?? null) : null,
@@ -158,6 +208,7 @@ export class TicketsService extends BaseService<TicketEntity, TTicketResponse, T
     if (dto.department !== entity.department) this.assertDepartment(dto.department);
     // Reclasificar (prioridad o tipo) cambia el plazo; el reloj sigue corriendo desde el registro.
     const policy = policyFor(dto.priority, dto.type);
+    const { assignmentNote: _assignmentNote, ...fields } = dto;
     // El solicitante edita SU caso (título, descripción, tipo, categoría, urgencia); responsable, estimación, fecha y
     // complejidad son del equipo: si quien edita no es equipo en este ticket, esos campos se conservan.
     const team = this.history.isTeamFor(entity, RequestContext.currentUser());
@@ -165,7 +216,7 @@ export class TicketsService extends BaseService<TicketEntity, TTicketResponse, T
     // Un ticket «Nuevo» al que se le pone responsable pasa a «Asignado».
     const status = entity.status === 'new' && !entity.assigneeEmail && assigneeEmail ? 'assigned' : entity.status;
     return Object.assign(new TicketEntity(), entity, {
-      ...dto,
+      ...fields,
       description: sanitizeRichText(dto.description),
       assigneeEmail,
       complexity: team && dto.complexity !== undefined ? dto.complexity : entity.complexity,

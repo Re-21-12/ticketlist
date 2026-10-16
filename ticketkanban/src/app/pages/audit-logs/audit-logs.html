@@ -17,7 +17,8 @@
         [showClear]="true"
         [ngModel]="$action() || null"
         (ngModelChange)="setAction($event)"
-        size="small"
+        appendTo="body"
+        styleClass="audit-select"
       />
     </div>
     <div class="audit-filter">
@@ -31,7 +32,8 @@
         [showClear]="true"
         [ngModel]="$outcome() || null"
         (ngModelChange)="setOutcome($event)"
-        size="small"
+        appendTo="body"
+        styleClass="audit-select"
       />
     </div>
   </div>

@@ -20,3 +20,10 @@
   font-size: 0.875rem;
   font-weight: 600;
 }
+
+/* Los filtros comparten la altura del resto de controles de la app (`--app-control-height`): con
+   `size="small"` el desplegable medía 35 px contra los 44 px del buscador de la tabla de al lado. */
+:host ::ng-deep .audit-select {
+  width: 100%;
+  min-width: 12rem;
+}

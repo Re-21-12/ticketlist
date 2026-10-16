@@ -62,11 +62,14 @@ describe('pantallas de administración (render con el mock del BFF)', () => {
     expect(root.textContent).toContain('Administrador');
   });
 
-  it('Usuarios: lista las cuentas y NO ofrece alta', async () => {
+  it('Usuarios: lista las cuentas, ofrece el alta y las acciones de seguridad (clave temporal; no sobre la propia cuenta)', async () => {
     const { root } = await render(Users);
     await vi.waitFor(() => expect(rows(root)).toBe(7), WAIT);
-    expect(buttonTexts(root).some((text) => text.startsWith('Nuevo'))).toBe(false);
+    expect(buttonTexts(root)).toContain('Nuevo usuario');
     expect(root.textContent).toContain('ana@ticketit.dev');
+    // Una acción de «Clave temporal» por cada cuenta MENOS la propia (Marta, la administradora de la sesión).
+    const temporary = buttonTexts(root).filter((text) => text.startsWith('Clave temporal'));
+    expect(temporary.length).toBe((rows(root) - 1) * 2); // 6 cuentas ajenas × (celda de escritorio + card móvil)
   });
 
   it('Menú: lista los ítems del menú sembrado', async () => {

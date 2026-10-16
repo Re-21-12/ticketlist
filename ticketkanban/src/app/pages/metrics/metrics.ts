@@ -1,5 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { ButtonModule } from '@openng/optimus-ui/button';
+import type { IExportTable } from '../../shared/export/list-export.interface';
+import { stamp } from '../../shared/export/list-export.util';
+import { ListExport } from '../../shared/export/list-export';
 import { Badge } from '../../shared/ui/badge/badge';
 import { Illustration } from '../../shared/ui/illustration/illustration';
 import { TICKET_CATEGORY_META } from '../tickets/ticket.constants';
@@ -28,7 +31,7 @@ const categoryLabel = (code: string): string => TICKET_CATEGORY_META[code as TTi
  */
 @Component({
   selector: 'app-metrics',
-  imports: [Badge, ButtonModule, Illustration, MetricsPeriod, MetricSummary, MetricTickets],
+  imports: [Badge, ButtonModule, Illustration, ListExport, MetricsPeriod, MetricSummary, MetricTickets],
   templateUrl: './metrics.html',
   styleUrl: './metrics.css',
 })
@@ -51,6 +54,19 @@ export class Metrics {
       csat: cell(formatScore(s.csat.value), s.csat.status, s.csat.responses),
       averageResolution: formatMinutes(s.resolution.averageMinutes),
     }));
+  });
+
+  /** Reporte del equipo para «Exportar» (PDF, Excel, CSV, texto): lo mismo que la tabla, con la muestra de cada indicador. */
+  protected readonly $agentExport = computed<IExportTable | null>(() => {
+    const rows = this.$agentRows();
+    if (rows.length === 0) return null;
+    const show = (cell: ICell): string => `${cell.display} (n = ${cell.sample})`;
+    return {
+      title: 'Desempeño por colaborador',
+      fileName: `desempeno-por-colaborador-${stamp(new Date())}`,
+      headers: ['Colaborador', 'Correo', 'Pendientes', 'Resueltos', 'Fuera de SLA', 'SLA de resolución', '1.er contacto', 'CSAT', 'Tiempo medio'],
+      rows: rows.map((row) => [row.name, row.email, row.pending, row.resolved, row.overdue, show(row.sla), show(row.fcr), show(row.csat), row.averageResolution]),
+    };
   });
 
   protected readonly $problems = computed(() => {
