@@ -1,0 +1,20 @@
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--app-space-3);
+}
+
+.not-found-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--app-text);
+}
+
+.not-found-text {
+  color: var(--app-text-muted);
+}
+
+.not-found-art {
+  --illustration-width: 10rem;
+}
