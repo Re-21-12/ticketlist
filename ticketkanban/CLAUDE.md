@@ -148,6 +148,7 @@ Port de `Profile` de wallet-api: cabecera (portada + avatar + nombre + rol) y pe
 - Pantallas: `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password?token=`, `/verify-email?token=`, dentro de `AuthLayout` (tarjeta centrada, sin menú). `sign-in` y `sign-up` solo para quien NO tiene sesión (`guestOnlyGuard`).
 - NO hay auto-login: sin sesión, los guards (`authenticatedGuard`, `canGuard`) mandan a `/sign-in?returnUrl=…`. El destino se valida SIEMPRE con `safeReturnUrl` (solo rutas internas; rechaza `//host`, `\`, esquemas, saltos de línea y pantallas de acceso).
 - **Anti-bucle:** todo destino al que redirige un guard debe existir en el router. Con `/sign-in` inexistente, `**` + guard = bucle infinito (pantalla negra, CPU al 100 %). `app.routes.spec.ts` navega sin sesión a cada ruta y lo verifica. La redirección `'' → tickets` va PRIMERA en `app.routes.ts` (el layout de acceso tiene `path: ''` y «coincidiría» con la raíz).
+- **URL inexistente** (`/asdf`): el comodín `**` va al FINAL de `app.routes.ts` y pinta `pages/not-found` («No encontramos esta página») dentro de `AuthLayout`; ya NO redirige (antes devolvía a `''` y la pantalla quedaba vacía). No redirige a nada, así que no puede formar bucle con los guards (`app.routes.spec.ts`).
 - Registro siempre crea VIEWER (el rol nunca viene del cliente). Respuestas anti-enumeración en forgot/resend.
 - «Asignado a» es un `SELECT` cuyas opciones llegan en runtime (`optionsByField` → `$optionsByField`); con más de 5 opciones se pinta como autocomplete.
 
