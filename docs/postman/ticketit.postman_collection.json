@@ -1,0 +1,3297 @@
+{
+  "info": {
+    "_postman_id": "df014bd4-b542-043b-cac9-fcb46d644e32",
+    "name": "Ticketit API",
+    "description": "Generada desde el OpenAPI de la API (`ticketlistbe/scripts/generate-postman.mjs`). Elige un entorno (local, producción o tailnet), rellena `email` y `password` y corre «00 · Prueba de humo». La sesión es por cookie `sid` y las escrituras llevan `X-XSRF-TOKEN` (lo pone el guion de la colección).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const method = pm.request.method.toUpperCase();",
+          "if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {",
+          "  const token = pm.cookies.get('XSRF-TOKEN') || pm.collectionVariables.get('xsrfToken');",
+          "  if (token) pm.request.headers.upsert({ key: 'X-XSRF-TOKEN', value: token });",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const xsrf = pm.cookies.get('XSRF-TOKEN');",
+          "if (xsrf) pm.collectionVariables.set('xsrfToken', xsrf);",
+          "if (pm.response.code >= 400) {",
+          "  let body = {};",
+          "  try { body = pm.response.json(); } catch (e) { /* no era JSON */ }",
+          "  console.warn('HTTP ' + pm.response.code + ' ' + (body.code || '') + ' ' + (body.title || ''));",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "agentEmail",
+      "value": "ana@ticketit.dev"
+    },
+    {
+      "key": "attachmentId",
+      "value": ""
+    },
+    {
+      "key": "auditLogUuid",
+      "value": ""
+    },
+    {
+      "key": "catalogItemUuid",
+      "value": ""
+    },
+    {
+      "key": "catalogKey",
+      "value": "ticket-status"
+    },
+    {
+      "key": "commentUuid",
+      "value": ""
+    },
+    {
+      "key": "jobKey",
+      "value": "auto-close"
+    },
+    {
+      "key": "menuItemUuid",
+      "value": ""
+    },
+    {
+      "key": "notificationUuid",
+      "value": ""
+    },
+    {
+      "key": "problemCode",
+      "value": "SAUT-E004"
+    },
+    {
+      "key": "relationshipUuid",
+      "value": ""
+    },
+    {
+      "key": "rolePermissionUuid",
+      "value": ""
+    },
+    {
+      "key": "sessionId",
+      "value": ""
+    },
+    {
+      "key": "ticketUuid",
+      "value": ""
+    },
+    {
+      "key": "userUuid",
+      "value": ""
+    },
+    {
+      "key": "sessionRole",
+      "value": ""
+    },
+    {
+      "key": "xsrfToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00 · Prueba de humo",
+      "description": "Flujo completo con aserciones: salud → iniciar sesión → shell → crear ticket → leerlo → comentar → historial → error 404 sin detalles internos → cerrar sesión. Úsalo con el entorno elegido (credenciales de un CLIENTE/solicitante: crea y comenta sus tickets). Se corre entero con «Run folder» o con newman.",
+      "item": [
+        {
+          "name": "1 · Salud de la API",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2 · Iniciar sesión",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 y rol del shell', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.user.email).to.eql(pm.environment.get('email'));",
+                  "  pm.collectionVariables.set('sessionRole', body.user.role);",
+                  "});",
+                  "pm.test('cookies de sesión y CSRF', () => {",
+                  "  pm.expect(pm.cookies.has('sid'), 'cookie sid').to.be.true;",
+                  "  pm.expect(pm.cookies.has('XSRF-TOKEN'), 'cookie XSRF-TOKEN').to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sign-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sign-in"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3 · Shell (menú y permisos)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 con usuario y menú', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('user');",
+                  "  pm.expect(body).to.have.property('menu');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bff/shell",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bff",
+                "shell"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4 · Crear ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('creado', () => {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.uuid).to.be.a('string');",
+                  "  pm.collectionVariables.set('ticketUuid', body.uuid);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Prueba de humo Postman {{$timestamp}}\",\n  \"description\": \"Ticket creado por la colección de Postman.\",\n  \"type\": \"incident\",\n  \"category\": \"software\",\n  \"priority\": \"medium\",\n  \"department\": \"it\",\n  \"notifyReporter\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5 · Leer el ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, estado inicial y siguientes pasos', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.uuid).to.eql(pm.collectionVariables.get('ticketUuid'));",
+                  "  pm.expect(body.status).to.be.oneOf(['new', 'assigned']);",
+                  "  pm.expect(body.nextStatuses).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/{{ticketUuid}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "{{ticketUuid}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6 · Comentar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('comentario creado', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Comentario de prueba desde Postman.\",\n  \"internal\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/{{ticketUuid}}/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "{{ticketUuid}}",
+                "comments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "7 · Historial del ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 y el comentario está en el historial', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const events = pm.response.json().data;",
+                  "  pm.expect(events.map((e) => e.type)).to.include('COMMENT_PUBLIC');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/{{ticketUuid}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "{{ticketUuid}}",
+                "events"
+              ]
+            }
+          }
+        },
+        {
+          "name": "8 · Ruta inexistente: error sin detalles internos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 con código del catálogo y sin detalles internos', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('NEST-E404');",
+                  "  pm.expect(body).to.not.have.property('detail');",
+                  "  pm.expect(body).to.not.have.property('stack');",
+                  "  pm.expect(JSON.stringify(body)).to.not.match(/Exception|node_modules|\\.ts:\\d+/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/no-existe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "no-existe"
+              ]
+            }
+          }
+        },
+        {
+          "name": "9 · Sin el token CSRF la API rechaza la escritura",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.headers.upsert({ key: 'X-XSRF-TOKEN', value: 'token-falso' });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 SAUT-E003', () => {",
+                  "  pm.response.to.have.status(403);",
+                  "  pm.expect(pm.response.json().code).to.eql('SAUT-E003');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Sin token CSRF\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/{{ticketUuid}}/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "{{ticketUuid}}",
+                "comments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "10 · Cerrar sesión",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sign-out",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sign-out"
+              ]
+            }
+          }
+        },
+        {
+          "name": "11 · Ya sin sesión: 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Liveness: el proceso está vivo",
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /health/ready",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Readiness: las dependencias responden",
+            "url": {
+              "raw": "{{baseUrl}}/api/health/ready",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health",
+                "ready"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/sign-in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"qa@ticketit.dev\",\n  \"password\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sign-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sign-in"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/sign-out",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sign-out",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sign-out"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BFF",
+      "item": [
+        {
+          "name": "GET /bff/shell",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bff/shell",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bff",
+                "shell"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /bff/board",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bff/board",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bff",
+                "board"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tickets",
+      "item": [
+        {
+          "name": "GET /tickets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "take",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "includeDeleted",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "ASC",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "new",
+                  "disabled": true
+                },
+                {
+                  "key": "priority",
+                  "value": "low",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "incident",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "hardware",
+                  "disabled": true
+                },
+                {
+                  "key": "department",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "mine",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "assigned",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "createdFrom",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "createdTo",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /tickets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"texto de prueba\",\n  \"description\": \"texto de prueba\",\n  \"type\": \"incident\",\n  \"category\": \"hardware\",\n  \"priority\": \"low\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /tickets/{uuid}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /tickets/{uuid}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"texto de prueba\",\n  \"description\": \"texto de prueba\",\n  \"type\": \"incident\",\n  \"category\": \"hardware\",\n  \"priority\": \"low\",\n  \"assigneeEmail\": \"qa@ticketit.dev\",\n  \"estimateHours\": 1,\n  \"dueDate\": \"2026-12-31\",\n  \"notifyReporter\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /tickets/{uuid}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /tickets/{uuid}/restore",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid/restore",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid",
+                "restore"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tickets · Seguimiento",
+      "item": [
+        {
+          "name": "GET /tickets/{uuid}/events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid",
+                "events"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /tickets/{uuid}/comments",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid",
+                "comments"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /tickets/{uuid}/comments/{commentUuid}",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid/comments/:commentUuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid",
+                "comments",
+                ":commentUuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                },
+                {
+                  "key": "commentUuid",
+                  "value": "{{commentUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /tickets/{uuid}/comments/{commentUuid}",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid/comments/:commentUuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid",
+                "comments",
+                ":commentUuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                },
+                {
+                  "key": "commentUuid",
+                  "value": "{{commentUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /tickets/{uuid}/comments/{commentUuid}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid/comments/:commentUuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid",
+                "comments",
+                ":commentUuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                },
+                {
+                  "key": "commentUuid",
+                  "value": "{{commentUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /tickets/{uuid}/transitions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"new\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid/transitions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid",
+                "transitions"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /tickets/{uuid}/assign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assigneeEmail\": \"qa@ticketit.dev\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid/assign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid",
+                "assign"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /tickets/{uuid}/attachments",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid/attachments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid",
+                "attachments"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /tickets/{uuid}/attachments/{attachmentId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid/attachments/:attachmentId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid",
+                "attachments",
+                ":attachmentId"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                },
+                {
+                  "key": "attachmentId",
+                  "value": "{{attachmentId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /tickets/{uuid}/survey",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid/survey",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid",
+                "survey"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /tickets/{uuid}/survey",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resolved\": false,\n  \"score\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/:uuid/survey",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                ":uuid",
+                "survey"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{ticketUuid}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Access control · Role permissions",
+      "item": [
+        {
+          "name": "GET /role-permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/role-permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "role-permissions"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "take",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "includeDeleted",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "ASC",
+                  "disabled": true
+                },
+                {
+                  "key": "role",
+                  "value": "ADMIN",
+                  "disabled": true
+                },
+                {
+                  "key": "subject",
+                  "value": "Ticket",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /role-permissions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\",\n  \"subject\": \"Ticket\",\n  \"action\": \"manage\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/role-permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "role-permissions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /role-permissions/{uuid}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/role-permissions/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "role-permissions",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{rolePermissionUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /role-permissions/{uuid}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\",\n  \"subject\": \"Ticket\",\n  \"action\": \"manage\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/role-permissions/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "role-permissions",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{rolePermissionUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /role-permissions/{uuid}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/role-permissions/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "role-permissions",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{rolePermissionUuid}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Account recovery",
+      "item": [
+        {
+          "name": "POST /auth/sign-up",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"texto de prueba\",\n  \"email\": \"qa@ticketit.dev\",\n  \"password\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sign-up",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sign-up"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/verify-email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-email"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/resend-verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"qa@ticketit.dev\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/resend-verification",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "resend-verification"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/forgot-password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"qa@ticketit.dev\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "forgot-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/recover-password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"totp\",\n  \"email\": \"qa@ticketit.dev\",\n  \"code\": \"texto de prueba\",\n  \"newPassword\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/recover-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "recover-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/reset-password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"texto de prueba\",\n  \"newPassword\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "reset-password"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Account security",
+      "item": [
+        {
+          "name": "PATCH /auth/password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"texto de prueba\",\n  \"newPassword\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /auth/totp",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/totp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "totp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/totp/setup",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/totp/setup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "totp",
+                "setup"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/totp/enable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/totp/enable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "totp",
+                "enable"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/totp/recovery-codes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/totp/recovery-codes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "totp",
+                "recovery-codes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/totp/disable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/totp/disable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "totp",
+                "disable"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /auth/sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/sessions/revoke-others",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions/revoke-others",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions",
+                "revoke-others"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /auth/sessions/{id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit log",
+      "item": [
+        {
+          "name": "GET /audit-logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/audit-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "take",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "includeDeleted",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "ASC",
+                  "disabled": true
+                },
+                {
+                  "key": "action",
+                  "value": "CREATE",
+                  "disabled": true
+                },
+                {
+                  "key": "outcome",
+                  "value": "SUCCESS",
+                  "disabled": true
+                },
+                {
+                  "key": "subject",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "actorUuid",
+                  "value": "00000000-0000-4000-8000-000000000000",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /audit-logs/{uuid}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/audit-logs/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "audit-logs",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{auditLogUuid}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catálogos",
+      "item": [
+        {
+          "name": "GET /catalogs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /catalogs",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"texto de prueba\",\n  \"name\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /catalogs/{key}/options",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogs/:key/options",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogs",
+                ":key",
+                "options"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": "{{catalogKey}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /catalogs/{key}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogs/:key",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogs",
+                ":key"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": "{{catalogKey}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /catalogs/{key}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogs/:key",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogs",
+                ":key"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": "{{catalogKey}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /catalogs/{key}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogs/:key",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogs",
+                ":key"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": "{{catalogKey}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /catalogs/{key}/items",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"texto de prueba\",\n  \"label\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogs/:key/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogs",
+                ":key",
+                "items"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": "{{catalogKey}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /catalogs/{key}/items/{uuid}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"texto de prueba\",\n  \"label\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogs/:key/items/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogs",
+                ":key",
+                "items",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": "{{catalogKey}}"
+                },
+                {
+                  "key": "uuid",
+                  "value": "{{catalogItemUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /catalogs/{key}/items/{uuid}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogs/:key/items/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "catalogs",
+                ":key",
+                "items",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": "{{catalogKey}}"
+                },
+                {
+                  "key": "uuid",
+                  "value": "{{catalogItemUuid}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Menú · Ítems",
+      "item": [
+        {
+          "name": "GET /menu-items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/menu-items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "menu-items"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "take",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "includeDeleted",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "ASC",
+                  "disabled": true
+                },
+                {
+                  "key": "group",
+                  "value": "texto de prueba",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /menu-items",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"texto de prueba\",\n  \"label\": \"texto de prueba\",\n  \"route\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/menu-items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "menu-items"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /menu-items/{uuid}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/menu-items/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{menuItemUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /menu-items/{uuid}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"texto de prueba\",\n  \"label\": \"texto de prueba\",\n  \"route\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/menu-items/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{menuItemUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /menu-items/{uuid}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/menu-items/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{menuItemUuid}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Métricas",
+      "item": [
+        {
+          "name": "GET /metrics/summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "metrics",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /metrics/agents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics/agents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "metrics",
+                "agents"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /metrics/agents/{email}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics/agents/:email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "metrics",
+                "agents",
+                ":email"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "email",
+                  "value": "{{agentEmail}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /metrics/problems",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics/problems",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "metrics",
+                "problems"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /metrics/me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "metrics",
+                "me"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31T12:00:00.000Z",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "GET /notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /notifications/{uuid}/read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/:uuid/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                ":uuid",
+                "read"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{notificationUuid}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Problems (RFC 9457)",
+      "item": [
+        {
+          "name": "GET /problems",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/problems",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "problems"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /problems/{code}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/problems/:code",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "problems",
+                ":code"
+              ],
+              "variable": [
+                {
+                  "key": "code",
+                  "value": "{{problemCode}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Relationships · Administración",
+      "item": [
+        {
+          "name": "GET /relationships/admin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/relationships/admin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "relationships",
+                "admin"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "take",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "includeDeleted",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "ASC",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /relationships/admin/{uuid}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/relationships/admin/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "relationships",
+                "admin",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{relationshipUuid}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Relationships (Titular/Alternante)",
+      "item": [
+        {
+          "name": "GET /relationships",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/relationships",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "relationships"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /relationships",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"alternanteEmail\": \"qa@ticketit.dev\",\n  \"grants\": [\n    {\n      \"objectType\": \"Ticket\"\n    }\n  ],\n  \"consent\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/relationships",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "relationships"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /relationships/{uuid}/grants",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grants\": [\n    {\n      \"objectType\": \"Ticket\"\n    }\n  ],\n  \"consent\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/relationships/:uuid/grants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "relationships",
+                ":uuid",
+                "grants"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{relationshipUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /relationships/{uuid}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/relationships/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "relationships",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{relationshipUuid}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tareas programadas",
+      "item": [
+        {
+          "name": "GET /jobs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "jobs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /jobs/{key}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": false,\n  \"cron\": \"texto de prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/:key",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "jobs",
+                ":key"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": "{{jobKey}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /jobs/{key}/run",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/:key/run",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "jobs",
+                ":key",
+                "run"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": "{{jobKey}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "GET /users/assignable",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/assignable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "assignable"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /users/me/avatar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"avatarIcon\": \"pi-user\",\n  \"avatarColor\": \"#1d4ed8\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/avatar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "avatar"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users · Administración",
+      "item": [
+        {
+          "name": "GET /users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "take",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "includeDeleted",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "texto de prueba",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "ASC",
+                  "disabled": true
+                },
+                {
+                  "key": "role",
+                  "value": "ADMIN",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"texto de prueba\",\n  \"email\": \"qa@ticketit.dev\",\n  \"role\": \"ADMIN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /users/{uuid}/reset-password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:uuid/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                ":uuid",
+                "reset-password"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{userUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /users/{uuid}/reset-totp",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:uuid/reset-totp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                ":uuid",
+                "reset-totp"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{userUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /users/{uuid}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{userUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /users/{uuid}/role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:uuid/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                ":uuid",
+                "role"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{userUuid}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /users/{uuid}/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"disabled\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:uuid/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                ":uuid",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "{{userUuid}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@ NestJS 12 (ESM, `nodenext`: imports relativos con extensión `.js`), Zod 4, CASL
 
 ```bash
 bun run start:dev   # http://localhost:3000/api · Scalar UI en /api/reference · JSON en /api/openapi.json
+bun run docs:postman # regenera la colección de Postman y sus 3 entornos (docs/postman) desde /api/openapi.json (la API corriendo)
 bun run docs:errors # regenera las tablas de docs/standard/error-catalog.md desde el código
 bun run lint        # oxlint
 bun run test        # unit (vitest)
