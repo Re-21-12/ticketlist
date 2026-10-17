@@ -159,6 +159,17 @@ export class TicketsService extends BaseService<TicketEntity, TTicketResponse, T
     if (sent) this.history.record({ ticket, type: 'NOTIFIED', actor: 'system', actorUser: null, body: message });
   }
 
+  /**
+   * Límite de trabajo en progreso (WIP, Kanban): como máximo tantos tickets «En progreso» a la vez como agentes ACTIVOS
+   * hay (mínimo 1). Evita que el equipo abra más frentes de los que puede atender. Solo frena el paso a «En progreso»
+   * (no afecta lo que ya está en curso ni los cambios del sistema, p. ej. cuando el cliente responde).
+   */
+  wip(): { status: 'in_progress'; limit: number; count: number } {
+    const limit = Math.max(1, this.usersRepository.listByRole(EUserRole.AGENT).length);
+    const count = this.repository.findAllRows().filter((row) => row.status === 'in_progress').length;
+    return { status: 'in_progress', limit, count };
+  }
+
   /** El departamento debe ser un elemento activo del catálogo (los administra la organización, no un enum fijo). */
   private assertDepartment(department: string): void {
     if (!this.catalogs.isActiveCode('ticket-department', department)) {
@@ -277,7 +288,10 @@ export class TicketsService extends BaseService<TicketEntity, TTicketResponse, T
         responseDueAt: analysis.firstResponse.dueAt.toISOString(),
         resolutionDueAt: cycle?.dueAt?.toISOString() ?? null,
       },
-      nextStatuses: this.history.nextStatuses(entity, RequestContext.currentUser(), now),
+      nextStatuses: this.history
+        .nextStatuses(entity, RequestContext.currentUser(), now)
+        // Con el límite de trabajo alcanzado no se ofrece iniciar otro (el backend también lo rechaza).
+        .filter((status) => status !== 'in_progress' || entity.status === 'in_progress' || this.wip().count < this.wip().limit),
       createdAt: entity.createdAt.toISOString(),
     });
   }

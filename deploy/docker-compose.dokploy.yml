@@ -84,7 +84,7 @@ services:
       TRUST_PROXY: 'true'
       APP_URL: https://${TICKETIT_DOMAIN:?TICKETIT_DOMAIN es obligatorio}
       CORS_ORIGIN: https://${TICKETIT_DOMAIN:?TICKETIT_DOMAIN es obligatorio}
-      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-true}
       DATABASE_URL: postgresql://${DB_USER:-ticketit}:${DB_PASSWORD:?DB_PASSWORD es obligatorio}@db:5432/${DB_NAME:-ticketit}
       REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD es obligatorio}@redis:6379
       REDIS_KEY_PREFIX: 'ticketit:'

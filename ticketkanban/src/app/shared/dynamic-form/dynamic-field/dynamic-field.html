@@ -80,6 +80,7 @@
          de optimus-ui no expone la interfaz que pide Signal Forms. -->
     <p-editor
       [ngModel]="$state().value()"
+      [ngModelOptions]="{ standalone: true }"
       (onTextChange)="onEditorChange($event.htmlValue)"
       [attr.id]="$fieldId()"
       [readonly]="$isDisabled()"
@@ -279,27 +280,27 @@
   }
   @case (FieldType.CURRENCY) {
     <ng-container *ngTemplateOutlet="label" />
-    <p-inputgroup class="w-full">
-      @if ($hasIcon()) {
-        <p-inputgroup-addon><i [class]="$icon()" aria-hidden="true"></i></p-inputgroup-addon>
-      }
-      <p-inputgroup-addon><span class="select-none font-medium">Q</span></p-inputgroup-addon>
-      <input
-        type="text"
-        inputmode="decimal"
-        pInputText
-        [class.p-invalid]="$showError()"
-        [id]="$fieldId()"
-        [formField]="$anyNode()"
-        [placeholder]="$placeholder() || '0.00'"
-        [attr.aria-required]="$required()"
-        [attr.aria-invalid]="$showError()"
-        [attr.aria-describedby]="$describedBy()"
-        (keypress)="onKeypress($event)"
-        (paste)="onPaste($event)"
-        class="w-full"
-      />
-    </p-inputgroup>
+    <ng-container *ngTemplateOutlet="iconWrap; context: { $implicit: currencyControl }" />
+    <ng-template #currencyControl>
+      <p-inputgroup class="w-full">
+        <p-inputgroup-addon><span class="select-none font-medium">Q</span></p-inputgroup-addon>
+        <input
+          type="text"
+          inputmode="decimal"
+          pInputText
+          [class.p-invalid]="$showError()"
+          [id]="$fieldId()"
+          [formField]="$anyNode()"
+          [placeholder]="$placeholder() || '0.00'"
+          [attr.aria-required]="$required()"
+          [attr.aria-invalid]="$showError()"
+          [attr.aria-describedby]="$describedBy()"
+          (keypress)="onKeypress($event)"
+          (paste)="onPaste($event)"
+          class="w-full"
+        />
+      </p-inputgroup>
+    </ng-template>
   }
   @case (FieldType.SLIDER) {
     <ng-container *ngTemplateOutlet="groupLabel" />
@@ -328,6 +329,7 @@
       <p-rating
         [stars]="$options().length"
         [ngModel]="$ratingLevel()"
+        [ngModelOptions]="{ standalone: true }"
         (ngModelChange)="onRate($event)"
         [readonly]="$isDisabled()"
       />
@@ -421,6 +423,7 @@
         <p-autocomplete
           [inputId]="$fieldId()"
           [ngModel]="$selectedOption()"
+          [ngModelOptions]="{ standalone: true }"
           (ngModelChange)="onSelectAutocomplete($event)"
           [suggestions]="$optionSuggestions()"
           (completeMethod)="filterOptions($event)"

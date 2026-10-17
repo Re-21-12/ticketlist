@@ -407,6 +407,12 @@ export const ERROR_CODES = {
       messageEn: 'That department does not exist or is not available',
       messageEs: 'Ese departamento no existe o no está disponible',
     },
+    WIP_LIMIT_REACHED: {
+      code: 'STCK-E008',
+      httpStatus: HttpStatus.CONFLICT,
+      messageEn: 'The work-in-progress limit was reached: finish a ticket before starting another',
+      messageEs: 'Se alcanzó el límite de trabajo en progreso: termina o resuelve un ticket antes de iniciar otro',
+    },
     ASSIGNEE_NOT_FOUND: {
       code: 'STCK-E006',
       httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,

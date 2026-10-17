@@ -28,7 +28,8 @@
     "migration:revert": "bun node_modules/typeorm/cli.js migration:revert -d src/database/data-source.ts",
     "migration:show": "bun node_modules/typeorm/cli.js migration:show -d src/database/data-source.ts",
     "migration:generate": "bun node_modules/typeorm/cli.js migration:generate -d src/database/data-source.ts",
-    "migration:create": "bun node_modules/typeorm/cli.js migration:create"
+    "migration:create": "bun node_modules/typeorm/cli.js migration:create",
+    "docs:postman": "node scripts/generate-postman.mjs"
   },
   "dependencies": {
     "@casl/ability": "^7.0.1",

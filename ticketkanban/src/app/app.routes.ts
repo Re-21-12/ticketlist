@@ -91,5 +91,17 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: '**', redirectTo: '' },
+  {
+    // Una URL que no existe se dice tal cual (antes `**` redirigía a `''` y la pantalla quedaba vacía). Va al FINAL y dentro
+    // del layout de acceso: sirve con o sin sesión y no puede formar bucle con los guards (no redirige a nada).
+    path: '**',
+    loadComponent: () => import('./layouts/auth-layout/auth-layout').then((m) => m.AuthLayout),
+    children: [
+      {
+        path: '',
+        title: 'Página no encontrada',
+        loadComponent: () => import('./pages/not-found/not-found').then((m) => m.NotFound),
+      },
+    ],
+  },
 ];

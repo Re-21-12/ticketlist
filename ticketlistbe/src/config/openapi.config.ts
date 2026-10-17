@@ -14,17 +14,17 @@ export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
     .setTitle('Ticketit BFF')
     .setDescription(
       [
-        'Recursos (`/api/tickets`) + endpoints por pantalla (`/api/bff/*`).',
+        'Recursos (`/api/tickets`, `/api/users`…) + endpoints por pantalla (`/api/bff/*`).',
         '',
-        '**Sesión mock:** header `x-mock-role` (`ADMIN` | `AGENT` | `VIEWER`).',
+        '**Sesión:** `POST /api/auth/sign-in` deja la cookie `sid` (HttpOnly) y la cookie `XSRF-TOKEN`. Las peticiones que modifican (`POST`, `PATCH`, `PUT`, `DELETE`) deben enviar el encabezado `X-XSRF-TOKEN` con el mismo valor que esa cookie (si no: 403 `SAUT-E003`).',
         '',
-        '**Errores:** todos con el mismo cuerpo (`statusCode`, `error`, `errorCode`, `detail`, `issues`).',
-        'Formato del código `<Capa><Módulo>-E<###>` — catálogo completo en `docs/standard/error-catalog.md`.',
+        '**Errores:** todos con el mismo cuerpo RFC 9457 (`type`, `title`, `status`, `code`, `errors`…), sin detalles internos del servidor.',
+        'Formato del código `<Capa><Módulo>-E<###>` — catálogo completo en `docs/standard/error-catalog.md` y en `GET /api/problems`.',
       ].join('\n'),
     )
     .setVersion('0.0.1')
-    .addApiKey({ type: 'apiKey', in: 'header', name: 'x-mock-role' }, 'mock-role')
-    .addSecurityRequirements('mock-role')
+    .addCookieAuth('sid', undefined, 'session')
+    .addSecurityRequirements('session')
     .build();
   return SwaggerModule.createDocument(app, config);
 }

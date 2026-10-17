@@ -39,6 +39,11 @@ describe('rutas de la app sin sesión', () => {
     expect(router.url).toBe('/sign-in?returnUrl=%2Ftickets');
   });
 
+  it.each(['/asdf', '/tickets/no-existe-esto', '/a/b/c'])('%s no existe: se queda ahí (pantalla «No encontramos esta página»), sin redirigir ni bucle', async (url) => {
+    await router.navigateByUrl(url);
+    expect(router.url).toBe(url);
+  });
+
   it.each(['/tickets', '/profile'])('%s sin sesión aterriza en /sign-in con returnUrl (sin bucle)', async (url) => {
     await router.navigateByUrl(url);
     expect(router.url).toBe(`/sign-in?returnUrl=${encodeURIComponent(url)}`);

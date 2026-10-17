@@ -148,6 +148,7 @@ Port de `Profile` de wallet-api: cabecera (portada + avatar + nombre + rol) y pe
 - Pantallas: `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password?token=`, `/verify-email?token=`, dentro de `AuthLayout` (tarjeta centrada, sin menú). `sign-in` y `sign-up` solo para quien NO tiene sesión (`guestOnlyGuard`).
 - NO hay auto-login: sin sesión, los guards (`authenticatedGuard`, `canGuard`) mandan a `/sign-in?returnUrl=…`. El destino se valida SIEMPRE con `safeReturnUrl` (solo rutas internas; rechaza `//host`, `\`, esquemas, saltos de línea y pantallas de acceso).
 - **Anti-bucle:** todo destino al que redirige un guard debe existir en el router. Con `/sign-in` inexistente, `**` + guard = bucle infinito (pantalla negra, CPU al 100 %). `app.routes.spec.ts` navega sin sesión a cada ruta y lo verifica. La redirección `'' → tickets` va PRIMERA en `app.routes.ts` (el layout de acceso tiene `path: ''` y «coincidiría» con la raíz).
+- **URL inexistente** (`/asdf`): el comodín `**` va al FINAL de `app.routes.ts` y pinta `pages/not-found` («No encontramos esta página») dentro de `AuthLayout`; ya NO redirige (antes devolvía a `''` y la pantalla quedaba vacía). No redirige a nada, así que no puede formar bucle con los guards (`app.routes.spec.ts`).
 - Registro siempre crea VIEWER (el rol nunca viene del cliente). Respuestas anti-enumeración en forgot/resend.
 - «Asignado a» es un `SELECT` cuyas opciones llegan en runtime (`optionsByField` → `$optionsByField`); con más de 5 opciones se pinta como autocomplete.
 
@@ -223,6 +224,16 @@ Port de `Profile` de wallet-api: cabecera (portada + avatar + nombre + rol) y pe
 - **Mis tickets** suma: con el ticket «Resuelto» muestra la solución (y sus fotos) y «Confirmar cierre» / «Reabrir ticket» (motivo opcional; reabrir avisa al agente, A3); al confirmar abre la **encuesta** (`SurveyDialogService`: ¿se resolvió? sí/no obligatorio, 1–5 y comentario opcional). Un comentario propio ofrece «Editar», que el backend rechaza siempre con 409 `STCK-E002` y la pantalla lo dice junto al comentario (A1: «Los comentarios previos no pueden modificarse»).
 - **Tareas programadas** (`pages/jobs/`, `/jobs`, solo administrador; sujeto CASL `ScheduledJob`): `app-job-card` por tarea con activar/desactivar, frecuencia (presets o cron propio validado al instante con `cron.util.ts`, espejo del backend; zona UTC−6), plazo en horas del cierre automático (1–720), «Ejecutar ahora», próxima y última corrida. Los errores 400 se muestran junto al campo (sin toast). Lo cubren `jobs.spec.ts` y `mock-bff.evidence-jobs.spec.ts`.
 - **Mock**: `mock-attachments.ts` registra cada archivo como `blob:` para la vista previa; `mock-jobs.ts` + `handleJobs` simulan `/api/jobs` (el «Ejecutar ahora» cierra los resueltos vencidos según el plazo configurado) y los adjuntos viajan con `attachmentIds`.
+
+### Pruebas de aceptación (Playwright, `ticketkanban/e2e/`)
+
+- `npm run e2e` corre las pruebas de los hallazgos D-01…D-05 y deja las capturas en `docs/evidencias/` (raíz del repo, índice en su `README.md`). Pantallas contra el front con el BFF simulado (`npm start -- --port 4310`); D-04 contra el backend real (`bun run start:dev`, `E2E_API_URL`). `E2E_NO_SERVER=1` si ya están corriendo.
+- Sesión del mock en memoria: NO recargar la página tras entrar (se pierde); se navega con los enlaces (`goTo`). Para PREPARAR datos se usa `inApp` (el `HttpClient` de un componente vía la API `ng` de desarrollo); lo que se comprueba va siempre por la interfaz.
+
+### Tablero: límite de trabajo en progreso (WIP)
+
+- La columna que contiene «En progreso» muestra «En progreso: n de m» (`board.wip`; m = agentes activos) y, al llegar al tope, el aviso «Límite alcanzado»; la tarjeta ya no ofrece «Iniciar atención» ni «Mover a… En progreso» (`nextStatuses` lo trae el backend) y el servidor responde 409 `STCK-E008`. El mock lo repite (`wip()` en `mock-bff.handler.ts`).
+- Topbar en móvil: bajo 768 px los botones quedan como ícono (el texto sigue en el DOM como nombre accesible) y nada se sale de la pantalla (`layout.css`, `e2e/d02-*`).
 
 ### Asignar, reabrir y cerrar (pantallas del diseño)
 

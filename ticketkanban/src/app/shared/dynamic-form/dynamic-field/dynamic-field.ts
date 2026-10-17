@@ -42,6 +42,9 @@ import { filterKeypress, filterPaste, resolveInputFilter } from '../utils/input-
 export const SELECT_AUTOCOMPLETE_THRESHOLD = 5;
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
+/** Estado de un nodo del formulario (valor, tocado, errores…): lo que devuelve invocar el `FieldTree`. */
+type TFieldState = ReturnType<FieldTree<unknown>>;
+
 type TUploadState =
   | { status: 'idle' }
   | { status: 'uploading' }
@@ -112,13 +115,11 @@ export class DynamicField {
    * llega como `FieldTree<unknown>` (el modelo es dinámico) y cada control declara inputs propios
    * (`pattern: string`, `minLength`…) que chocan con el FieldState. Esos estados solo se llenan con
    * reglas nativas y aquí toda la validación es Zod, así que en runtime nunca se escriben: el
-   * `switch` sobre `type` garantiza que el control recibe el valor que su tipo espera. wallet-api
-   * resuelve lo mismo tipando el input `node` como `any`.
+   * `switch` sobre `type` garantiza que el control recibe el valor que su tipo espera.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected readonly $anyNode = computed((): any => this.$node());
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected readonly $state = computed((): any => this.$node()());
+  protected readonly $anyNode = computed((): any => this.$node() as any);
+  protected readonly $state = computed((): TFieldState => this.$node()() as TFieldState);
 
   protected readonly $required = computed(() => this.$constraints().required);
   protected readonly $fieldId = computed(() => `field-${this.$field().key}`);
@@ -211,25 +212,37 @@ export class DynamicField {
   });
   protected readonly $ratingLabel = computed(() => this.$options()[this.$ratingLevel() - 1]?.label ?? '');
 
-  protected onRate(level: number | null): void {
-    const option = level ? this.$options()[level - 1] : undefined;
-    this.$state().value.set(option ? option.value : null);
+  protected onRate(level: number | { value: number | null } | null): void {
+    const raw = typeof level === 'object' && level !== null ? level.value : level;
+    const value = raw && raw > 0 ? raw : null;
+    const option = value ? this.$options()[value - 1] : undefined;
+    this.$state().value.set(option?.value ?? null);
     this.markTouched();
   }
 
-  protected readonly $optionSuggestions = signal<IFieldOption[]>([]);
-  protected readonly $textSuggestions = signal<string[]>([]);
+  protected readonly $optionQuery = signal('');
+  protected readonly $textQuery = signal('');
+
+  protected readonly $optionSuggestions = computed(() => {
+    const q = this.$optionQuery().toLowerCase().trim();
+    const opts = this.$options();
+    if (!q) return opts;
+    return opts.filter((option) => option.label.toLowerCase().includes(q));
+  });
+
+  protected readonly $textSuggestions = computed(() => {
+    const q = this.$textQuery().toLowerCase().trim();
+    const opts = this.$options();
+    return opts.filter((option) => !q || option.label.toLowerCase().includes(q)).map((option) => option.label);
+  });
 
   protected filterOptions(event: { query: string }): void {
-    const query = (event.query ?? '').toLowerCase();
-    this.$optionSuggestions.set(
-      this.$options().filter((option) => !query || option.label.toLowerCase().includes(query)),
-    );
+    this.$optionQuery.set(event.query ?? '');
   }
 
   /** El autocomplete de SELECT trabaja con el objeto de la opción; el modelo guarda su `value`. */
   protected onSelectAutocomplete(selected: unknown): void {
-    if (selected && typeof selected === 'object' && 'value' in selected) {
+    if (selected && typeof selected === 'object' && 'value' in (selected as IFieldOption)) {
       this.$state().value.set((selected as IFieldOption).value);
     } else if (selected === null || selected === '') {
       this.$state().value.set(null);
@@ -238,12 +251,7 @@ export class DynamicField {
   }
 
   protected filterText(event: { query: string }): void {
-    const query = (event.query ?? '').toLowerCase();
-    this.$textSuggestions.set(
-      this.$options()
-        .filter((option) => !query || option.label.toLowerCase().includes(query))
-        .map((option) => option.label),
-    );
+    this.$textQuery.set(event.query ?? '');
   }
 
   // ── FILE ───────────────────────────────────────────────────────────────────────────────────────
@@ -340,8 +348,12 @@ export class DynamicField {
 
   /** El editor entrega HTML; un editor vacío (`<p><br></p>`) se guarda como `''`. */
   protected onEditorChange(html: string | null): void {
-    const value = html ?? '';
-    this.$state().value.set(value.replace(/<[^>]*>/g, '').trim() === '' && !value.includes('<a') ? '' : value);
+    const raw = html ?? '';
+    // Considerar vacío si no tiene texto visible Y no tiene elementos no vacíos relevantes (img, a, iframe, video)
+    const textOnly = raw.replace(/<[^>]+>/g, '').trim();
+    const hasNonEmptyBlock = /<(img|a\s+href|iframe|video|audio)\b/i.test(raw);
+    const value = textOnly === '' && !hasNonEmptyBlock ? '' : raw;
+    this.$state().value.set(value);
     this.markTouched();
   }
 

@@ -116,4 +116,24 @@ describe('mock BFF · correcciones de la auditoría', () => {
     expect(label('in_progress')).toBe('En progreso');
     expect(label('resolved')).toBe('Resuelto');
   });
+
+  it('D-01 · límite WIP: «En progreso» no pasa del número de agentes (el mock repite la regla del backend)', async () => {
+    await store.signInAs(EUserRole.ADMIN);
+    const board = () => firstValueFrom(http.get<{ wip: { limit: number; count: number } }>('/api/bff/board'));
+    expect((await board()).wip).toMatchObject({ limit: 2, count: 1 }); // Ana y Luis; TCK-001 ya está en curso
+
+    const assigned = async (title: string) => (await firstValueFrom(http.post<{ uuid: string }>('/api/tickets', { ...DRAFT, title, assigneeEmail: 'ana@ticketit.dev' }))).uuid;
+    const first = await assigned('Primero');
+    const second = await assigned('Segundo');
+    await firstValueFrom(http.post(`/api/tickets/${first}/transitions`, { to: 'in_progress' }));
+    expect((await board()).wip).toMatchObject({ limit: 2, count: 2 });
+
+    const view = await firstValueFrom(http.get<{ nextStatuses: string[] }>(`/api/tickets/${second}`));
+    expect(view.nextStatuses).not.toContain('in_progress');
+    expect(await codeOf(firstValueFrom(http.post(`/api/tickets/${second}/transitions`, { to: 'in_progress' })))).toBe('STCK-E008');
+
+    // Resolver uno libera el cupo.
+    await firstValueFrom(http.post(`/api/tickets/${first}/transitions`, { to: 'resolved', resolution: 'Listo.' }));
+    await firstValueFrom(http.post(`/api/tickets/${second}/transitions`, { to: 'in_progress' }));
+  });
 });

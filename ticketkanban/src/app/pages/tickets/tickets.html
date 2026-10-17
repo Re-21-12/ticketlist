@@ -66,6 +66,21 @@
               {{ column.tickets.length }}<span class="sr-only"> tickets</span>
             </span>
           </h2>
+          <!-- Límite de trabajo en progreso (WIP, Kanban): cuántos «En progreso» hay y cuántos admite el equipo. -->
+          @if (column.statuses.includes('in_progress')) {
+            @let inProgress = inProgressIn(column);
+            @let full = inProgress >= board.data.wip.limit;
+            <p class="board-wip" [class.board-wip--full]="full" role="status">
+              <app-badge
+                [$label]="'En progreso: ' + inProgress + ' de ' + board.data.wip.limit"
+                [$icon]="full ? 'pi-exclamation-triangle' : 'pi-gauge'"
+                [$severity]="full ? 'warn' : 'secondary'"
+              />
+              @if (full) {
+                <span class="board-wip-hint">Límite alcanzado: resuelve un ticket antes de iniciar otro.</span>
+              }
+            </p>
+          }
           <ul
             class="board-cards"
             cdkDropList

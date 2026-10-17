@@ -126,7 +126,7 @@ En local la API corre en `production` sin HTTPS, así que la cookie de sesión (
 
 - [ ] Los 3 secretos creados (dueño `1000:1000`, modo `400`) y la clave TOTP respaldada aparte.
 - [ ] `SEED_DEMO_DATA=false` (no existen cuentas con clave pública).
-- [ ] `API_DOCS_ENABLED=false` (sin Scalar/OpenAPI público).
+- [ ] `API_DOCS_ENABLED`: en este entorno de pruebas (proyecto universitario) queda en `true` por defecto → Scalar en `/api/reference` y el OpenAPI en `/api/openapi.json` (de ahí sale la colección de Postman). Si el despliegue pasa a producción real, ponlo en `false`.
 - [ ] DNS y certificado emitido; `/api/health/ready` responde `ok`.
 - [ ] Contraseña del administrador cambiada y autenticador (TOTP) activado.
 - [ ] Respaldo programado del volumen de Postgres (`ticketit-postgres`, o la base `ticketit` en la integración con wallet) **y del de MinIO** (`ticketit-minio`, o el bucket `ticketit-evidence` del MinIO de wallet): ahí viven los datos y la evidencia.

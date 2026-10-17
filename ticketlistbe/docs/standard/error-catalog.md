@@ -153,6 +153,7 @@ Reglas de negocio y autorización por registro (`BaseService.assertCan`) o por t
 | `STCK-E004` | 409 | `ERROR_CODES.TCK.REOPEN_WINDOW_EXPIRED` | Venció el plazo para reabrir el ticket; registra uno nuevo | The reopening window has expired; open a new ticket |
 | `STCK-E005` | 403 | `ERROR_CODES.TCK.ASSIGNMENT_FORBIDDEN` | Solo puedes tomar tickets que no tengan responsable | You can only take tickets that have no assignee |
 | `STCK-E007` | 422 | `ERROR_CODES.TCK.DEPARTMENT_INVALID` | Ese departamento no existe o no está disponible | That department does not exist or is not available |
+| `STCK-E008` | 409 | `ERROR_CODES.TCK.WIP_LIMIT_REACHED` | Se alcanzó el límite de trabajo en progreso: termina o resuelve un ticket antes de iniciar otro | The work-in-progress limit was reached: finish a ticket before starting another |
 | `STCK-E006` | 422 | `ERROR_CODES.TCK.ASSIGNEE_NOT_FOUND` | Esa persona no puede recibir tickets | That person cannot be assigned tickets |
 | `SATT-E001` | 413 | `ERROR_CODES.ATT.TOO_LARGE` | El archivo supera el tamaño permitido | The file is too large |
 | `SATT-E002` | 415 | `ERROR_CODES.ATT.TYPE_NOT_ALLOWED` | Ese tipo de archivo no está permitido | That file type is not allowed |
@@ -414,6 +415,7 @@ La validación del DTO corre ANTES del servicio: una contraseña débil devuelve
 | `RSES-E001` | `SessionIndexService.revoke` | El id de sesión no existe o no es del usuario (mismo 404: no se revela que existe) |
 | `SSES-E001` | `SessionIndexService.revoke` | Se intentó cerrar la sesión ACTUAL desde «Mis sesiones» (se usa «Cerrar sesión») |
 | `SAUT-E008` | `AuthSessionService.signIn` | La contraseña es correcta pero el correo no se verificó (solo se dice DESPUÉS de acertar la contraseña: quien no la sabe no aprende nada) |
+| `STCK-E008` | `TicketLifecycleService.transition` | Se pidió pasar a «En progreso» con el límite de trabajo (WIP) alcanzado: tantos tickets en curso como agentes activos (`context.limit`, `context.count`). No aplica a los cambios del sistema |
 | `STCK-E007` | `TicketsService.toEntity` · `mergeEntity` | El `department` no es un elemento ACTIVO del catálogo `ticket-department` (se revalida solo si cambia) |
 | `SAUT-E009` | `AccountRecoveryService.verifyEmail` · `resetPassword` | El token no existe, ya se usó o venció (24 h verificación, 45 min restablecer) |
 | `SAUT-E010` | `AccountRecoveryService.recoverPassword` | Código TOTP o contraseña actual incorrectos, cuenta inexistente o sin autenticador: MISMA respuesta en todos (anti-enumeración) |
