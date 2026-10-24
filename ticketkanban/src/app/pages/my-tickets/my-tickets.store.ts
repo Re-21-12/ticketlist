@@ -1,7 +1,7 @@
 import { computed, inject, Service, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
-import { mapResourceState, type TAsyncState } from '../../core/interfaces/async-state.types';
+import { mapResource, type TAsyncState } from '../../core/interfaces/async-state.types';
 import { readProblem } from '../../core/interfaces/problem-details.interface';
 import { NotificationStreamService } from '../../core/realtime/notification-stream.service';
 import { CatalogOptionsService } from '../../shared/catalog-options/catalog-options.service';
@@ -44,8 +44,8 @@ export class MyTicketsStore {
   /** Supervisión y auditoría ven TODOS los tickets; el agente, lo suyo. */
   readonly $scope = this._service.$scope;
 
-  readonly $listState = computed<TAsyncState<TMyTicketList>>(() => mapResourceState(this._service.list.status(), this._service.list.value(), this._service.list.error()));
-  readonly $eventsState = computed<TAsyncState<TTicketEventList>>(() => mapResourceState(this._service.events.status(), this._service.events.value(), this._service.events.error()));
+  readonly $listState = computed<TAsyncState<TMyTicketList>>(() => mapResource(this._service.list));
+  readonly $eventsState = computed<TAsyncState<TTicketEventList>>(() => mapResource(this._service.events));
   readonly $selectedUuid = this._service.$uuid;
 
   /** El ticket elegido, si está entre los de la lista. */

@@ -8,7 +8,7 @@ import {
 } from '@angular/common/http';
 import { catchError, firstValueFrom, map, of, type Observable } from 'rxjs';
 import { suppressErrorToast } from '../interceptors/suppress-error-toast.token';
-import { mapResourceState, type TAsyncState } from './async-state.types';
+import { mapResource, type TAsyncState } from './async-state.types';
 import type { IPaginatedResult } from './paginated-result.interface';
 
 /**
@@ -141,7 +141,7 @@ export abstract class BaseApiAbstract<
   );
 
   readonly $listState = computed<TAsyncState<IPaginatedResult<TResponse>>>(() =>
-    mapResourceState(this.list.status(), this.list.value(), this.list.error()),
+    mapResource(this.list),
   );
   readonly $listIsLoading = computed(() => this.$listState().kind === 'loading');
   readonly $listError = computed<HttpErrorResponse | undefined>(() => {
@@ -149,7 +149,7 @@ export abstract class BaseApiAbstract<
     return state.kind === 'error' ? state.error : undefined;
   });
   readonly $itemState = computed<TAsyncState<TResponse>>(() =>
-    mapResourceState(this.item.status(), this.item.value(), this.item.error()),
+    mapResource(this.item),
   );
 
   create(dto: TCreate, context?: HttpContext): Observable<TResponse> {

@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { ButtonModule } from '@openng/optimus-ui/button';
-import { mapResourceState, type TAsyncState } from '../../../core/interfaces/async-state.types';
+import { mapResource, type TAsyncState } from '../../../core/interfaces/async-state.types';
 import { Illustration } from '../../../shared/ui/illustration/illustration';
 import { MetricSummary } from '../metric-summary/metric-summary';
 import { MetricTickets } from '../metric-tickets/metric-tickets';
@@ -22,7 +22,7 @@ export class MyMetrics {
   protected readonly _service = inject(MyMetricsService);
 
   protected readonly $state = computed<TAsyncState<TAgentDetail>>(() =>
-    mapResourceState(this._service.me.status(), this._service.me.value(), this._service.me.error()),
+    mapResource(this._service.me),
   );
 
   protected reload(): void {

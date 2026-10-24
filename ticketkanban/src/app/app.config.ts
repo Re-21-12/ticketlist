@@ -1,5 +1,6 @@
 import {
   ApplicationConfig,
+  ErrorHandler,
   inject,
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
@@ -12,6 +13,7 @@ import { ConfirmationService, MessageService } from '@openng/optimus-ui/api';
 import { routes } from './app.routes';
 import { AppAbility } from './core/casl/casl.types';
 import { environment } from '../environments/environment';
+import { AppErrorHandler } from './core/errors/app-error-handler';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { mockBffInterceptor } from './core/mock-bff/mock-bff.interceptor';
 import { skipTransitionIfReducedMotion } from './core/motion/view-transition.util';
@@ -33,6 +35,8 @@ const interceptors: HttpInterceptorFn[] = [
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    // En producción los errores no capturados no se imprimen en la consola (ver AppErrorHandler).
+    { provide: ErrorHandler, useClass: AppErrorHandler },
     provideRouter(
       routes,
       withComponentInputBinding(),

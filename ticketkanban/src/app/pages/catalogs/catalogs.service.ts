@@ -2,7 +2,7 @@ import { HttpClient, httpResource } from '@angular/common/http';
 import { computed, inject, Service, signal } from '@angular/core';
 import { map, type Observable } from 'rxjs';
 import { CatalogOptionsService } from '../../shared/catalog-options/catalog-options.service';
-import { mapResourceState } from '../../core/interfaces/async-state.types';
+import { mapResource } from '../../core/interfaces/async-state.types';
 import {
   CatalogDetailSchema,
   CatalogItemSchema,
@@ -41,9 +41,9 @@ export class CatalogsService {
     { parse: (raw) => CatalogDetailSchema.parse(raw) },
   );
 
-  readonly $listState = computed(() => mapResourceState(this.list.status(), this.list.value(), this.list.error()));
+  readonly $listState = computed(() => mapResource(this.list));
   readonly $detailState = computed(() =>
-    mapResourceState<TCatalogDetail>(this.detail.status(), this.detail.value(), this.detail.error()),
+    mapResource<TCatalogDetail>(this.detail),
   );
 
   select(key: string | undefined): void {
