@@ -10,4 +10,15 @@
   [$submitting]="data.submitting()"
   [$optionsByField]="data.optionsByField?.() ?? {}"
   ($submitted)="data.onSubmit($event)"
-/>
+>
+  <!-- Alta con evidencia: va en el último paso, antes de «Crear ticket». -->
+  @if (data.evidence; as files) {
+    <app-evidence-picker
+      formExtra
+      [$inputId]="'dialog-evidence-input'"
+      [$files]="files()"
+      ($filesChange)="files.set($event)"
+      [$disabled]="data.submitting()"
+    />
+  }
+</app-dynamic-form>

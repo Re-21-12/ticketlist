@@ -27,6 +27,12 @@ class OptionsHost {
 }
 
 describe('SELECT: autocomplete con MÁS de 5 opciones y opciones en runtime', () => {
+  // jsdom no trae `matchMedia` y el overlay de optimus-ui lo pide al abrirse.
+  beforeAll(() => {
+    window.matchMedia ??= ((query: string) =>
+      ({ matches: false, media: query, onchange: null, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent: () => false }) as MediaQueryList) as typeof window.matchMedia;
+  });
+
   async function render() {
     TestBed.configureTestingModule({ providers: [provideOptimus({})] });
     const fixture = TestBed.createComponent(OptionsHost);
@@ -38,7 +44,7 @@ describe('SELECT: autocomplete con MÁS de 5 opciones y opciones en runtime', ()
       fixture.componentInstance.$byField.set(value);
       await fixture.whenStable();
     };
-    return { kind, set };
+    return { kind, set, fixture };
   }
 
   it('el umbral es 5', () => {
@@ -65,5 +71,24 @@ describe('SELECT: autocomplete con MÁS de 5 opciones y opciones en runtime', ()
     // Terminó de cargar con menos personal: vuelve a select sin recrear el formulario.
     await set({ who: options(3) });
     expect(kind()).toBe('select');
+  });
+
+  it('al pulsar la flecha SIN escribir nada la lista se abre con todas las opciones (y la segunda vez también)', async () => {
+    const { set, fixture } = await render();
+    await set({ who: options(8) });
+    const root = fixture.nativeElement as HTMLElement;
+    const arrow = root.querySelector<HTMLElement>('.p-autocomplete-dropdown')!;
+    const listed = () => document.body.querySelectorAll('[role="option"]').length;
+
+    arrow.click();
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(listed()).toBe(8));
+    expect(root.querySelector('.p-autocomplete-loader')).toBeNull(); // sin spinner pegado
+
+    arrow.click(); // cierra
+    await fixture.whenStable();
+    arrow.click(); // vuelve a abrir con la misma consulta vacía
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(listed()).toBe(8));
   });
 });

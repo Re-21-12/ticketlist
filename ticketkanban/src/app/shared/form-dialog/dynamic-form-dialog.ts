@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { DynamicDialogConfig } from '@openng/optimus-ui/dynamicdialog';
 import { DynamicForm } from '../dynamic-form/dynamic-form';
+import { EvidencePicker } from '../evidence/evidence-picker/evidence-picker';
 import { SummaryCard } from '../ui/summary-card/summary-card';
 import type { TDynamicFormDialogData } from './form-dialog-options.interface';
 
@@ -14,7 +15,7 @@ import type { TDynamicFormDialogData } from './form-dialog-options.interface';
  */
 @Component({
   selector: 'app-dynamic-form-dialog',
-  imports: [DynamicForm, SummaryCard],
+  imports: [DynamicForm, EvidencePicker, SummaryCard],
   templateUrl: './dynamic-form-dialog.html',
   styleUrl: './dynamic-form-dialog.css',
 })

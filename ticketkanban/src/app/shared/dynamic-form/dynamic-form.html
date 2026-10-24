@@ -1,3 +1,6 @@
+<!-- Contenido propio de la pantalla (p. ej. la evidencia): UN solo punto de proyección, pintado donde toque. -->
+<ng-template #formExtra><ng-content select="[formExtra]" /></ng-template>
+
 @if ($tree(); as formTree) {
   <form class="flex w-full flex-col gap-6" [formRoot]="formTree">
     @if (!$sections()) {
@@ -23,6 +26,9 @@
                     *ngTemplateOutlet="fieldGrid; context: { $implicit: fieldsFor(section) }"
                   />
                 </div>
+                @if (isLast && !$readonlyMode()) {
+                  <div class="mt-6"><ng-container *ngTemplateOutlet="formExtra" /></div>
+                }
                 <div class="mt-6 flex items-center gap-2">
                   @if (i > 0) {
                     <button
@@ -87,8 +93,10 @@
       }
     }
 
-    <!-- Contenido propio de la pantalla justo antes de los botones (p. ej. la evidencia del alta rápida). -->
-    <ng-content select="[formExtra]" />
+    <!-- Justo antes de los botones (p. ej. la evidencia del alta rápida); con stepper va en el último paso. -->
+    @if (!($sections() && $layout() === 'stepper')) {
+      <ng-container *ngTemplateOutlet="formExtra" />
+    }
 
     @if (!$readonlyMode() && (!$sections() || $layout() !== 'stepper')) {
       <div class="flex gap-2">

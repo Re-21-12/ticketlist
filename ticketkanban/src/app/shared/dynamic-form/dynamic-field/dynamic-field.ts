@@ -220,24 +220,18 @@ export class DynamicField {
     this.markTouched();
   }
 
-  protected readonly $optionQuery = signal('');
-  protected readonly $textQuery = signal('');
-
-  protected readonly $optionSuggestions = computed(() => {
-    const q = this.$optionQuery().toLowerCase().trim();
-    const opts = this.$options();
-    if (!q) return opts;
-    return opts.filter((option) => option.label.toLowerCase().includes(q));
-  });
-
-  protected readonly $textSuggestions = computed(() => {
-    const q = this.$textQuery().toLowerCase().trim();
-    const opts = this.$options();
-    return opts.filter((option) => !q || option.label.toLowerCase().includes(q)).map((option) => option.label);
-  });
+  /**
+   * Sugerencias del autocomplete. Son `signal` que se REEMPLAZAN en cada búsqueda (un arreglo nuevo cada vez), no `computed`:
+   * `p-autocomplete` muestra el spinner al pedir sugerencias y solo abre la lista (y lo quita) cuando `suggestions` CAMBIA
+   * de referencia. Con un `computed` y la consulta vacía (clic en la flecha, `dropdownMode="blank"`) devolvía el MISMO arreglo,
+   * el spinner se quedaba girando y la lista nunca se abría hasta escribir algo.
+   */
+  protected readonly $optionSuggestions = signal<IFieldOption[]>([]);
+  protected readonly $textSuggestions = signal<string[]>([]);
 
   protected filterOptions(event: { query: string }): void {
-    this.$optionQuery.set(event.query ?? '');
+    const query = (event.query ?? '').toLowerCase().trim();
+    this.$optionSuggestions.set(this.$options().filter((option) => !query || option.label.toLowerCase().includes(query)));
   }
 
   /** El autocomplete de SELECT trabaja con el objeto de la opción; el modelo guarda su `value`. */
@@ -251,7 +245,12 @@ export class DynamicField {
   }
 
   protected filterText(event: { query: string }): void {
-    this.$textQuery.set(event.query ?? '');
+    const query = (event.query ?? '').toLowerCase().trim();
+    this.$textSuggestions.set(
+      this.$options()
+        .filter((option) => !query || option.label.toLowerCase().includes(query))
+        .map((option) => option.label),
+    );
   }
 
   // ── FILE ───────────────────────────────────────────────────────────────────────────────────────

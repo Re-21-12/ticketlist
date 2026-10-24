@@ -16,9 +16,11 @@ import { SelectModule } from '@openng/optimus-ui/select';
 import { CanPipe } from '../../core/casl/can.pipe';
 import { MotionService } from '../../core/motion/motion.service';
 import type { IFieldOption } from '../../shared/dynamic-form/field-config.interface';
+import type { IPickedEvidence } from '../../shared/evidence/evidence-picker/evidence-picker';
 import { FormDialogService } from '../../shared/form-dialog/form-dialog.service';
 import { Badge } from '../../shared/ui/badge/badge';
 import { ElapsedClock } from '../../shared/ui/elapsed-clock/elapsed-clock';
+import { EvidenceAttachService } from './evidence-attach.service';
 import { SlaRanges } from './sla-ranges/sla-ranges';
 import { TicketFilters } from './ticket-filters/ticket-filters';
 import { SLA_STATE_META } from './ticket.constants';
@@ -61,6 +63,9 @@ export class Tickets {
   private readonly _dialogService = inject(DialogService);
   private _resolveRef: DynamicDialogRef | null = null;
   private readonly _messageService = inject(MessageService);
+  private readonly _attacher = inject(EvidenceAttachService);
+  /** Evidencia elegida en el diálogo «Nuevo ticket»; se sube al crearlo (el bucket guarda la evidencia POR ticket). */
+  private readonly $_newTicketFiles = signal<IPickedEvidence[]>([]);
 
   /** Etiquetas, íconos y colores vienen de los catálogos (editables); los códigos son los del contrato. */
   protected readonly $departmentByCode = this._ticketsStore.$departmentByCode;
@@ -236,6 +241,7 @@ export class Tickets {
   }
 
   protected openCreate(): void {
+    this.$_newTicketFiles.set([]);
     void this._formDialogService.open({
       header: 'Nuevo ticket',
       definition: this._ticketsStore.$form(),
@@ -244,8 +250,19 @@ export class Tickets {
       optionsByField: () => this._ticketsStore.formOptions(),
       submitLabel: 'Crear ticket',
       submitting: this._ticketsStore.$saving,
-      onSubmit: (dto) => this.save(() => this._ticketsStore.create(dto), 'Ticket creado'),
+      evidence: this.$_newTicketFiles,
+      onSubmit: (dto) => this.save(() => this.createWithEvidence(dto), 'Ticket creado'),
     });
+  }
+
+  /** Crea el ticket y sube la evidencia elegida; si algún archivo falla el ticket queda creado y se avisa cuál. */
+  private async createWithEvidence(dto: Parameters<TicketsStore['create']>[0]): Promise<TTicket> {
+    const ticket = await this._ticketsStore.create(dto);
+    const failed = await this._attacher.attach(ticket.uuid, this.$_newTicketFiles());
+    if (failed > 0) {
+      this._messageService.add({ severity: 'warn', summary: 'Falta evidencia', detail: EvidenceAttachService.missingDetail(failed), life: 8000 });
+    }
+    return ticket;
   }
 
   protected openEdit(ticket: TTicket): void {
