@@ -1,6 +1,8 @@
+import type { WritableSignal } from '@angular/core';
 import type { z } from 'zod';
 import type { IFieldOption } from '../dynamic-form/field-config.interface';
 import type { IFormDefinition } from '../dynamic-form/form-definition.interface';
+import type { IPickedEvidence } from '../evidence/evidence-picker/evidence-picker';
 import type { ISummaryCard } from '../ui/summary-card/summary-card';
 
 /** Lo único que cambia por pantalla al abrir el modal de alta/edición. */
@@ -19,6 +21,11 @@ export interface IFormDialogOptions<TSchema extends z.ZodObject = z.ZodObject> {
   optionsByField?: () => Record<string, IFieldOption[]>;
   /** Tarjeta de resumen sobre el formulario (p. ej. el ticket que se acaba de cerrar). */
   summary?: ISummaryCard;
+  /**
+   * Selector de evidencia en el ÚLTIMO paso (solo altas): el caller lee los archivos de esta señal y los sube al crear.
+   * Se pasa la señal (no un valor) porque el diálogo vive en otro componente y la escribe al elegir/quitar archivos.
+   */
+  evidence?: WritableSignal<IPickedEvidence[]>;
   /** Override del ancho; por defecto se adapta a la cantidad de campos. */
   width?: { width: string; maxWidth: string };
 }
@@ -27,4 +34,4 @@ export interface IFormDialogOptions<TSchema extends z.ZodObject = z.ZodObject> {
 export type TDynamicFormDialogData = Required<
   Pick<IFormDialogOptions, 'definition' | 'onSubmit' | 'submitting'>
 > &
-  Pick<IFormDialogOptions, 'initialData' | 'readonlyMode' | 'submitLabel' | 'optionsByField' | 'summary'>;
+  Pick<IFormDialogOptions, 'initialData' | 'readonlyMode' | 'submitLabel' | 'optionsByField' | 'summary' | 'evidence'>;

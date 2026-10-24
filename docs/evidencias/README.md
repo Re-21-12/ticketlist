@@ -1,4 +1,4 @@
-# Evidencias de los hallazgos D-01 … D-05
+# Evidencias de los hallazgos D-01 … D-05 (y D-06, revisión posterior)
 
 Capturas generadas por las pruebas de **Playwright** (`ticketkanban/e2e/`). Cada archivo lleva el código del hallazgo.
 Se regeneran en cada corrida (`npm run e2e` en `ticketkanban/`); el informe HTML queda en `ticketkanban/e2e/.informe/`.
@@ -10,6 +10,7 @@ Se regeneran en cada corrida (`npm run e2e` en `ticketkanban/`); el informe HTML
 | **D-03** TOTP sin imagen QR | RNF-09 | `e2e/d03-totp-qr.spec.ts` | `D-03-1-codigo-qr-y-clave.png` · `D-03-2-codigos-de-recuperacion.png` · `D-03-3-autenticador-activo.png` |
 | **D-04** Mensajes de error internos | RNF-10 | `e2e/d04-errores-seguros.spec.ts` (contra el backend real) | `D-04-404-ruta-inexistente.png` · `D-04-405-metodo-no-permitido.png` · `D-04-401-sin-sesion.png` · `D-04-400-validacion.png` · `D-04-401-credenciales-incorrectas.png` |
 | **D-05** Alta rápida sin documento | RF-03 | `e2e/d05-alta-rapida-evidencia.spec.ts` | `D-05-1-alta-rapida-con-evidencia.png` · `D-05-2-evidencia-en-el-historial.png` |
+| **D-06** Catálogos sin lista al abrir, «Nuevo ticket» sin adjuntos y sin «Recargar» (revisión posterior) | RF-03 | `e2e/d06-nuevo-ticket-y-recarga.spec.ts` | `D-06-1-categoria-lista-al-abrir.png` · `D-06-2-nuevo-ticket-con-evidencia.png` · `D-06-3-evidencia-en-el-historial.png` · `D-06-4-boton-recargar-en-el-tablero.png` |
 
 ## Cómo se corrigió cada uno
 - **D-01** — Límite de trabajo en progreso (WIP): como máximo tantos tickets «En progreso» a la vez como agentes activos. El tablero muestra «En progreso: n de m»; al llegar al tope no ofrece «Iniciar atención» ni «Mover a… En progreso» y el servidor responde 409 `STCK-E008`. Los cambios del sistema (el cliente responde) no se frenan.
@@ -17,6 +18,7 @@ Se regeneran en cada corrida (`npm run e2e` en `ticketkanban/`); el informe HTML
 - **D-03** — El alta del autenticador muestra el QR (generado en el navegador), la clave para copiar y, al confirmar, 10 códigos de recuperación de un solo uso.
 - **D-04** — Los errores del framework (`NEST-E<status>`) ya no usan el nombre de la clase (`NotFoundException`) ni el mensaje original (`Cannot GET /api/…`): hablan en lenguaje de negocio, sin `detail`. Credenciales incorrectas: «Correo electrónico o contraseña incorrectos».
 - **D-05** — El alta rápida acepta evidencia (imágenes, PDF, Excel, CSV, videos cortos): se valida al elegirla, se sube al crear el ticket y queda en el historial.
+- **D-06** — Las listas de catálogo (Departamento, Categoría, «Asignado a») se abren al pulsar la flecha SIN escribir (antes quedaba el spinner girando: `p-autocomplete` solo abre al CAMBIAR la referencia de `suggestions`). El diálogo «Nuevo ticket» del tablero acepta evidencia en su último paso (mismo servicio que el alta rápida) y el tablero tiene el botón «Recargar» para todos los roles.
 
 ## Cómo repetirlo
 ```bash

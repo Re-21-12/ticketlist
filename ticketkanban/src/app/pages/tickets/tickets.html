@@ -8,8 +8,19 @@
     </p>
   </div>
   <app-illustration class="page-art" [$name]="'tickets'" />
-  @if (canCreate) {
-    <div class="board-header-actions">
+  <div class="board-header-actions">
+    <button
+      type="button"
+      pButton
+      severity="secondary"
+      [outlined]="true"
+      [disabled]="_ticketsStore.$visibleBoard().kind === 'loading'"
+      (click)="_ticketsStore.reload()"
+    >
+      <i pButtonIcon class="pi pi-refresh" aria-hidden="true"></i>
+      <span pButtonLabel>Recargar</span>
+    </button>
+    @if (canCreate) {
       <a pButton severity="secondary" [outlined]="true" routerLink="/tickets/new">
         <i pButtonIcon class="pi pi-bolt" aria-hidden="true"></i>
         <span pButtonLabel>Alta rápida</span>
@@ -18,8 +29,8 @@
         <i pButtonIcon class="pi pi-plus" aria-hidden="true"></i>
         <span pButtonLabel>Nuevo ticket</span>
       </button>
-    </div>
-  }
+    }
+  </div>
 </header>
 
 @if (('update' | can: 'Ticket')()) {

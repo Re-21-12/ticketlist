@@ -42,6 +42,7 @@ export class FormDialogService {
         submitting,
         optionsByField: options.optionsByField,
         summary: options.summary,
+        evidence: options.evidence,
       };
 
       this._ref = this._dialogService.open(DynamicFormDialog, {
