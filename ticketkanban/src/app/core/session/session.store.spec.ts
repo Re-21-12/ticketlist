@@ -67,7 +67,8 @@ describe('SessionStore (con el mock del BFF)', () => {
     const error = await firstValueFrom(http.get('/api/tickets')).catch((e: unknown) => e);
     const problem = readProblem(error);
     expect(problem).toMatchObject({ status: 401, code: 'SAUT-E002', type: '/api/problems/SAUT-E002' });
-    expect(toast.add).toHaveBeenCalledWith(expect.objectContaining({ summary: problem!.title }));
+    // Sin sesión previa no se avisa de nada: no hay nada que decirle a quien ya salió (ver error.interceptor.spec.ts).
+    expect(toast.add).not.toHaveBeenCalled();
   });
 
   it('400 de validación: errors[] con JSON Pointer', async () => {
