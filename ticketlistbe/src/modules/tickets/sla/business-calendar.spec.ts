@@ -1,4 +1,12 @@
-import { addBusinessMinutes, businessMinutesBetween, DEFAULT_CALENDAR, type IBusinessCalendar } from './business-calendar.js';
+import {
+  addBusinessMinutes,
+  businessMinutesBetween,
+  DEFAULT_CALENDAR,
+  isBareDate,
+  localDayEnd,
+  localDayStart,
+  type IBusinessCalendar,
+} from './business-calendar.js';
 
 /**
  * Zona UTC−6 (Guatemala), jornada 8:00–17:00 de lunes a viernes. Las fechas del test se escriben en
@@ -96,5 +104,30 @@ describe('addBusinessMinutes', () => {
 
   it('un calendario sin días laborales falla fuerte (no cuelga)', () => {
     expect(() => addBusinessMinutes(local(`${MON}T09:00:00`), 60, { ...DEFAULT_CALENDAR, workDays: [] })).toThrow();
+  });
+});
+
+describe('día local del calendario (fechas sin hora de los períodos y filtros)', () => {
+  it('isBareDate: solo `YYYY-MM-DD`, sin hora ni desplazamiento', () => {
+    expect(isBareDate('2026-10-28')).toBe(true);
+    expect(isBareDate('2026-10-28T10:00:00Z')).toBe(false);
+    expect(isBareDate('28/10/2026')).toBe(false);
+  });
+
+  it('un día va de las 00:00 a las 23:59:59.999 HORA LOCAL (UTC−6), no del día UTC', () => {
+    expect(localDayStart('2026-10-28').toISOString()).toBe('2026-10-28T06:00:00.000Z');
+    expect(localDayEnd('2026-10-28').toISOString()).toBe('2026-10-29T05:59:59.999Z');
+  });
+
+  it('lo cerrado a las 23:03 locales (05:03Z del día siguiente) SÍ cae dentro del día local: el bug del período', () => {
+    const closedAt = new Date('2026-10-29T05:03:00.000Z'); // 23:03 del 28 en Guatemala
+    expect(closedAt.getTime()).toBeGreaterThanOrEqual(localDayStart('2026-10-28').getTime());
+    expect(closedAt.getTime()).toBeLessThanOrEqual(localDayEnd('2026-10-28').getTime());
+    // Leído como día UTC (lo que se hacía) quedaba FUERA:
+    expect(closedAt.getTime()).toBeGreaterThan(new Date('2026-10-28T23:59:59.999Z').getTime());
+  });
+
+  it('respeta el desfase del calendario recibido', () => {
+    expect(localDayStart('2026-10-28', { ...DEFAULT_CALENDAR, utcOffsetMinutes: 0 }).toISOString()).toBe('2026-10-28T00:00:00.000Z');
   });
 });

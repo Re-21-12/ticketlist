@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type * as z from 'zod';
 import { EUserRole } from '../auth/casl/ability.enum.js';
-import { DEFAULT_CALENDAR } from '../tickets/sla/business-calendar.js';
+import { DEFAULT_CALENDAR, isBareDate, localDayEnd, localDayStart } from '../tickets/sla/business-calendar.js';
 import { TicketHistoryService } from '../tickets/ticket-history.service.js';
 import type { TicketEntity } from '../tickets/ticket.entity.js';
 import { TicketSurveysRepository } from '../tickets/surveys/ticket-surveys.repository.js';
@@ -160,9 +160,14 @@ export class MetricsService {
   }
 
   private period(query: TPeriodQuery, now: Date): IPeriod {
-    // Una fecha sin hora cubre el día completo (hasta el último milisegundo) en UTC.
-    const to = query.to ? (query.to.length === 10 ? new Date(new Date(query.to).getTime() + DAY_MS - 1) : new Date(query.to)) : now;
-    const from = query.from ? new Date(query.from) : new Date(to.getTime() - DEFAULT_PERIOD_DAYS * DAY_MS);
+    // Una fecha sin hora es el DÍA LOCAL del calendario (UTC−6): del 00:00 al último milisegundo de ese día local.
+    // Con hora o desplazamiento se respeta el instante que trae el cliente.
+    const to = query.to ? (isBareDate(query.to) ? localDayEnd(query.to) : new Date(query.to)) : now;
+    const from = query.from
+      ? isBareDate(query.from)
+        ? localDayStart(query.from)
+        : new Date(query.from)
+      : new Date(to.getTime() - DEFAULT_PERIOD_DAYS * DAY_MS);
     return { from, to };
   }
 

@@ -95,8 +95,9 @@ Cuerpos de seguimiento: `POST /:uuid/transitions` acepta `attachmentIds` (eviden
 | `createdFrom` · `createdTo` | rango por **fecha de registro** (`createdAt`), extremos INCLUSIVOS |
 
 `createdFrom`/`createdTo` aceptan `YYYY-MM-DD` o una fecha con hora/desplazamiento; sin hora se
-interpretan en **UTC** (como el período de métricas) y un `createdTo` de solo fecha se lleva al
-**último milisegundo del día**, para que «Hoy» incluya todo el día. `final < inicial` o un rango de
+interpretan como el **día LOCAL del negocio (UTC−6)**, igual que el período de métricas (`2026-10-28` = de
+`2026-10-28T06:00Z` a `2026-10-29T05:59:59.999Z`), y un `createdTo` de solo fecha se lleva al **último
+milisegundo de ese día local**, para que «Hoy» incluya todo el día (también lo registrado de noche). `final < inicial` o un rango de
 más de 366 días son 400 `CVAL-E001` (`TCK.DATE_RANGE_ORDER` / `TCK.DATE_RANGE_TOO_LONG`). El
 predicado vive en `ticket-date-range.ts`; sin los dos parámetros no se filtra por fecha.
 

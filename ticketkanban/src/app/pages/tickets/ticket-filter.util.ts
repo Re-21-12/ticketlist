@@ -1,3 +1,4 @@
+import { businessDayEnd, businessDayStart } from '../../core/time/business-day.util';
 import type { TTicket } from './ticket.types';
 
 /** Filtros de búsqueda de tickets; `''` / `false` = sin filtrar por ese criterio. */
@@ -56,12 +57,13 @@ export function serverFilters(filters: ITicketFilters): Record<string, string> |
 const normalize = (text: string): string =>
   text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-/** Instantes del rango en UTC, con el mismo criterio del backend (`ticket-date-range.ts`): un `createdTo`
- *  de SOLO fecha llega al último milisegundo del día, para que «Hoy» no deje fuera lo de hace un minuto. */
+/** Instantes del rango, con el mismo criterio del backend (`ticket-date-range.ts`): una fecha sin hora es el DÍA LOCAL del negocio
+ *  (UTC−6) y un `createdTo` de SOLO fecha llega al último milisegundo de ese día, para que «Hoy» no deje fuera lo de hace un minuto
+ *  (ni lo registrado de noche, que en UTC ya es el día siguiente). */
 function rangeBounds(filters: ITicketFilters): { from: number; to: number } | null {
   if (!filters.createdFrom && !filters.createdTo) return null;
-  const from = filters.createdFrom ? new Date(`${filters.createdFrom}T00:00:00.000Z`).getTime() : -Infinity;
-  const to = filters.createdTo ? new Date(`${filters.createdTo}T00:00:00.000Z`).getTime() + 86_399_999 : Infinity;
+  const from = filters.createdFrom ? businessDayStart(filters.createdFrom).getTime() : -Infinity;
+  const to = filters.createdTo ? businessDayEnd(filters.createdTo).getTime() : Infinity;
   if (Number.isNaN(from) || Number.isNaN(to)) return null;
   return { from, to };
 }

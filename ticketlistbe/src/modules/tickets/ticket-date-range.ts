@@ -7,20 +7,18 @@
  * tiene que INCLUIR todo lo registrado ese día, así que el extremo final se lleva al último
  * milisegundo (`23:59:59.999`), no a las 00:00 como `new Date()` haría.
  *
- * Fechas sin hora (`2026-10-03`) se interpretan en UTC, igual que el período de
- * `modules/metrics/metrics.schema.ts`; con hora o desplazamiento se respeta el que trae el cliente.
+ * Fechas sin hora (`2026-10-03`) son el DÍA LOCAL del calendario del negocio (UTC−6), igual que el período de métricas
+ * (`localDayStart`/`localDayEnd`); con hora o desplazamiento se respeta el que trae el cliente.
  */
+import { isBareDate, localDayEnd, localDayStart } from './sla/business-calendar.js';
 
-const END_OF_DAY_MS = 86_399_999;
 /** Techo del rango, el mismo que en métricas (`MAX_PERIOD_DAYS`): evita filtrar por 40 años. */
 export const MAX_DATE_RANGE_DAYS = 366;
 
-const BARE_DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-/** Instante inicial del filtro (`YYYY-MM-DD` → medianoche UTC; con hora → tal cual). */
+/** Instante inicial del filtro (`YYYY-MM-DD` → 00:00 hora local; con hora → tal cual). */
 export function rangeStart(from: string | undefined): Date | null {
   if (!from) return null;
-  const date = new Date(from);
+  const date = isBareDate(from) ? localDayStart(from) : new Date(from);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -30,9 +28,8 @@ export function rangeStart(from: string | undefined): Date | null {
  */
 export function rangeEnd(to: string | undefined): Date | null {
   if (!to) return null;
-  if (!BARE_DATE.test(to)) return new Date(to);
-  const end = new Date(`${to}T00:00:00.000Z`);
-  return Number.isNaN(end.getTime()) ? null : new Date(end.getTime() + END_OF_DAY_MS);
+  const end = isBareDate(to) ? localDayEnd(to) : new Date(to);
+  return Number.isNaN(end.getTime()) ? null : end;
 }
 
 /**
