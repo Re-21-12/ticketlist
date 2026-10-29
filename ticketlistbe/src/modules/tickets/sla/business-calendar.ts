@@ -25,6 +25,26 @@ export const DEFAULT_CALENDAR: IBusinessCalendar = {
   holidays: [],
 };
 
+const DAY_MS_LOCAL = 24 * 60 * 60_000;
+const BARE_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** `true` si el texto es solo una fecha (`YYYY-MM-DD`), sin hora ni desplazamiento. */
+export const isBareDate = (value: string): boolean => BARE_DATE.test(value);
+
+/**
+ * Primer instante (00:00 HORA LOCAL del calendario) del día `YYYY-MM-DD`, como instante UTC. Con UTC−6, `2026-10-28` empieza
+ * a las `2026-10-28T06:00Z`. Una fecha sin hora que llega de la pantalla es el día de QUIEN LA ELIGIÓ, no el día UTC: leerla como
+ * UTC cortaba el período a las 18:00 locales y dejaba fuera todo lo cerrado esa noche.
+ */
+export function localDayStart(day: string, calendar: IBusinessCalendar = DEFAULT_CALENDAR): Date {
+  return new Date(Date.parse(`${day}T00:00:00.000Z`) - calendar.utcOffsetMinutes * 60_000);
+}
+
+/** Último milisegundo (23:59:59.999 hora local) del día `YYYY-MM-DD`: el extremo INCLUSIVO de un período que termina ese día. */
+export function localDayEnd(day: string, calendar: IBusinessCalendar = DEFAULT_CALENDAR): Date {
+  return new Date(localDayStart(day, calendar).getTime() + DAY_MS_LOCAL - 1);
+}
+
 /** Intervalo en milisegundos UTC; `end: null` = abierto (p. ej. una pausa que sigue vigente). */
 export interface IInterval {
   readonly start: number;

@@ -20,6 +20,7 @@ import { AVATAR_COLORS, AVATAR_ICONS } from '../ui/user-avatar/avatar.const';
 import { buildShell, handleAdmin, isActiveCatalogCode, recordAudit, resetAdminState, type IMockHelpers } from './mock-bff.admin';
 import { buildViewerShell, MOCK_SHELLS, MOCK_TICKETS, type IMockTicket } from './mock-bff.data';
 import { mockAgentDetail, mockAgentsResponse, mockProblems, mockSummaryResponse, type IMockMetricsInput } from './mock-metrics';
+import { businessDayEnd, businessDayStart, isBareDate } from '../time/business-day.util';
 import { EVIDENCE_MAX_BYTES } from '../../shared/evidence/evidence.constants';
 import { kindOfFile } from '../../shared/evidence/evidence.util';
 import type { TAttachmentRef } from '../../shared/evidence/evidence.types';
@@ -743,11 +744,17 @@ function metricsInput(req: HttpRequest<unknown>, url: URL): IMockMetricsInput | 
   const now = new Date();
   const rawFrom = url.searchParams.get('from');
   const rawTo = url.searchParams.get('to');
-  const dateOnly = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
-  const parse = (v: string | null) => (v && !Number.isNaN(new Date(v).getTime()) ? new Date(v) : null);
-  if ((rawFrom && !parse(rawFrom)) || (rawTo && !parse(rawTo))) return fail(req, 400, 'CVAL-E001', 'Datos inválidos');
-  const to = rawTo ? new Date((parse(rawTo) as Date).getTime() + (dateOnly(rawTo) ? 86_400_000 - 1 : 0)) : now;
-  const from = rawFrom ? (parse(rawFrom) as Date) : new Date(to.getTime() - 30 * 86_400_000);
+  // Una fecha sin hora es el DÍA LOCAL del negocio (UTC−6), igual que el backend; con hora se respeta el instante.
+  const parse = (v: string | null, edge: 'start' | 'end') => {
+    if (!v) return null;
+    const date = isBareDate(v) ? (edge === 'start' ? businessDayStart(v) : businessDayEnd(v)) : new Date(v);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+  const parsedFrom = parse(rawFrom, 'start');
+  const parsedTo = parse(rawTo, 'end');
+  if ((rawFrom && !parsedFrom) || (rawTo && !parsedTo)) return fail(req, 400, 'CVAL-E001', 'Datos inválidos');
+  const to = parsedTo ?? now;
+  const from = parsedFrom ?? new Date(to.getTime() - 30 * 86_400_000);
   if (from > to) return fail(req, 400, 'CVAL-E001', 'Datos inválidos');
   if ((to.getTime() - from.getTime()) / 86_400_000 > 366) return fail(req, 400, 'CVAL-E001', 'Datos inválidos');
   return {

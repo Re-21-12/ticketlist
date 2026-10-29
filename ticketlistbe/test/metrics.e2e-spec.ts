@@ -104,6 +104,19 @@ describe('Métricas (e2e)', () => {
       const res = (await sergio.agent.get(`/api/metrics/summary?from=${day}&to=${day}`).expect(200)).body;
       expect(new Date(res.period.to).getTime() - new Date(res.period.from).getTime()).toBe(86_400_000 - 1);
     });
+
+    it('la fecha sin hora es el día LOCAL (UTC−6): del 00:00 al 23:59:59.999 locales, y «hoy» incluye lo registrado ahora', async () => {
+      const sergio = await login('sergio@ticketit.dev');
+      const localToday = new Date(Date.now() - 6 * 3_600_000).toISOString().slice(0, 10); // el día que ve quien consulta
+      const res = (await sergio.agent.get(`/api/metrics/summary?from=${localToday}&to=${localToday}`).expect(200)).body;
+      expect(res.period.from).toBe(`${localToday}T06:00:00.000Z`);
+      expect(new Date(res.period.to).getTime()).toBe(new Date(`${localToday}T06:00:00.000Z`).getTime() + 86_400_000 - 1);
+      await scenario(1, { resolve: true, close: true });
+      const after = (await sergio.agent.get(`/api/metrics/summary?from=${localToday}&to=${localToday}`).expect(200)).body.summary;
+      expect(after.tickets.created).toBeGreaterThanOrEqual(1);
+      expect(after.tickets.resolved).toBeGreaterThanOrEqual(1);
+      expect(after.tickets.closed).toBeGreaterThanOrEqual(1);
+    });
   });
 
   describe('fórmulas sobre datos reales', () => {

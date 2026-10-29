@@ -37,13 +37,9 @@ describe('Ticket: filtro por fecha de registro (e2e)', () => {
   }
 
   const body = { title: 'Filtro por fecha', description: '', type: 'incident', category: 'email', priority: 'medium' };
-  /** Fechas locales en `YYYY-MM-DD` (el filtro usa UTC; el test compara día y día, no instante). */
-  const iso = (date: Date) => date.toISOString().slice(0, 10);
-  const dayOffset = (days: number) => {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() + days);
-    return iso(d);
-  };
+  /** Día LOCAL del negocio (UTC−6) en `YYYY-MM-DD`: el filtro lee una fecha sin hora como día local, no UTC. */
+  const iso = (date: Date) => new Date(date.getTime() - 6 * 3_600_000).toISOString().slice(0, 10);
+  const dayOffset = (days: number) => iso(new Date(Date.now() + days * 86_400_000));
 
   it('«hoy» devuelve lo registrado hoy y nada de días anteriores', async () => {
     const marta = await login('marta@ticketit.dev');

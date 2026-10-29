@@ -196,6 +196,7 @@ Port de `Profile` de wallet-api: cabecera (portada + avatar + nombre + rol) y pe
 - **Botones**: todo `pButton` lleva ícono (`pButtonIcon`) + `pButtonLabel`; el submit del formulario dinámico usa `pi-check`.
 
 - **Departamento de origen**: campo `department` del ticket (select con el catálogo EDITABLE `ticket-department`; `CatalogOptionsService.options(..., open = true)` muestra también los departamentos que la organización agregue). «TI (interno)» = nace dentro del equipo de TI. Se ve como insignia «Origen: …» en la tarjeta y como columna.
+- **Fechas sin hora = día LOCAL del negocio (UTC−6)**: `core/time/business-day.util.ts` (`businessDayStart/End`, espejo del backend) lo aplican el filtro de fechas del tablero y el BFF simulado. Las métricas mandan `from`/`to` como `YYYY-MM-DD` locales y el servidor los lee igual; en UTC el período terminaba a las 18:00 locales.
 - **Filtros** (`app-ticket-filters`, criterios en `TicketsStore.$filters`): búsqueda (sin acentos), departamento, urgencia, tipo, categoría, estado, «solo mis tickets» y «fuera de SLA». El tablero filtra en el cliente (`$visibleBoard`, «Mostrando n de m»); el listado envía al servidor los que el backend sabe filtrar (`serverFilters`).
 
 ### Insignias, íconos y colores
