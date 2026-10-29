@@ -2,7 +2,7 @@ import { HttpClient, httpResource } from '@angular/common/http';
 import { computed, inject, Service } from '@angular/core';
 import { forkJoin, map, of, type Observable } from 'rxjs';
 import * as z from 'zod';
-import { mapResourceState } from '../../core/interfaces/async-state.types';
+import { mapResource } from '../../core/interfaces/async-state.types';
 import type { EAbility, EUserRole } from '../../core/casl/ability.enum';
 import type { TSubjects } from '../../core/casl/casl.types';
 import { RolePermissionSchema } from '../role-permissions/role-permission.schema';
@@ -33,8 +33,8 @@ export class RoleMatrixService {
     parse: (raw) => UsersPageSchema.parse(raw),
   });
 
-  readonly $rulesState = computed(() => mapResourceState(this.rules.status(), this.rules.value(), this.rules.error()));
-  readonly $usersState = computed(() => mapResourceState(this.users.status(), this.users.value(), this.users.error()));
+  readonly $rulesState = computed(() => mapResource(this.rules));
+  readonly $usersState = computed(() => mapResource(this.users));
 
   reload(): void {
     this.rules.reload();

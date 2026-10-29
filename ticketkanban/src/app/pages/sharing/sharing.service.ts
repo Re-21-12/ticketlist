@@ -1,7 +1,7 @@
 import { HttpClient, httpResource } from '@angular/common/http';
 import { computed, inject, Service } from '@angular/core';
 import { map, type Observable } from 'rxjs';
-import { mapResourceState } from '../../core/interfaces/async-state.types';
+import { mapResource } from '../../core/interfaces/async-state.types';
 import { RelationshipListSchema, RelationshipSchema } from './relationship.schema';
 import type { TGrantsForm, TRelationship, TShareForm } from './relationship.types';
 
@@ -21,7 +21,7 @@ export class SharingService {
   private readonly _http = inject(HttpClient);
 
   readonly list = httpResource(() => BASE, { parse: (raw) => RelationshipListSchema.parse(raw) });
-  readonly $listState = computed(() => mapResourceState(this.list.status(), this.list.value(), this.list.error()));
+  readonly $listState = computed(() => mapResource(this.list));
 
   reload(): void {
     this.list.reload();

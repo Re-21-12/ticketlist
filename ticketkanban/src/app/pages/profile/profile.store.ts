@@ -1,6 +1,6 @@
 import { computed, inject, Service } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { mapResourceState, type TAsyncState } from '../../core/interfaces/async-state.types';
+import { mapResource, type TAsyncState } from '../../core/interfaces/async-state.types';
 import { SessionStore } from '../../core/session/session.store';
 import { createStateMachine } from '../../shared/fsm/create-state-machine';
 import { ProfileService } from './profile.service';
@@ -43,12 +43,12 @@ export class ProfileStore {
 
   readonly $sessionsState = computed<TAsyncState<TSessionList>>(() => {
     const sessions = this._profileService.sessions;
-    return mapResourceState(sessions.status(), sessions.value(), sessions.error());
+    return mapResource(sessions);
   });
 
   readonly $notificationsState = computed<TAsyncState<TNotificationList>>(() => {
     const notifications = this._profileService.notifications;
-    return mapResourceState(notifications.status(), notifications.value(), notifications.error());
+    return mapResource(notifications);
   });
   readonly $unreadNotifications = computed(() => {
     const state = this.$notificationsState();

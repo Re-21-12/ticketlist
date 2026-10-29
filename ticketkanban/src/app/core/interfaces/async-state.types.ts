@@ -12,27 +12,28 @@ export type TAsyncState<T, E = HttpErrorResponse> =
   | { kind: 'success'; data: T }
   | { kind: 'error'; error: E };
 
+/** Lo mínimo que `mapResource` lee de un `httpResource` (lo cumple cualquier recurso de Angular; las pruebas usan uno de mentira). */
+export interface IResourceLike<T> {
+  status(): ResourceStatus;
+  error(): unknown;
+  hasValue(): boolean;
+  value(): T | undefined;
+}
+
 /**
- * Mapea el `status()` de un `httpResource` a `TAsyncState`:
- *  - idle → idle · loading sin data previa → loading
- *  - loading con data previa / reloading / resolved / local → success (stale-while-revalidate)
- *  - error → error
+ * Mapea un `httpResource` a `TAsyncState`:
+ *  - idle → idle · error → error
+ *  - con valor (resolved, reloading o loading con data previa) → success (stale-while-revalidate)
+ *  - SIN valor (primera carga, o recargando después de un error) → loading
+ *
+ * Recibe el RECURSO y no sus tres lecturas: en el estado de error `value()` LANZA (`ResourceValueError`), así que leerlo
+ * por adelantado rompía el computed; y tras un error + recarga el estado es `reloading` SIN valor, que antes se devolvía
+ * como `success` con `data` indefinido (el `state.data.data` de las pantallas fallaba con «e.data is undefined»).
  */
-export function mapResourceState<T, E = HttpErrorResponse>(
-  status: ResourceStatus,
-  value: T | undefined,
-  error: unknown,
-): TAsyncState<T, E> {
-  switch (status) {
-    case 'error':
-      return { kind: 'error', error: error as E };
-    case 'resolved':
-    case 'reloading':
-    case 'local':
-      return { kind: 'success', data: value as T };
-    case 'loading':
-      return value !== undefined ? { kind: 'success', data: value } : { kind: 'loading' };
-    default:
-      return { kind: 'idle' };
-  }
+export function mapResource<T, E = HttpErrorResponse>(resource: IResourceLike<T>): TAsyncState<T, E> {
+  const status = resource.status();
+  if (status === 'idle') return { kind: 'idle' };
+  if (status === 'error') return { kind: 'error', error: resource.error() as E };
+  const value = resource.hasValue() ? resource.value() : undefined;
+  return value === undefined ? { kind: 'loading' } : { kind: 'success', data: value };
 }

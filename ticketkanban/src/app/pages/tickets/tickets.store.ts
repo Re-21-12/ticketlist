@@ -1,7 +1,7 @@
 import { computed, inject, Injector, Service, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, firstValueFrom } from 'rxjs';
-import { mapResourceState, type TAsyncState } from '../../core/interfaces/async-state.types';
+import { mapResource, type TAsyncState } from '../../core/interfaces/async-state.types';
 import { SessionStore } from '../../core/session/session.store';
 import { CatalogOptionsService } from '../../shared/catalog-options/catalog-options.service';
 import type { IFieldOption } from '../../shared/dynamic-form/field-config.interface';
@@ -92,7 +92,7 @@ export class TicketsStore {
 
   readonly $boardState = computed<TAsyncState<TTicketBoard>>(() => {
     const board = this._ticketsService.board;
-    return mapResourceState(board.status(), board.value(), board.error());
+    return mapResource(board);
   });
 
   /**
